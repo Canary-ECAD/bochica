@@ -1,35 +1,31 @@
-import { ArrowUp } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { Navigate } from "@tanstack/react-router";
+import { Composer } from "@/components/composer";
+import { MessageList } from "@/components/message-list";
+import { useModelChoice } from "@/state/model-choice";
+import { retry, sendMessage, stopTurn, useSessions } from "@/state/sessions";
 
-export function SessionPage() {
-  const { t } = useTranslation();
-  const [draft, setDraft] = useState("");
+export function SessionPage({ sessionId }: { sessionId: string }) {
+  const session = useSessions((state) => state.sessions[sessionId]);
+  const { choice } = useModelChoice();
+
+  if (!session) return <Navigate to="/" />;
+
+  const streaming = session.messages.find((m) => m.status === "streaming");
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6">
-      <div className="w-full max-w-2xl">
-        <h1 className="mb-6 text-center text-2xl font-medium">{t("session.greeting")}</h1>
-
-        <form
-          className="rounded-lg border bg-background p-3 shadow-sm focus-within:ring-2 focus-within:ring-ring"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder={t("session.placeholder")}
-            rows={3}
-            className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{t("session.agentNotReady")}</span>
-            <Button type="submit" size="icon" disabled aria-label={t("session.send")}>
-              <ArrowUp />
-            </Button>
-          </div>
-        </form>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <MessageList
+        messages={session.messages}
+        onRetry={(turnId) => {
+          if (choice) retry(sessionId, turnId, choice);
+        }}
+      />
+      <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+        <Composer
+          autoFocus
+          onSend={(text, picked) => sendMessage(sessionId, text, picked)}
+          onStop={streaming ? () => stopTurn(streaming.id) : undefined}
+        />
       </div>
     </div>
   );

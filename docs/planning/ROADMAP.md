@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: [S2 — Streaming chat](sprints/S2-chat.md)**
+**Active sprint: [S3 — EPLAN docs over MCP](sprints/S3-mcp-docs.md)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -9,11 +9,11 @@ Each milestone ends with something a non-technical user could try.
 A user installs the dev build, pastes an API key and gets answers grounded in the EPLAN 2027
 documentation.
 
-| Sprint                          | Goal                                                                                                                | Status  |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S1](sprints/S1-foundations.md) | Quality gate, error handling, API keys stored safely and testable from Settings                                     | Done    |
-| [S2](sprints/S2-chat.md)        | Streaming chat with any configured provider; Claude Code-style message view                                         | Active  |
-| S3                              | MCP client; P8 2027 docs RAG always on, 2026/EEC Pro toggles; tool calls shown in the chat; approval card framework | Outline |
+| Sprint                          | Goal                                                                                                                | Status |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
+| [S1](sprints/S1-foundations.md) | Quality gate, error handling, API keys stored safely and testable from Settings                                     | Done   |
+| [S2](sprints/S2-chat.md)        | Streaming chat with any configured provider; Claude Code-style message view                                         | Done   |
+| [S3](sprints/S3-mcp-docs.md)    | MCP client; P8 2027 docs RAG always on, 2026/EEC Pro toggles; tool calls shown in the chat; approval card framework | Active |
 
 ## M1 — Act on EPLAN
 

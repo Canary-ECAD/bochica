@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S1 done.** The app shell runs: sidebar, empty session, Settings with AI-provider keys
-> (encrypted, testable) and language. Not built yet: the agent loop, MCP connections,
+> **Status: S2 done.** Streaming chat with any configured provider (model picker, Markdown, Stop,
+> error cards), in-memory sessions, and Settings with encrypted API keys. Not built yet: tools and MCP,
 > SQLite, the Python runtime and the updater. Sections below describe the target design.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
@@ -124,10 +124,19 @@ How the pieces fit:
   (move them to `devDependencies` with exact versions; remove a stray `cn` package). Theme tokens
   the components use (`card`, `secondary`, `destructive`, `success`…) are defined in
   `styles.css`; add any new one in both `:root` and `.dark`.
-- **Main process:** `index.ts` wires the logger, `CredentialStore` (`credentials.ts`) and IPC
-  (`ipc.ts`). Keys are resolved in main only; `@bochica/agent` holds the provider catalog,
-  `testConnection`, `redactSecrets` and `maskSecret`. Everything written to the log goes
-  through `redactSecrets`.
+- **Main process:** `index.ts` wires the logger, `CredentialStore` (`credentials.ts`),
+  `ChatService` (`chat.ts`) and IPC (`ipc.ts`). Keys are resolved in main only. Everything
+  written to the log goes through `redactSecrets`.
+- **`@bochica/agent` has two entries.** `@bochica/agent` (main only) exports `runTurn`,
+  `createModel`, `listModels`, `testConnection` and the redaction helpers, and pulls in the AI
+  SDK provider packages. `@bochica/agent/catalog` is just the provider metadata
+  (`providers.ts`); the renderer must import only this one, or the SDKs end up in its bundle.
+- **Chat flow:** the renderer picks a `turnId` and calls `chat.send`; `ChatService` resolves the
+  key, runs `runTurn` and pushes each `TurnEvent` on `chat:event` tagged with the `turnId`.
+  `main.tsx` subscribes once and feeds `useSessions.applyEvent` (zustand, `state/sessions.ts`),
+  which routes the event to the session that owns the turn. `toHistory` drops failed exchanges
+  so user/assistant roles keep alternating. Models are listed live from each provider
+  (`models:list`); never hard-code model ids.
 - **i18n:** strings live in `src/renderer/src/i18n/<lang>.json`; `en.json` is the reference and
   a test fails if another language has different keys. New language = new JSON + an entry in
   `supportedLanguages`.

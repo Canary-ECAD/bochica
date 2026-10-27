@@ -1,11 +1,13 @@
 import {
   AppInfo,
   type BochicaApi,
+  ChatEvent,
   ConnectionResult,
   CredentialList,
   ipcChannels,
+  ModelList,
 } from "@bochica/shared";
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 
 const api: BochicaApi = {
   getAppInfo: async () => AppInfo.parse(await ipcRenderer.invoke(ipcChannels.appInfo)),
@@ -17,6 +19,28 @@ const api: BochicaApi = {
       CredentialList.parse(await ipcRenderer.invoke(ipcChannels.credentialsDelete, id)),
     test: async (provider) =>
       ConnectionResult.parse(await ipcRenderer.invoke(ipcChannels.credentialsTest, provider)),
+  },
+  models: {
+    list: async (provider) =>
+      ModelList.parse(await ipcRenderer.invoke(ipcChannels.modelsList, provider)),
+  },
+  chat: {
+    send: async (request) => {
+      await ipcRenderer.invoke(ipcChannels.chatSend, request);
+    },
+    stop: async (turnId) => {
+      await ipcRenderer.invoke(ipcChannels.chatStop, turnId);
+    },
+    onEvent: (listener) => {
+      const handler = (_event: IpcRendererEvent, payload: unknown): void => {
+        const parsed = ChatEvent.safeParse(payload);
+        if (parsed.success) listener(parsed.data);
+      };
+      ipcRenderer.on(ipcChannels.chatEvent, handler);
+      return () => {
+        ipcRenderer.removeListener(ipcChannels.chatEvent, handler);
+      };
+    },
   },
 };
 

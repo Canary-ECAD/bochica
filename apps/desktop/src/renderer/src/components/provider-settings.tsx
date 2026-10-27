@@ -1,4 +1,4 @@
-import { type Provider, providers } from "@bochica/agent";
+import { type Provider, providers } from "@bochica/agent/catalog";
 import type { ConnectionResult, CredentialInfo } from "@bochica/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, CircleCheck, ExternalLink, LoaderCircle } from "lucide-react";
@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-const credentialsKey = ["credentials"] as const;
+import { credentialsKey } from "@/state/model-choice";
 
 /** Electron prefixes errors thrown in main; the user only needs the message itself. */
 function errorMessage(error: unknown): string {
@@ -53,6 +52,7 @@ function ProviderCard({
 
   const refresh = (list: CredentialInfo[]): void => {
     queryClient.setQueryData(credentialsKey, list);
+    void queryClient.invalidateQueries({ queryKey: ["models", provider.id] });
   };
   const save = useMutation({
     mutationFn: (secret: string) =>

@@ -1,10 +1,17 @@
 export {
   AppInfo,
   type BochicaApi,
+  ChatErrorCode,
+  ChatEvent,
+  ChatMessage,
+  ChatSendRequest,
   ConnectionResult,
   CredentialInfo,
   CredentialList,
   ipcChannels,
+  ModelInfo,
+  ModelList,
   ProviderId,
   SetCredentialRequest,
+  TurnEvent,
 } from "./ipc";

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -18,10 +19,18 @@
   --ring: oklch(0.62 0.15 45);
   --card: oklch(0.995 0.002 85);
   --card-foreground: oklch(0.24 0.01 60);
+  --popover: oklch(0.995 0.002 85);
+  --popover-foreground: oklch(0.24 0.01 60);
   --secondary: oklch(0.94 0.008 85);
   --secondary-foreground: oklch(0.3 0.01 60);
   --destructive: oklch(0.58 0.2 27);
   --success: oklch(0.55 0.13 150);
+  --code: oklch(0.965 0.005 85);
+  --code-keyword: oklch(0.5 0.17 330);
+  --code-string: oklch(0.5 0.13 150);
+  --code-number: oklch(0.55 0.15 45);
+  --code-comment: oklch(0.6 0.01 70);
+  --code-title: oklch(0.5 0.15 260);
   --radius: 0.75rem;
 }
 
@@ -40,10 +49,18 @@
   --ring: oklch(0.68 0.15 45);
   --card: oklch(0.23 0.005 60);
   --card-foreground: oklch(0.93 0.006 85);
+  --popover: oklch(0.24 0.005 60);
+  --popover-foreground: oklch(0.93 0.006 85);
   --secondary: oklch(0.28 0.006 60);
   --secondary-foreground: oklch(0.9 0.006 85);
   --destructive: oklch(0.65 0.19 25);
   --success: oklch(0.72 0.14 150);
+  --code: oklch(0.17 0.004 60);
+  --code-keyword: oklch(0.75 0.13 330);
+  --code-string: oklch(0.78 0.12 150);
+  --code-number: oklch(0.78 0.13 60);
+  --code-comment: oklch(0.6 0.01 70);
+  --code-title: oklch(0.78 0.11 250);
 }
 
 @theme inline {
@@ -61,15 +78,19 @@
   --color-ring: var(--ring);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-code: var(--code);
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, ui-monospace, monospace;
 }
 
 @layer base {
@@ -79,4 +100,51 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+}
+
+/* Markdown in assistant messages: typography follows the theme tokens. */
+.markdown {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-bg: var(--code);
+  --tw-prose-pre-code: var(--foreground);
+}
+
+/* highlight.js classes emitted by rehype-highlight. */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-built_in {
+  color: var(--code-keyword);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-attr {
+  color: var(--code-string);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-variable {
+  color: var(--code-number);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-type,
+.hljs-function,
+.hljs-section {
+  color: var(--code-title);
 }

@@ -10,6 +10,11 @@ export const ipcChannels = {
   credentialsSet: "credentials:set",
   credentialsDelete: "credentials:delete",
   credentialsTest: "credentials:test",
+  modelsList: "models:list",
+  chatSend: "chat:send",
+  chatStop: "chat:stop",
+  /** Main → renderer: one message per streamed event. */
+  chatEvent: "chat:event",
 } as const;
 
 export const AppInfo = z.object({
@@ -63,6 +68,56 @@ export const ConnectionResult = z.discriminatedUnion("status", [
 ]);
 export type ConnectionResult = z.infer<typeof ConnectionResult>;
 
+// Models and chat.
+
+export const ModelInfo = z.object({ id: z.string(), label: z.string() });
+export type ModelInfo = z.infer<typeof ModelInfo>;
+
+export const ModelList = z.array(ModelInfo);
+
+export const ChatMessage = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+export type ChatMessage = z.infer<typeof ChatMessage>;
+
+export const ChatSendRequest = z.object({
+  /** Chosen by the renderer; every event of this turn carries it. */
+  turnId: z.string().min(1),
+  provider: ProviderId,
+  model: z.string().min(1),
+  messages: z.array(ChatMessage).min(1),
+});
+export type ChatSendRequest = z.infer<typeof ChatSendRequest>;
+
+export const ChatErrorCode = z.enum([
+  "missing_key",
+  "invalid_key",
+  "rate_limit",
+  "model_not_found",
+  "provider_unavailable",
+  "network",
+  "unknown",
+]);
+export type ChatErrorCode = z.infer<typeof ChatErrorCode>;
+
+export const TurnEvent = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text-delta"), text: z.string() }),
+  z.object({
+    type: z.literal("turn-end"),
+    reason: z.enum(["stop", "length", "aborted"]),
+    usage: z
+      .object({ inputTokens: z.number().nullable(), outputTokens: z.number().nullable() })
+      .optional(),
+  }),
+  /** `message` has already been through redaction; it is shown under "Details" only. */
+  z.object({ type: z.literal("error"), code: ChatErrorCode, message: z.string() }),
+]);
+export type TurnEvent = z.infer<typeof TurnEvent>;
+
+export const ChatEvent = z.intersection(z.object({ turnId: z.string() }), TurnEvent);
+export type ChatEvent = z.infer<typeof ChatEvent>;
+
 /** The API the preload exposes on `window.bochica`. */
 export interface BochicaApi {
   getAppInfo(): Promise<AppInfo>;
@@ -72,5 +127,16 @@ export interface BochicaApi {
     set(request: SetCredentialRequest): Promise<CredentialInfo[]>;
     remove(id: string): Promise<CredentialInfo[]>;
     test(provider: ProviderId): Promise<ConnectionResult>;
+  };
+  models: {
+    /** Chat models the provider offers with the configured key. Rejects if it can't list them. */
+    list(provider: ProviderId): Promise<ModelInfo[]>;
+  };
+  chat: {
+    /** Starts a turn; its output arrives through `onEvent`. */
+    send(request: ChatSendRequest): Promise<void>;
+    stop(turnId: string): Promise<void>;
+    /** Subscribes to events of every turn. Returns the unsubscribe function. */
+    onEvent(listener: (event: ChatEvent) => void): () => void;
   };
 }

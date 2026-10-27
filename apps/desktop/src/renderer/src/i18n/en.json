@@ -3,12 +3,12 @@
     "newSession": "New session",
     "recent": "Recent",
     "noSessions": "No sessions yet",
-    "settings": "Settings"
+    "settings": "Settings",
+    "untitled": "New session"
   },
   "session": {
     "greeting": "What do you want to do in EPLAN today?",
     "placeholder": "Describe the task in your own words…",
-    "agentNotReady": "The agent is not connected yet.",
     "send": "Send"
   },
   "settings": {
@@ -48,5 +48,30 @@
     "title": "Something went wrong",
     "description": "This screen hit an unexpected error. Reloading usually fixes it; your keys and settings are safe.",
     "reload": "Reload"
+  },
+  "chat": {
+    "chooseModel": "Choose a model",
+    "searchModels": "Search models…",
+    "noModelsFound": "No model matches.",
+    "loadingModels": "Loading models…",
+    "addProvider": "Add an AI provider in Settings to start",
+    "stop": "Stop",
+    "thinking": "Thinking…",
+    "stopped": "Stopped.",
+    "cutOff": "The answer was cut off because it reached the length limit.",
+    "jumpToLatest": "Jump to latest",
+    "copyCode": "Copy code",
+    "goToSettings": "Go to Settings",
+    "retry": "Retry",
+    "details": "Details",
+    "errors": {
+      "missing_key": "There is no API key for this provider. Add one in Settings.",
+      "invalid_key": "The provider rejected the API key. Check it in Settings.",
+      "rate_limit": "The provider is limiting requests right now. Wait a moment and retry.",
+      "model_not_found": "This model is not available with your key. Choose another one.",
+      "provider_unavailable": "The provider is having problems right now. Retry in a few minutes.",
+      "network": "Couldn't connect. Check your internet connection and retry.",
+      "unknown": "Something went wrong while answering. Retry, or open Details to see what happened."
+    }
   }
 }

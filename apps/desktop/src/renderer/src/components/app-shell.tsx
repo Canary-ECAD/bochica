@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSessions } from "@/state/sessions";
 
 const navItem =
   "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground [&.active]:bg-accent [&.active]:text-accent-foreground [&_svg]:size-4";
@@ -12,6 +13,8 @@ export function AppShell() {
     queryKey: ["app-info"],
     queryFn: () => window.bochica.getAppInfo(),
   });
+  const order = useSessions((state) => state.order);
+  const sessions = useSessions((state) => state.sessions);
 
   return (
     <div className="flex h-screen">
@@ -22,16 +25,31 @@ export function AppShell() {
         </div>
 
         <nav className="flex flex-col gap-1">
-          <Link to="/" className={navItem}>
+          <Link to="/" activeOptions={{ exact: true }} className={navItem}>
             <MessageSquarePlus />
             {t("nav.newSession")}
           </Link>
         </nav>
 
         <div className="mt-4 px-3 text-xs font-medium text-muted-foreground">{t("nav.recent")}</div>
-        <p className="px-3 py-2 text-xs text-muted-foreground">{t("nav.noSessions")}</p>
+        <nav className="-mx-1 mt-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+          {order.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground">{t("nav.noSessions")}</p>
+          ) : (
+            order.map((id) => (
+              <Link
+                key={id}
+                to="/session/$sessionId"
+                params={{ sessionId: id }}
+                className="truncate rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground [&.active]:bg-accent [&.active]:text-accent-foreground"
+              >
+                {sessions[id]?.title || t("nav.untitled")}
+              </Link>
+            ))
+          )}
+        </nav>
 
-        <div className="mt-auto flex flex-col gap-1">
+        <div className="mt-3 flex flex-col gap-1">
           <Link to="/settings" className={navItem}>
             <Settings />
             {t("nav.settings")}

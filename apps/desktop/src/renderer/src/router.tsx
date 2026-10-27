@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell";
 import { ErrorScreen } from "./components/error-screen";
+import { NewSessionPage } from "./routes/new-session";
 import { SessionPage } from "./routes/session";
 import { SettingsPage } from "./routes/settings";
 
@@ -13,10 +14,20 @@ import { SettingsPage } from "./routes/settings";
 
 const rootRoute = createRootRoute({ component: AppShell });
 
-const sessionRoute = createRoute({
+const newSessionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: SessionPage,
+  component: NewSessionPage,
+});
+
+const sessionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/session/$sessionId",
+  component: function SessionRoute() {
+    const { sessionId } = sessionRoute.useParams();
+    // Keyed so switching sessions resets scroll position and the composer draft.
+    return <SessionPage key={sessionId} sessionId={sessionId} />;
+  },
 });
 
 const settingsRoute = createRoute({
@@ -26,7 +37,7 @@ const settingsRoute = createRoute({
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([sessionRoute, settingsRoute]),
+  routeTree: rootRoute.addChildren([newSessionRoute, sessionRoute, settingsRoute]),
   history: createHashHistory(),
   defaultErrorComponent: ErrorScreen,
 });

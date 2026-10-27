@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
-import { AppInfo, ConnectionResult, CredentialList, SetCredentialRequest } from "./ipc";
+import {
+  AppInfo,
+  ConnectionResult,
+  CredentialList,
+  ModelList,
+  SetCredentialRequest,
+  TurnEvent,
+} from "./ipc";
 
 describe("AppInfo", () => {
   test("accepts a valid payload", () => {
@@ -28,7 +35,7 @@ function fieldNames(schema: z.ZodType): string[] {
 }
 
 describe("credential responses", () => {
-  const responses = { CredentialList, ConnectionResult, AppInfo };
+  const responses = { CredentialList, ConnectionResult, AppInfo, ModelList, TurnEvent };
   const forbidden = new Set(["secret", "key", "apikey", "token", "value", "password"]);
 
   test.each(Object.entries(responses))("%s has no field that could carry a key", (_, schema) => {

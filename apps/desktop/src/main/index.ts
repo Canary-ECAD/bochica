@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
+import { ChatService } from "./chat";
 import { CredentialStore } from "./credentials";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
@@ -53,7 +54,9 @@ void app.whenReady().then(() => {
     join(app.getPath("userData"), "credentials.json"),
     safeStorage,
   );
-  registerIpc(credentials, logger);
+  const chat = new ChatService(credentials, logger);
+  registerIpc(credentials, chat, logger);
+  app.on("before-quit", () => chat.stopAll());
   createWindow();
 });
 

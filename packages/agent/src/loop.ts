@@ -1,0 +1,90 @@
+import type { ChatErrorCode, ChatMessage, TurnEvent } from "@bochica/shared";
+import { APICallError, type LanguageModel, RetryError, streamText } from "ai";
+import { systemPrompt } from "./prompts";
+import { redactSecrets } from "./redact";
+
+export interface TurnOptions {
+  model: LanguageModel;
+  messages: ChatMessage[];
+  abortSignal: AbortSignal;
+}
+
+/**
+ * Runs one assistant turn and yields its events. Never throws: failures become an `error`
+ * event with a code the UI can explain, and the last event is always `turn-end` or `error`.
+ */
+export async function* runTurn({
+  model,
+  messages,
+  abortSignal,
+}: TurnOptions): AsyncGenerator<TurnEvent> {
+  try {
+    const result = streamText({
+      model,
+      instructions: systemPrompt,
+      messages,
+      abortSignal,
+      maxRetries: 2,
+      // Errors arrive as stream parts and are reported below; skip the SDK's console logging.
+      onError: () => {},
+    });
+    for await (const part of result.stream) {
+      switch (part.type) {
+        case "text-delta":
+          if (part.text) yield { type: "text-delta", text: part.text };
+          break;
+        case "error":
+          yield toErrorEvent(part.error);
+          return;
+        case "abort":
+          yield { type: "turn-end", reason: "aborted" };
+          return;
+        case "finish":
+          yield {
+            type: "turn-end",
+            reason: part.finishReason === "length" ? "length" : "stop",
+            usage: {
+              inputTokens: part.totalUsage.inputTokens ?? null,
+              outputTokens: part.totalUsage.outputTokens ?? null,
+            },
+          };
+          return;
+        default:
+          break;
+      }
+    }
+    // The stream ended without a finish part (e.g. aborted before it started).
+    yield { type: "turn-end", reason: abortSignal.aborted ? "aborted" : "stop" };
+  } catch (error) {
+    if (abortSignal.aborted) {
+      yield { type: "turn-end", reason: "aborted" };
+      return;
+    }
+    yield toErrorEvent(error);
+  }
+}
+
+function toErrorEvent(error: unknown): TurnEvent {
+  const cause = RetryError.isInstance(error) ? error.lastError : error;
+  const message = cause instanceof Error ? cause.message : String(cause);
+  return { type: "error", code: classify(cause), message: redactSecrets(message) };
+}
+
+function classify(error: unknown): ChatErrorCode {
+  if (APICallError.isInstance(error)) {
+    const status = error.statusCode ?? 0;
+    if (status === 401 || status === 403) return "invalid_key";
+    if (status === 429) return "rate_limit";
+    if (status === 404) return "model_not_found";
+    if (status >= 500) return "provider_unavailable";
+    if (status === 0) return "network";
+    return "unknown";
+  }
+  if (
+    error instanceof TypeError ||
+    (error instanceof Error && /fetch failed|ECONN|ENOTFOUND|ETIMEDOUT/i.test(error.message))
+  ) {
+    return "network";
+  }
+  return "unknown";
+}

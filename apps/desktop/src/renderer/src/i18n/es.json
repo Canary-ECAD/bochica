@@ -3,12 +3,12 @@
     "newSession": "Nueva sesión",
     "recent": "Recientes",
     "noSessions": "Todavía no hay sesiones",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "untitled": "Nueva sesión"
   },
   "session": {
     "greeting": "¿Qué quieres hacer hoy en EPLAN?",
     "placeholder": "Describe la tarea con tus palabras…",
-    "agentNotReady": "El agente todavía no está conectado.",
     "send": "Enviar"
   },
   "settings": {
@@ -48,5 +48,30 @@
     "title": "Algo ha fallado",
     "description": "Esta pantalla ha tenido un error inesperado. Normalmente se arregla recargando; tus keys y ajustes están a salvo.",
     "reload": "Recargar"
+  },
+  "chat": {
+    "chooseModel": "Elige un modelo",
+    "searchModels": "Buscar modelos…",
+    "noModelsFound": "Ningún modelo coincide.",
+    "loadingModels": "Cargando modelos…",
+    "addProvider": "Añade un proveedor de IA en Ajustes para empezar",
+    "stop": "Detener",
+    "thinking": "Pensando…",
+    "stopped": "Detenido.",
+    "cutOff": "La respuesta se ha cortado porque llegó al límite de longitud.",
+    "jumpToLatest": "Ir al final",
+    "copyCode": "Copiar código",
+    "goToSettings": "Ir a Ajustes",
+    "retry": "Reintentar",
+    "details": "Detalles",
+    "errors": {
+      "missing_key": "No hay API key para este proveedor. Añade una en Ajustes.",
+      "invalid_key": "El proveedor ha rechazado la API key. Revísala en Ajustes.",
+      "rate_limit": "El proveedor está limitando las peticiones ahora mismo. Espera un momento y reintenta.",
+      "model_not_found": "Este modelo no está disponible con tu key. Elige otro.",
+      "provider_unavailable": "El proveedor tiene problemas ahora mismo. Reintenta en unos minutos.",
+      "network": "No se ha podido conectar. Comprueba tu conexión a internet y reintenta.",
+      "unknown": "Algo ha fallado al responder. Reintenta o abre Detalles para ver qué ha pasado."
+    }
   }
 }
