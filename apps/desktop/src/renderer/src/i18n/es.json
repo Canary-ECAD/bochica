@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "newSession": "Nueva sesión",
+    "recent": "Recientes",
+    "noSessions": "Todavía no hay sesiones",
+    "settings": "Ajustes"
+  },
+  "session": {
+    "greeting": "¿Qué quieres hacer hoy en EPLAN?",
+    "placeholder": "Describe la tarea con tus palabras…",
+    "agentNotReady": "El agente todavía no está conectado.",
+    "send": "Enviar"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "disclaimer": "Bochica es un proyecto independiente de Canary-ECAD. No está afiliado, respaldado ni soportado por EPLAN GmbH & Co. KG. EPLAN y EPLAN Electric P8 son marcas de su respectivo titular."
+  }
+}

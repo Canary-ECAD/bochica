@@ -1,0 +1,17 @@
+appId: com.canary-ecad.bochica
+productName: Bochica
+copyright: Copyright © 2026 Canary-ECAD
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+win:
+  target: nsis
+nsis:
+  oneClick: true
+  perMachine: false
+publish:
+  provider: github
+  owner: Canary-ECAD
+  repo: bochica
