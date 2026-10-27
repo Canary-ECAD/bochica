@@ -11,6 +11,8 @@ import {
   ModelList,
   SessionDetail,
   SessionSummary,
+  SkillInstallReport,
+  SkillList,
 } from "@bochica/shared";
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { z } from "zod";
@@ -85,6 +87,18 @@ const api: BochicaApi = {
         .string()
         .nullable()
         .parse(await ipcRenderer.invoke(ipcChannels.foldersPick, current)),
+  },
+  files: {
+    search: async (request) =>
+      z.array(z.string()).parse(await ipcRenderer.invoke(ipcChannels.filesSearch, request)),
+  },
+  skills: {
+    list: async () => SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsList)),
+    install: async () =>
+      SkillInstallReport.nullable().parse(await ipcRenderer.invoke(ipcChannels.skillsInstall)),
+    remove: async (id) => SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsRemove, id)),
+    setEnabled: async (request) =>
+      SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsSetEnabled, request)),
   },
   eplan: {
     status: async () => EplanStatus.parse(await ipcRenderer.invoke(ipcChannels.eplanStatus)),

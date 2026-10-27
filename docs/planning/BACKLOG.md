@@ -41,6 +41,11 @@ move it there and leave a link here (`→ S4-03`).
   when those tools are used; other tools change the real project, so Bochica's backup stays
   (see S6-modes.md).
 
+- **Skills, more sources** (left out of S8): skills inside the working folder
+  (`.bochica\skills`), installing a skill from a URL or a catalog, and honouring the
+  `allowed-tools` field of a skill's header.
+- **`@` for folders** (left out of S8): mentioning a folder could attach its file list.
+
 ## Infrastructure
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.

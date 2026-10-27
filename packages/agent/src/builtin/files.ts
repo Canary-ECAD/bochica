@@ -383,3 +383,37 @@ export function fileTools(options: FileToolOptions): AgentTool[] {
     }),
   ];
 }
+
+/** How many files the `@` menu offers at most. */
+const MAX_PICKER_FILES = 50;
+
+/**
+ * Files of the working folder whose relative path contains `query` (case-insensitive), for the
+ * composer's `@` menu: files whose name matches come first, then shallower ones. Hidden
+ * folders, generated folders, protected places and secret files are left out.
+ */
+export async function findFiles(
+  options: FileToolOptions,
+  query: string,
+  signal: AbortSignal,
+): Promise<string[]> {
+  const needle = query.trim().replaceAll("\\", "/").toLowerCase();
+  const walked = await walk(options.cwd, options, signal);
+  return walked.files
+    .map((file) => relative(options.cwd, file).replaceAll("\\", "/"))
+    .filter(
+      (rel) =>
+        !rel
+          .split("/")
+          .slice(0, -1)
+          .some((dir) => dir.startsWith(".")),
+    )
+    .filter((rel) => !isSecretFile(rel) && rel.toLowerCase().includes(needle))
+    .map((rel) => {
+      const name = rel.split("/").at(-1)?.toLowerCase() ?? "";
+      return { rel, rank: name.startsWith(needle) ? 0 : name.includes(needle) ? 1 : 2 };
+    })
+    .toSorted((a, b) => a.rank - b.rank || a.rel.split("/").length - b.rel.split("/").length)
+    .slice(0, MAX_PICKER_FILES)
+    .map(({ rel }) => rel);
+}

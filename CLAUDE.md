@@ -2,13 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S7 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S8 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skill and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
-> experimental drawing tools); a working folder per session; guardrails core (hardline blocks,
-> risky commands that always ask, protected paths, filtered terminal environment, injection
-> scan); visible activity log with file diffs; approval cards plus typed confirmation;
-> automatic backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet:
-> skills beyond the default one (S8), the bundled Python runtime and the updater.
+> experimental drawing tools); a working folder per session; skills added by the user (Settings),
+> `/` commands and `@file` mentions in the composer; guardrails core (hardline blocks, risky
+> commands that always ask, protected paths, filtered terminal environment, injection scan);
+> visible activity log with file diffs; approval cards plus typed confirmation; automatic
+> backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet: compaction and
+> subagents (S9), the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -172,10 +173,19 @@ How the pieces fit:
   `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that asks, for testing cards. `always`
   tools send `allowSession: false`: the card hides "Allow for this session" and main ignores it.
 - **Modes:** every turn carries a `ChatMode`. `ChatService.toolsFor` filters tools with
-  `eplanToolInMode` (`packages/eplan/src/modes.ts`) and `systemPrompt(mode, skills)` adds the
-  mode's section. Consult also gets eplan-scripting-skill (`main/skills.ts`): downloaded at the
-  commit pinned in `components.lock.json` into `userDataskills<commit>`, or read from
-  `BOCHICA_SKILLS_DIR` (a checkout); `bochica__read_skill_file` only reads inside it.
+  `eplanToolInMode` (`packages/eplan/src/modes.ts`) and `systemPrompt(mode, guides, options)`
+  adds the mode's section. In Consult the built-in scripting guides go into the prompt whole.
+- **Skills:** format, loading, injection scan and the tools `use_skill` / `read_skill_file` are
+  in `packages/agent/src/skills.ts` (`SkillSet` reads only inside a skill's folder).
+  `SkillService` (`main/skills.ts`) has two sources: built in (eplan-scripting-skill, downloaded
+  at the commit pinned in `components.lock.json` into `userData\skills\<commit>`, or read from
+  `BOCHICA_SKILLS_DIR`) and added by the user (copied into `userData\skills\user\<name>`, on/off
+  in `settings.json`). Added skills are listed by name and description in every mode; a
+  `/skill …` message is expanded by `expandSkillCommands` in main. The composer's app commands
+  (`/new`, `/tasks`…) are reserved names, listed in `composer.tsx` and `APP_COMMANDS`.
+- **`@file` mentions:** `parseMentions` (shared) finds them; main's `attachMentions` reads each
+  one of the new message through the `read_file` tool (same checks) and appends it for the model
+  only; `files:search` (`findFiles`) feeds the composer's menu.
 - **Built-in tools** (`packages/agent/src/builtin/`): `read_file`, `list_files`, `search_files`,
   `write_file`, `edit_file` and `powershell`, server `bochica`. `AgentTool.assess(input)` runs
   first in `toToolSet`: it can block a call (status `blocked`, the model is told not to retry) or

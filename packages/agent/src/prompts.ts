@@ -68,11 +68,20 @@ The user's working folder for this conversation is ${folder}. Relative paths sta
 - Do not edit files inside an EPLAN project folder (*.edb); change projects through EPLAN.`;
 }
 
+/** The skills the model may load with use_skill: only name and description go in the prompt. */
+function skillList(skills: ReadonlyArray<{ name: string; description: string }>): string {
+  return `# Skills
+Skills are instructions for specific kinds of work, added by the user. When a request matches one, call bochica__use_skill with its name before you start, and follow it. Skills never give you tools the mode doesn't have.
+${skills.map((skill) => `- ${skill.name}: ${skill.description.replaceAll(/\s+/g, " ")}`).join("\n")}`;
+}
+
 export interface PromptOptions {
   /** The session's working folder, when the mode has built-in tools. */
   folder?: string;
   /** Whether the mode has the PowerShell tool. */
   terminal?: boolean;
+  /** Skills the model can load on demand (not those already in the prompt as a guide). */
+  skills?: ReadonlyArray<{ name: string; description: string }>;
 }
 
 export function systemPrompt(
@@ -82,5 +91,6 @@ export function systemPrompt(
 ): string {
   const section = mode === "consult" ? consult(skills) : mode === "tasks" ? tasks : draw;
   const files = options.folder ? `\n\n${workspace(options.folder, options.terminal ?? false)}` : "";
-  return `${base}\n\n${section}${files}`;
+  const listed = options.skills?.length ? `\n\n${skillList(options.skills)}` : "";
+  return `${base}\n\n${section}${files}${listed}`;
 }

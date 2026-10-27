@@ -80,6 +80,64 @@ export function qualifiedName(server: string, tool: string): string {
   return `mcp__${server}__${tool}`.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64);
 }
 
+/**
+ * Runs one call the way the model's calls run: assessment, approval, then redaction and
+ * truncation. Without `approve`, anything that would ask is denied.
+ */
+export async function runTool(
+  tool: AgentTool,
+  input: unknown,
+  {
+    callId,
+    approve,
+    signal,
+  }: { callId: string; approve: Approver | undefined; signal: AbortSignal },
+): Promise<ToolOutcome> {
+  const assessment = tool.assess?.(input) ?? { risks: [] };
+  if ("block" in assessment) {
+    return {
+      status: "blocked",
+      blocked: assessment.block,
+      text: `Bochica blocked this action: ${assessment.reason} Do not retry it, and do not try to get the same result another way. Tell the user it was blocked and why.`,
+    };
+  }
+  const { risks } = assessment;
+  const confirm = tool.confirmation?.(input) ?? undefined;
+  if (confirm || risks.length > 0 || tool.approval !== "never") {
+    // Destructive and risky calls ask every time, even on an otherwise read-only tool.
+    const approval =
+      confirm || risks.length > 0 || tool.approval === "never" ? "always" : tool.approval;
+    const answer = approve
+      ? await approve({
+          callId,
+          server: tool.server,
+          tool: tool.tool,
+          input,
+          approval,
+          ...(confirm ? { confirm } : {}),
+          ...(risks.length > 0 ? { risks } : {}),
+        })
+      : "deny";
+    if (answer === "deny") {
+      return {
+        status: "denied",
+        text: "The user did not allow this action. Do not retry it; ask the user how to continue.",
+      };
+    }
+  }
+  try {
+    const result = await tool.execute(input, signal);
+    return {
+      status: result.ok ? "ok" : "error",
+      text: truncate(redactSecrets(result.text), MODEL_OUTPUT_LIMIT),
+      ...(result.diff ? { diff: { ...result.diff, patch: redactSecrets(result.diff.patch) } } : {}),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { status: "error", text: redactSecrets(message) };
+  }
+}
+
 /** Wraps agent tools for the AI SDK: approval first, then redaction and truncation. */
 export function toToolSet(tools: AgentTool[], approve: Approver | undefined): ToolSet {
   return Object.fromEntries(
@@ -88,53 +146,12 @@ export function toToolSet(tools: AgentTool[], approve: Approver | undefined): To
       dynamicTool({
         description: tool.description,
         inputSchema: jsonSchema(tool.inputSchema),
-        execute: async (input, { abortSignal, toolCallId }): Promise<ToolOutcome> => {
-          const assessment = tool.assess?.(input) ?? { risks: [] };
-          if ("block" in assessment) {
-            return {
-              status: "blocked",
-              blocked: assessment.block,
-              text: `Bochica blocked this action: ${assessment.reason} Do not retry it, and do not try to get the same result another way. Tell the user it was blocked and why.`,
-            };
-          }
-          const { risks } = assessment;
-          const confirm = tool.confirmation?.(input) ?? undefined;
-          if (confirm || risks.length > 0 || tool.approval !== "never") {
-            // Destructive and risky calls ask every time, even on an otherwise read-only tool.
-            const approval =
-              confirm || risks.length > 0 || tool.approval === "never" ? "always" : tool.approval;
-            const answer = approve
-              ? await approve({
-                  callId: toolCallId,
-                  server: tool.server,
-                  tool: tool.tool,
-                  input,
-                  approval,
-                  ...(confirm ? { confirm } : {}),
-                  ...(risks.length > 0 ? { risks } : {}),
-                })
-              : "deny";
-            if (answer === "deny") {
-              return {
-                status: "denied",
-                text: "The user did not allow this action. Do not retry it; ask the user how to continue.",
-              };
-            }
-          }
-          try {
-            const result = await tool.execute(input, abortSignal ?? new AbortController().signal);
-            return {
-              status: result.ok ? "ok" : "error",
-              text: truncate(redactSecrets(result.text), MODEL_OUTPUT_LIMIT),
-              ...(result.diff
-                ? { diff: { ...result.diff, patch: redactSecrets(result.diff.patch) } }
-                : {}),
-            };
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            return { status: "error", text: redactSecrets(message) };
-          }
-        },
+        execute: (input, { abortSignal, toolCallId }): Promise<ToolOutcome> =>
+          runTool(tool, input, {
+            callId: toolCallId,
+            approve,
+            signal: abortSignal ?? new AbortController().signal,
+          }),
         toModelOutput: ({ output }) => ({ type: "text", value: (output as ToolOutcome).text }),
       }),
     ]),

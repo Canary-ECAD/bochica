@@ -156,7 +156,7 @@
       "reorganize": "Reorganize the project {{project}}: deleted data is purged for good",
       "projectManagement": "Project management ({{type}}) on {{project}}"
     },
-    "bochicaRead": "Read the scripting guide: {{path}}",
+    "bochicaRead": "Read a skill file: {{path}}",
     "bochica": {
       "read_file": "Read {{path}}",
       "list_files": "Looked for files matching {{pattern}}",
@@ -185,10 +185,13 @@
       "ran_one": "ran a command",
       "ran_other": "ran {{count}} commands",
       "blocked_one": "blocked an action",
-      "blocked_other": "blocked {{count}} actions"
+      "blocked_other": "blocked {{count}} actions",
+      "skill_one": "used a skill",
+      "skill_other": "used {{count}} skills"
     },
     "blocked": "Blocked by Bochica: {{reason}}",
-    "changes": "Changes"
+    "changes": "Changes",
+    "useSkill": "Used the skill {{name}}"
   },
   "approval": {
     "title": "Bochica wants to do this:",
@@ -321,5 +324,52 @@
   "folder": {
     "choose": "Working folder: {{folder}}. Click to choose another.",
     "fixed": "Working folder: {{folder}}"
+  },
+  "commands": {
+    "new": "Start a new session",
+    "consult": "Switch to Consult: questions and scripts",
+    "tasks": "Switch to Tasks: work in EPLAN",
+    "draw": "Switch to Draw (experimental)",
+    "settings": "Open Settings"
+  },
+  "composer": {
+    "noFiles": "No files match in the working folder.",
+    "noFolder": "Choose a working folder to mention its files."
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Instructions for specific kinds of work. The assistant uses a skill when a request needs it, or when you type / and its name. A skill only adds instructions: it never lets the assistant do more than the mode allows.",
+    "source": {
+      "builtin": "Built in",
+      "user": "Added"
+    },
+    "status": {
+      "skipped": "Not loaded",
+      "invalid": "Broken"
+    },
+    "problem": {
+      "no-skill-file": "There is no SKILL.md file in this folder.",
+      "no-front-matter": "SKILL.md must start with a header between --- lines, with a name and a description.",
+      "bad-name": "The name must use lowercase letters, numbers and hyphens (at most 64), like plc-labels.",
+      "missing-description": "SKILL.md has no description.",
+      "long-description": "The description is longer than 1024 characters.",
+      "too-large": "The skill is too large (more than 200 files or 5 MB).",
+      "injection": "It contains text that tries to take control of the assistant.",
+      "name-taken": "A built-in skill or a command already uses that name."
+    },
+    "findings": {
+      "override": "tells the assistant to ignore its instructions",
+      "hidden-comment": "hides instructions in a comment",
+      "secret-read": "asks to read passwords, keys or .env files",
+      "exfiltration": "sends secrets to the internet",
+      "invisible-chars": "contains invisible characters"
+    },
+    "finding": "Not loaded because it {{reason}} ({{file}}, line {{line}}).",
+    "remove": "Remove {{name}}",
+    "empty": "No skills yet.",
+    "add": "Add skill…",
+    "added_one": "Added the skill {{names}}.",
+    "added_other": "Added {{count}} skills: {{names}}.",
+    "refused": "{{folder}} was not added: {{reason}}"
   }
 }

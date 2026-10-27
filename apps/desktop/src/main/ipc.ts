@@ -1,4 +1,4 @@
-import { getProvider, listModels, testConnection } from "@bochica/agent";
+import { findFiles, getProvider, listModels, testConnection } from "@bochica/agent";
 import {
   AppInfo,
   ApprovalResponse,
@@ -7,6 +7,7 @@ import {
   CredentialList,
   DeleteMessagesRequest,
   EplanStatus,
+  FileSearchRequest,
   ipcChannels,
   McpServerList,
   ModelList,
@@ -16,6 +17,9 @@ import {
   SessionSummary,
   SetCredentialRequest,
   SetMcpEnabledRequest,
+  SetSkillEnabledRequest,
+  SkillInstallReport,
+  SkillList,
 } from "@bochica/shared";
 import { app, BrowserWindow, dialog, ipcMain, type WebContents } from "electron";
 import { z } from "zod";
@@ -27,6 +31,7 @@ import type { FolderService } from "./folders";
 import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
 import type { SessionRepository } from "./db/repository";
+import type { SkillService } from "./skills";
 
 export interface Services {
   credentials: CredentialStore;
@@ -36,6 +41,7 @@ export interface Services {
   eplan: EplanStatusService;
   sessions: SessionRepository;
   folders: FolderService;
+  skills: SkillService;
   logger: Logger;
 }
 
@@ -50,6 +56,7 @@ export function registerIpc({
   eplan,
   sessions,
   folders,
+  skills,
   logger,
 }: Services): void {
   const handle = (
@@ -167,6 +174,47 @@ export function registerIpc({
       return null;
     }
     return picked;
+  });
+
+  // The renderer names the folder (its session's); it must be one a session could work in.
+  handle(ipcChannels.filesSearch, async (arg) => {
+    const { folder, query } = FileSearchRequest.parse(arg);
+    if (!folders.usable(folder)) return [];
+    const files = await findFiles(
+      { cwd: folder, policy: folders.policy },
+      query,
+      AbortSignal.timeout(5_000),
+    );
+    return z.array(z.string()).parse(files);
+  });
+
+  handle(ipcChannels.skillsList, () => SkillList.parse(skills.list()));
+
+  handle(ipcChannels.skillsInstall, async (_arg, sender) => {
+    const window = BrowserWindow.fromWebContents(sender);
+    const options: Electron.OpenDialogOptions = { properties: ["openDirectory"] };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    const [picked] = result.filePaths;
+    if (result.canceled || !picked) return null;
+    const report = await skills.install(picked);
+    if (report.installed.length > 0) logger.info(`Added skill(s): ${report.installed.join(", ")}`);
+    for (const { folder, problem } of report.refused) {
+      logger.info(`Skill folder ${folder} refused: ${problem}`);
+    }
+    return SkillInstallReport.parse(report);
+  });
+
+  handle(ipcChannels.skillsRemove, async (arg) => {
+    await skills.remove(z.string().parse(arg));
+    return SkillList.parse(skills.list());
+  });
+
+  handle(ipcChannels.skillsSetEnabled, (arg) => {
+    const { id, enabled } = SetSkillEnabledRequest.parse(arg);
+    skills.setEnabled(id, enabled);
+    return SkillList.parse(skills.list());
   });
 
   handle(ipcChannels.approvalRespond, (arg) => {

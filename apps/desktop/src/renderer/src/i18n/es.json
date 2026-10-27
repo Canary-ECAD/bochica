@@ -156,7 +156,7 @@
       "reorganize": "Reorganizar el proyecto {{project}}: los datos borrados se eliminan para siempre",
       "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
     },
-    "bochicaRead": "Leyó la guía de scripting: {{path}}",
+    "bochicaRead": "Leyó un archivo de skill: {{path}}",
     "bochica": {
       "read_file": "Leyó {{path}}",
       "list_files": "Buscó archivos que coinciden con {{pattern}}",
@@ -185,10 +185,13 @@
       "ran_one": "ejecutó un comando",
       "ran_other": "ejecutó {{count}} comandos",
       "blocked_one": "bloqueó una acción",
-      "blocked_other": "bloqueó {{count}} acciones"
+      "blocked_other": "bloqueó {{count}} acciones",
+      "skill_one": "usó una skill",
+      "skill_other": "usó {{count}} skills"
     },
     "blocked": "Bloqueado por Bochica: {{reason}}",
-    "changes": "Cambios"
+    "changes": "Cambios",
+    "useSkill": "Usó la skill {{name}}"
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
@@ -321,5 +324,52 @@
   "folder": {
     "choose": "Carpeta de trabajo: {{folder}}. Haz clic para elegir otra.",
     "fixed": "Carpeta de trabajo: {{folder}}"
+  },
+  "commands": {
+    "new": "Empezar una sesión nueva",
+    "consult": "Cambiar a Consulta: preguntas y scripts",
+    "tasks": "Cambiar a Tareas: trabajar en EPLAN",
+    "draw": "Cambiar a Draw (experimental)",
+    "settings": "Abrir Ajustes"
+  },
+  "composer": {
+    "noFiles": "Ningún archivo de la carpeta de trabajo coincide.",
+    "noFolder": "Elige una carpeta de trabajo para mencionar sus archivos."
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Instrucciones para tipos de trabajo concretos. El asistente usa una skill cuando una petición la necesita, o cuando escribes / y su nombre. Una skill solo añade instrucciones: nunca deja al asistente hacer más de lo que permite el modo.",
+    "source": {
+      "builtin": "Incluida",
+      "user": "Añadida"
+    },
+    "status": {
+      "skipped": "No cargada",
+      "invalid": "Dañada"
+    },
+    "problem": {
+      "no-skill-file": "No hay ningún archivo SKILL.md en esta carpeta.",
+      "no-front-matter": "SKILL.md debe empezar con una cabecera entre líneas ---, con un nombre y una descripción.",
+      "bad-name": "El nombre debe usar minúsculas, números y guiones (64 como máximo), como plc-labels.",
+      "missing-description": "SKILL.md no tiene descripción.",
+      "long-description": "La descripción tiene más de 1024 caracteres.",
+      "too-large": "La skill es demasiado grande (más de 200 archivos o 5 MB).",
+      "injection": "Contiene texto que intenta tomar el control del asistente.",
+      "name-taken": "Una skill incluida o un comando ya usa ese nombre."
+    },
+    "findings": {
+      "override": "pide al asistente que ignore sus instrucciones",
+      "hidden-comment": "esconde instrucciones en un comentario",
+      "secret-read": "pide leer contraseñas, claves o archivos .env",
+      "exfiltration": "envía secretos a internet",
+      "invisible-chars": "contiene caracteres invisibles"
+    },
+    "finding": "No se cargó porque {{reason}} ({{file}}, línea {{line}}).",
+    "remove": "Quitar {{name}}",
+    "empty": "Aún no hay skills.",
+    "add": "Añadir skill…",
+    "added_one": "Se añadió la skill {{names}}.",
+    "added_other": "Se añadieron {{count}} skills: {{names}}.",
+    "refused": "{{folder}} no se añadió: {{reason}}"
   }
 }

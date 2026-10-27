@@ -31,6 +31,11 @@ export const ipcChannels = {
   eplanStatus: "eplan:status",
   foldersDefault: "folders:default",
   foldersPick: "folders:pick",
+  filesSearch: "files:search",
+  skillsList: "skills:list",
+  skillsInstall: "skills:install",
+  skillsRemove: "skills:remove",
+  skillsSetEnabled: "skills:set-enabled",
   /** Main → renderer: the EPLAN connection changed. */
   eplanStatusChanged: "eplan:status-changed",
 } as const;
@@ -291,6 +296,70 @@ export const DeleteMessagesRequest = z.object({
 });
 export type DeleteMessagesRequest = z.infer<typeof DeleteMessagesRequest>;
 
+// Skills.
+
+/** Something in a skill's Markdown that looks like prompt injection (guardrails layer 8). */
+export const SkillFinding = z.object({
+  kind: z.enum(["override", "hidden-comment", "secret-read", "exfiltration", "invisible-chars"]),
+  /** The file, relative to the skill's folder. */
+  file: z.string(),
+  line: z.number().int(),
+});
+export type SkillFinding = z.infer<typeof SkillFinding>;
+
+/** Why a skill can't be added or loaded. */
+export const SkillProblem = z.enum([
+  "no-skill-file",
+  "no-front-matter",
+  "bad-name",
+  "missing-description",
+  "long-description",
+  "too-large",
+  "injection",
+  "name-taken",
+]);
+export type SkillProblem = z.infer<typeof SkillProblem>;
+
+export const SkillInfo = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  /** builtin: the EPLAN scripting guides, always on. user: added in Settings. */
+  source: z.enum(["builtin", "user"]),
+  enabled: z.boolean(),
+  /** skipped: left out by the injection scan. invalid: its SKILL.md is broken. */
+  status: z.enum(["ok", "skipped", "invalid"]),
+  findings: z.array(SkillFinding).optional(),
+  problem: SkillProblem.optional(),
+});
+export type SkillInfo = z.infer<typeof SkillInfo>;
+
+export const SkillList = z.array(SkillInfo);
+
+/** What "Add skill" did: the names added, and each folder refused with why. */
+export const SkillInstallReport = z.object({
+  installed: z.array(z.string()),
+  refused: z.array(
+    z.object({
+      folder: z.string(),
+      problem: SkillProblem,
+      findings: z.array(SkillFinding).optional(),
+    }),
+  ),
+});
+export type SkillInstallReport = z.infer<typeof SkillInstallReport>;
+
+export const SetSkillEnabledRequest = z.object({ id: z.string(), enabled: z.boolean() });
+export type SetSkillEnabledRequest = z.infer<typeof SetSkillEnabledRequest>;
+
+// Files of the working folder, for @ mentions.
+
+export const FileSearchRequest = z.object({
+  folder: z.string().min(1).max(1_000),
+  query: z.string().max(200),
+});
+export type FileSearchRequest = z.infer<typeof FileSearchRequest>;
+
 /** The API the preload exposes on `window.bochica`. */
 export interface BochicaApi {
   getAppInfo(): Promise<AppInfo>;
@@ -335,6 +404,17 @@ export interface BochicaApi {
     default(): Promise<string>;
     /** Opens the system folder picker; null if the user cancels. */
     pick(current?: string): Promise<string | null>;
+  };
+  files: {
+    /** Files of a working folder whose path contains the query, as relative paths. */
+    search(request: FileSearchRequest): Promise<string[]>;
+  };
+  skills: {
+    list(): Promise<SkillInfo[]>;
+    /** Opens the folder picker and adds what it finds; null if the user cancels. */
+    install(): Promise<SkillInstallReport | null>;
+    remove(id: string): Promise<SkillInfo[]>;
+    setEnabled(request: SetSkillEnabledRequest): Promise<SkillInfo[]>;
   };
   eplan: {
     status(): Promise<EplanStatus>;

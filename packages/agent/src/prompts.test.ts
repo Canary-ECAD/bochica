@@ -40,6 +40,16 @@ describe("systemPrompt", () => {
     );
   });
 
+  test("added skills are listed by name and description only", () => {
+    expect(systemPrompt("tasks")).not.toContain("# Skills");
+    const prompt = systemPrompt("draw", [], {
+      skills: [{ name: "plc-labels", description: "Name PLC\n  inputs." }],
+    });
+    expect(prompt).toContain("# Skills");
+    expect(prompt).toContain("- plc-labels: Name PLC inputs.");
+    expect(prompt).toContain("bochica__use_skill");
+  });
+
   test("every mode shares the base rules", () => {
     for (const mode of ["consult", "tasks", "draw"] as const) {
       expect(systemPrompt(mode)).toContain("Answer in the language the user writes in.");

@@ -53,6 +53,8 @@ const builtinKinds: Record<string, string> = {
   write_file: "wrote",
   edit_file: "edited",
   powershell: "ran",
+  use_skill: "skill",
+  read_skill_file: "read",
 };
 
 function field(input: unknown, name: string): string {
@@ -114,6 +116,9 @@ export function describeCall(
   }
   if (server === "bochica" && tool === "backup_project") {
     return t("activity.backup", { project: field(input, "project") });
+  }
+  if (server === "bochica" && tool === "use_skill") {
+    return t("activity.useSkill", { name: field(input, "name") });
   }
   if (server === "bochica" && tool === "read_skill_file") {
     return t("activity.bochicaRead", { path: field(input, "path").split("/").at(-1) ?? "" });

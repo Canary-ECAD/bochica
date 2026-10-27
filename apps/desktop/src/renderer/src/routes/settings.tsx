@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { DocsSettings } from "@/components/docs-settings";
 import { ProviderSettings } from "@/components/provider-settings";
+import { SkillsSettings } from "@/components/skills-settings";
 import { supportedLanguages } from "@/i18n";
 
 export function SettingsPage() {
@@ -21,6 +22,12 @@ export function SettingsPage() {
           <h2 className="mb-1 text-sm font-medium">{t("docs.title")}</h2>
           <p className="mb-4 text-sm text-muted-foreground">{t("docs.description")}</p>
           <DocsSettings />
+        </section>
+
+        <section className="mb-10">
+          <h2 className="mb-1 text-sm font-medium">{t("skills.title")}</h2>
+          <p className="mb-4 text-sm text-muted-foreground">{t("skills.description")}</p>
+          <SkillsSettings />
         </section>
 
         <section>

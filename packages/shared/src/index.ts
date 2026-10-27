@@ -29,6 +29,7 @@ export {
   DeleteMessagesRequest,
   EplanStatus,
   FileDiff,
+  FileSearchRequest,
   ipcChannels,
   McpServerInfo,
   McpServerList,
@@ -38,6 +39,19 @@ export {
   RenameSessionRequest,
   SetCredentialRequest,
   SetMcpEnabledRequest,
+  SetSkillEnabledRequest,
+  SkillFinding,
+  SkillInfo,
+  SkillInstallReport,
+  SkillList,
+  SkillProblem,
   ToolStatus,
   TurnEvent,
 } from "./ipc";
+export {
+  COMMAND_NAME,
+  mentionFor,
+  parseMentions,
+  parseSlashCommand,
+  type SlashCommand,
+} from "./commands";

@@ -5,6 +5,8 @@ const SettingsFile = z.object({
   version: z.literal(1),
   /** MCP server id → on/off, for optional servers. Required servers ignore it. */
   mcpEnabled: z.record(z.string(), z.boolean()).default({}),
+  /** Added skills the user switched off; the rest are on. */
+  skillsDisabled: z.array(z.string()).default([]),
 });
 type Settings = z.infer<typeof SettingsFile>;
 
@@ -28,8 +30,18 @@ export class SettingsStore {
     this.persist();
   }
 
+  isSkillEnabled(id: string): boolean {
+    return !this.settings.skillsDisabled.includes(id);
+  }
+
+  setSkillEnabled(id: string, enabled: boolean): void {
+    const others = this.settings.skillsDisabled.filter((s) => s !== id);
+    this.settings = { ...this.settings, skillsDisabled: enabled ? others : [...others, id] };
+    this.persist();
+  }
+
   private load(): Settings {
-    const empty: Settings = { version: 1, mcpEnabled: {} };
+    const empty: Settings = { version: 1, mcpEnabled: {}, skillsDisabled: [] };
     if (!existsSync(this.file)) return empty;
     try {
       return SettingsFile.parse(JSON.parse(readFileSync(this.file, "utf8")));

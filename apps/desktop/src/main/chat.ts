@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, statSync } from "node:fs";
 import {
   type AgentTool,
+  attachMentions,
+  checkPath,
   createModel,
+  expandSkillCommands,
   getProvider,
   type McpManager,
   runTurn,
+  type SkillSet,
   systemPrompt,
 } from "@bochica/agent";
 import { eplanToolInMode } from "@bochica/eplan";
@@ -17,6 +22,7 @@ import {
   type ChatSendRequest,
   type ConversationMessage,
   ipcChannels,
+  parseSlashCommand,
   titleFrom,
   type TurnEvent,
   userMessage,
@@ -29,7 +35,7 @@ import type { SessionRepository } from "./db/repository";
 import { builtinTools, type FolderService } from "./folders";
 import type { Logger } from "./logger";
 import { EPLAN_SERVER_ID } from "./mcp-service";
-import type { SkillStore } from "./skills";
+import type { SkillService } from "./skills";
 
 const TEXT_SAVE_INTERVAL_MS = 1_000;
 
@@ -39,7 +45,7 @@ export interface ChatDeps {
   approvals: ApprovalService;
   backups: BackupGuard;
   sessions: SessionRepository;
-  skills: SkillStore;
+  skills: SkillService;
   folders: FolderService;
   logger: Logger;
   /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
@@ -55,7 +61,7 @@ export class ChatService {
   private readonly approvals: ApprovalService;
   private readonly backups: BackupGuard;
   private readonly sessions: SessionRepository;
-  private readonly skills: SkillStore;
+  private readonly skills: SkillService;
   private readonly folders: FolderService;
   private readonly logger: Logger;
   private readonly extraTools: AgentTool[];
@@ -73,18 +79,25 @@ export class ChatService {
   }
 
   /**
-   * The tools a mode allows. Consult: the docs, the scripting guide and the file tools. Tasks:
-   * the docs, the EPLAN tools, the file tools and PowerShell. Draw: the docs and the drawing
-   * tools.
+   * The tools a mode allows. Consult: the docs and the file tools. Tasks: the docs, the EPLAN
+   * tools, the file tools and PowerShell. Draw: the docs and the drawing tools. Every mode can
+   * open the skills.
    */
-  private toolsFor(mode: ChatMode, folder: string): AgentTool[] {
+  private toolsFor(mode: ChatMode, folder: string, skills: SkillSet): AgentTool[] {
     const mcpTools = this.mcp
       .tools()
       .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
-    const skillTools =
-      mode === "consult" && this.skills.loaded().length > 0 ? [this.skills.readTool()] : [];
     const builtin = builtinTools(mode, folder, this.folders.policy, process.env);
-    return [...mcpTools, ...skillTools, ...builtin, ...this.extraTools];
+    return [...mcpTools, ...skills.tools(), ...builtin, ...this.extraTools];
+  }
+
+  /** Whether `@path` names a file to attach. Refused paths count, so the log says why. */
+  private mentionable(folder: string): (path: string) => boolean {
+    return (path) => {
+      const check = checkPath(path, folder, "read", this.folders.policy);
+      if ("block" in check) return true;
+      return existsSync(check.path) && statSync(check.path).isFile();
+    };
   }
 
   /** The session's folder; sessions from before S7 get the default one now. */
@@ -156,16 +169,48 @@ export class ChatService {
       try {
         const model = createModel(request.provider, key, request.model);
         const folder = await this.folderOf(request.sessionId);
-        const tools = this.toolsFor(request.mode, folder);
-        const has = (name: string) => tools.some((t) => t.server === "bochica" && t.tool === name);
+        const skills = this.skills.available();
+        const tools = this.toolsFor(request.mode, folder, skills);
+        const find = (name: string) => tools.find((t) => t.server === "bochica" && t.tool === name);
+        const guides = request.mode === "consult" ? this.skills.guides() : [];
+        const messages = expandSkillCommands(request.messages, (name) => skills.find(name));
+        // A `/skill` command shows in the log; its instructions are already in the message.
+        const command = parseSlashCommand(question);
+        const called = command ? skills.find(command.name) : undefined;
+        if (called) {
+          const callId = `skill-${randomUUID()}`;
+          emit({
+            type: "tool-call",
+            callId,
+            server: "bochica",
+            tool: "use_skill",
+            input: { name: called.name },
+          });
+          emit({ type: "tool-result", callId, status: "ok", output: called.description });
+        }
+        // `@path` in the new message: read now, appended for the model only.
+        const mentions = attachMentions(
+          question,
+          find("read_file"),
+          this.mentionable(folder),
+          controller.signal,
+        );
+        let next = await mentions.next();
+        while (!next.done) {
+          emit(next.value);
+          // oxlint-disable-next-line no-await-in-loop
+          next = await mentions.next();
+        }
+        const last = messages.at(-1);
+        if (last && next.value)
+          messages[messages.length - 1] = { ...last, content: last.content + next.value };
         for await (const event of runTurn({
           model,
-          messages: request.messages,
-          system: systemPrompt(
-            request.mode,
-            request.mode === "consult" ? this.skills.loaded() : [],
-            has("read_file") ? { folder, terminal: has("powershell") } : {},
-          ),
+          messages,
+          system: systemPrompt(request.mode, guides, {
+            ...(find("read_file") ? { folder, terminal: Boolean(find("powershell")) } : {}),
+            skills: skills.skills.filter((skill) => !guides.includes(skill)),
+          }),
           abortSignal: controller.signal,
           tools: tools.map((tool) =>
             tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,

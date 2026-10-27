@@ -15,7 +15,7 @@ import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { SettingsStore } from "./settings";
-import { SkillStore } from "./skills";
+import { BuiltinSkills, SkillService } from "./skills";
 
 const logger = createLogger(app.getPath("logs"));
 
@@ -96,12 +96,16 @@ void app.whenReady().then(() => {
   void sessions
     .markInterruptedTurns()
     .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
-  const skills = new SkillStore(...skillLocation());
-  void skills.load().then((loaded) => {
-    logger.info(`Scripting skill: ${loaded.length} skill(s) loaded`);
-    for (const { dir, findings } of skills.skipped()) {
-      const where = findings.map((f) => `${f.kind} at line ${f.line}`).join(", ");
-      logger.error(`Skill ${dir} not loaded: it looks like prompt injection (${where})`);
+  const skills = new SkillService(
+    new BuiltinSkills(...skillLocation()),
+    join(app.getPath("userData"), "skills", "user"),
+    settings,
+  );
+  void skills.load().then(() => {
+    logger.info(`Skills: ${skills.available().skills.length} loaded`);
+    for (const { id, findings } of skills.skipped()) {
+      const where = findings.map((f) => `${f.kind} in ${f.file} at line ${f.line}`).join(", ");
+      logger.error(`Skill ${id} not loaded: it looks like prompt injection (${where})`);
     }
   });
   const folders = new FolderService(
@@ -129,7 +133,7 @@ void app.whenReady().then(() => {
     },
     (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
   );
-  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, folders, logger });
+  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, folders, skills, logger });
 
   // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
   // EPLAN indicator re-checks as soon as its server comes up.

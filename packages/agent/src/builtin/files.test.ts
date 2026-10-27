@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentTool } from "../tools";
-import { fileTools, globToRegExp } from "./files";
+import { fileTools, findFiles, globToRegExp } from "./files";
 import { checkPath, defaultPathPolicy, type PathPolicy } from "./paths";
 
 let root: string;
@@ -208,5 +208,26 @@ describe("file tools", () => {
     expect(get("search_files").approval).toBe("never");
     expect(get("write_file").approval).toBe("ask");
     expect(get("edit_file").approval).toBe("ask");
+  });
+});
+
+describe("findFiles", () => {
+  test("matches by path, names first, and leaves out secrets, generated and hidden folders", async () => {
+    mkdirSync(join(work, ".hidden"), { recursive: true });
+    writeFileSync(join(work, ".hidden", "export-notes.txt"), "x");
+    writeFileSync(join(work, "exports-list.txt"), "x");
+    const all = await findFiles({ cwd: work, policy }, "", signal);
+    expect(all).toContain("notes.txt");
+    expect(all).toContain(".env.example");
+    expect(all).not.toContain(".env");
+    expect(all.some((f) => f.startsWith("node_modules/") || f.startsWith(".hidden/"))).toBe(false);
+    expect(all.some((f) => f.startsWith("link/"))).toBe(false);
+    expect(await findFiles({ cwd: work, policy }, "EXPORT", signal)).toEqual([
+      "exports-list.txt",
+      "scripts/Export.cs",
+    ]);
+    expect(await findFiles({ cwd: work, policy }, "scripts\\rep", signal)).toEqual([
+      "scripts/Report.cs",
+    ]);
   });
 });
