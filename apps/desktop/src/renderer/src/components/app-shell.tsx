@@ -4,6 +4,7 @@ import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EplanIndicator } from "@/components/eplan-indicator";
 import { SessionRow } from "@/components/session-row";
+import logo from "@/assets/logo.png";
 import { useSessions } from "@/state/sessions";
 
 const navItem =
@@ -21,9 +22,12 @@ export function AppShell() {
   return (
     <div className="flex h-screen">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar p-3">
-        <div className="px-3 pt-1 pb-4">
-          <div className="text-base font-semibold">Bochica</div>
-          <div className="text-xs text-muted-foreground">by Canary-ECAD</div>
+        <div className="flex items-center gap-2.5 px-3 pt-1 pb-4">
+          <img src={logo} alt="" className="size-8 shrink-0" />
+          <div>
+            <div className="text-base leading-tight font-semibold">Bochica</div>
+            <div className="text-xs text-muted-foreground">by Canary-ECAD</div>
+          </div>
         </div>
 
         <nav className="flex flex-col gap-1">

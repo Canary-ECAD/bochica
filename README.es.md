@@ -1,3 +1,5 @@
+<p align="center"><img src="apps/desktop/build/icon.png" alt="Logo de Bochica" width="112"></p>
+
 # Bochica
 
 [English](README.md) · **Español**
@@ -7,7 +9,10 @@ cualquier persona trabajar con EPLAN Electric P8 mediante un agente de IA, sin p
 la línea de comandos. Instálala, pega una API key del proveedor de IA que prefieras y describe
 lo que quieres con tus propias palabras.
 
-> **Estado:** desarrollo inicial. La interfaz arranca; el agente todavía no está conectado.
+> **Estado:** desarrollo inicial, aún sin publicar. Ya conversa con cualquier proveedor, responde
+> con la documentación de EPLAN, actúa en EPLAN con tu aprobación, trabaja con archivos y
+> PowerShell en la carpeta que elijas y admite tus propias skills. Falta: el instalador con
+> Python incluido y las actualizaciones automáticas.
 
 ## Qué incluye
 
