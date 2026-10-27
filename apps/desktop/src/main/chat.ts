@@ -1,6 +1,13 @@
-import { createModel, getProvider, runTurn } from "@bochica/agent";
-import { ChatEvent, type ChatSendRequest, ipcChannels, type TurnEvent } from "@bochica/shared";
+import { type AgentTool, createModel, getProvider, type McpManager, runTurn } from "@bochica/agent";
+import {
+  ApprovalRequest,
+  ChatEvent,
+  type ChatSendRequest,
+  ipcChannels,
+  type TurnEvent,
+} from "@bochica/shared";
 import type { WebContents } from "electron";
+import type { ApprovalService } from "./approvals";
 import type { CredentialStore } from "./credentials";
 import type { Logger } from "./logger";
 
@@ -10,7 +17,11 @@ export class ChatService {
 
   constructor(
     private readonly credentials: CredentialStore,
+    private readonly mcp: McpManager,
+    private readonly approvals: ApprovalService,
     private readonly logger: Logger,
+    /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
+    private readonly extraTools: AgentTool[] = [],
   ) {}
 
   /** Starts the turn and returns at once; events follow on `chat:event`. */
@@ -27,6 +38,12 @@ export class ChatService {
       return;
     }
 
+    const approve = this.approvals.approverFor(request.sessionId, request.turnId, (approval) => {
+      if (!target.isDestroyed()) {
+        target.send(ipcChannels.approvalRequest, ApprovalRequest.parse(approval));
+      }
+    });
+
     const controller = new AbortController();
     this.running.set(request.turnId, controller);
     void (async () => {
@@ -36,6 +53,8 @@ export class ChatService {
           model,
           messages: request.messages,
           abortSignal: controller.signal,
+          tools: [...this.mcp.tools(), ...this.extraTools],
+          approve,
         })) {
           if (event.type === "error") {
             this.logger.error(
@@ -52,11 +71,15 @@ export class ChatService {
   }
 
   stop(turnId: string): void {
+    this.approvals.cancelTurn(turnId);
     this.running.get(turnId)?.abort();
   }
 
   stopAll(): void {
-    for (const controller of this.running.values()) controller.abort();
+    for (const [turnId, controller] of this.running) {
+      this.approvals.cancelTurn(turnId);
+      controller.abort();
+    }
   }
 }
 
@@ -67,3 +90,22 @@ export function keyFor(
 ): string | undefined {
   return getProvider(provider).auth === "local" ? "" : credentials.resolve(provider);
 }
+
+/**
+ * Dev builds only (BOCHICA_DEV_TOOLS=1): a harmless tool that always asks for approval, so the
+ * approval card can be exercised before any real write tool exists.
+ */
+export const devEchoTool: AgentTool = {
+  name: "bochica__dev_echo",
+  server: "bochica",
+  tool: "dev_echo",
+  description:
+    "Developer test tool: echoes the given text back. Use it only when the user explicitly asks to test approvals.",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string", description: "Text to echo" } },
+    required: ["text"],
+  },
+  needsApproval: true,
+  execute: async (input) => ({ ok: true, text: `Echo: ${JSON.stringify(input)}` }),
+};

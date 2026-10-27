@@ -15,6 +15,13 @@ export const ipcChannels = {
   chatStop: "chat:stop",
   /** Main → renderer: one message per streamed event. */
   chatEvent: "chat:event",
+  mcpList: "mcp:list",
+  mcpSetEnabled: "mcp:set-enabled",
+  /** Main → renderer: the server list changed (status, tools, enabled). */
+  mcpChanged: "mcp:changed",
+  /** Main → renderer: a tool call waits for the user's decision. */
+  approvalRequest: "approval:request",
+  approvalRespond: "approval:respond",
 } as const;
 
 export const AppInfo = z.object({
@@ -84,6 +91,8 @@ export type ChatMessage = z.infer<typeof ChatMessage>;
 export const ChatSendRequest = z.object({
   /** Chosen by the renderer; every event of this turn carries it. */
   turnId: z.string().min(1),
+  /** "Allow for this session" approvals are scoped to this id. */
+  sessionId: z.string().min(1),
   provider: ProviderId,
   model: z.string().min(1),
   messages: z.array(ChatMessage).min(1),
@@ -112,11 +121,62 @@ export const TurnEvent = z.discriminatedUnion("type", [
   }),
   /** `message` has already been through redaction; it is shown under "Details" only. */
   z.object({ type: z.literal("error"), code: ChatErrorCode, message: z.string() }),
+  z.object({
+    type: z.literal("tool-call"),
+    callId: z.string(),
+    /** MCP server id, or "bochica" for built-in tools. */
+    server: z.string(),
+    tool: z.string(),
+    input: z.unknown(),
+  }),
+  z.object({
+    type: z.literal("tool-result"),
+    callId: z.string(),
+    status: z.enum(["ok", "error", "denied"]),
+    /** Redacted and truncated for display. */
+    output: z.string(),
+  }),
 ]);
 export type TurnEvent = z.infer<typeof TurnEvent>;
 
 export const ChatEvent = z.intersection(z.object({ turnId: z.string() }), TurnEvent);
 export type ChatEvent = z.infer<typeof ChatEvent>;
+
+// MCP servers.
+
+export const McpServerInfo = z.object({
+  id: z.string(),
+  url: z.string().optional(),
+  required: z.boolean(),
+  enabled: z.boolean(),
+  state: z.enum(["disabled", "connecting", "ready", "error"]),
+  toolCount: z.number().int(),
+  /** Plain reason of the last failure, already redacted. */
+  error: z.string().optional(),
+});
+export type McpServerInfo = z.infer<typeof McpServerInfo>;
+
+export const McpServerList = z.array(McpServerInfo);
+
+export const SetMcpEnabledRequest = z.object({ id: z.string(), enabled: z.boolean() });
+export type SetMcpEnabledRequest = z.infer<typeof SetMcpEnabledRequest>;
+
+// Approvals (guardrails layer 5).
+
+export const ApprovalRequest = z.object({
+  requestId: z.string(),
+  turnId: z.string(),
+  server: z.string(),
+  tool: z.string(),
+  input: z.unknown(),
+});
+export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
+
+export const ApprovalDecision = z.enum(["once", "session", "deny"]);
+export type ApprovalDecision = z.infer<typeof ApprovalDecision>;
+
+export const ApprovalResponse = z.object({ requestId: z.string(), decision: ApprovalDecision });
+export type ApprovalResponse = z.infer<typeof ApprovalResponse>;
 
 /** The API the preload exposes on `window.bochica`. */
 export interface BochicaApi {
@@ -138,5 +198,14 @@ export interface BochicaApi {
     stop(turnId: string): Promise<void>;
     /** Subscribes to events of every turn. Returns the unsubscribe function. */
     onEvent(listener: (event: ChatEvent) => void): () => void;
+  };
+  mcp: {
+    list(): Promise<McpServerInfo[]>;
+    setEnabled(request: SetMcpEnabledRequest): Promise<McpServerInfo[]>;
+    onChange(listener: (servers: McpServerInfo[]) => void): () => void;
+  };
+  approvals: {
+    onRequest(listener: (request: ApprovalRequest) => void): () => void;
+    respond(response: ApprovalResponse): Promise<void>;
   };
 }

@@ -1,5 +1,8 @@
 export {
   AppInfo,
+  ApprovalDecision,
+  ApprovalRequest,
+  ApprovalResponse,
   type BochicaApi,
   ChatErrorCode,
   ChatEvent,
@@ -9,9 +12,12 @@ export {
   CredentialInfo,
   CredentialList,
   ipcChannels,
+  McpServerInfo,
+  McpServerList,
   ModelInfo,
   ModelList,
   ProviderId,
   SetCredentialRequest,
+  SetMcpEnabledRequest,
   TurnEvent,
 } from "./ipc";

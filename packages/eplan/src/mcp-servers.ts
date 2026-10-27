@@ -16,6 +16,8 @@ export type McpServerConfig =
       url: string;
       /** Required servers are always on; optional ones can be toggled in settings. */
       required: boolean;
+      /** Documentation search only: its tools never need the user's approval. */
+      readOnly: boolean;
     };
 
 export const defaultMcpServers: readonly McpServerConfig[] = [
@@ -31,17 +33,20 @@ export const defaultMcpServers: readonly McpServerConfig[] = [
     transport: "http",
     url: "https://rag2027.covaga.xyz/mcp",
     required: true,
+    readOnly: true,
   },
   {
     id: "eplan-docs-2026",
     transport: "http",
     url: "https://rag2026.covaga.xyz/mcp",
     required: false,
+    readOnly: true,
   },
   {
     id: "eec-pro-docs",
     transport: "http",
     url: "https://rageecpro.covaga.xyz/mcp",
     required: false,
+    readOnly: true,
   },
 ];

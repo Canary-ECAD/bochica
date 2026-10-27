@@ -1,15 +1,39 @@
-import type { ChatErrorCode, ChatEvent, ChatMessage, ProviderId } from "@bochica/shared";
+import type {
+  ApprovalDecision,
+  ApprovalRequest,
+  ChatErrorCode,
+  ChatEvent,
+  ChatMessage,
+  ProviderId,
+} from "@bochica/shared";
 import { create } from "zustand";
 
 // Conversations live in memory for now; S5 persists them in SQLite.
+
+export interface ToolPart {
+  type: "tool";
+  callId: string;
+  server: string;
+  tool: string;
+  input: unknown;
+  status: "running" | "ok" | "error" | "denied";
+  output?: string;
+}
+
+/** What an assistant message shows, in order: text interleaved with tool calls. */
+export type MessagePart = { type: "text"; text: string } | ToolPart;
 
 export interface Message {
   /** For assistant messages this is the turn id. */
   id: string;
   role: "user" | "assistant";
+  /** All text of the message, without tool calls; this is what later turns send as history. */
   content: string;
+  parts: MessagePart[];
   status: "streaming" | "done" | "stopped" | "length" | "error";
   error?: { code: ChatErrorCode; message: string };
+  /** Tool calls of this turn waiting for the user. */
+  approvals: ApprovalRequest[];
 }
 
 interface Session {
@@ -32,6 +56,8 @@ interface SessionsState {
   addExchange(sessionId: string, text: string, turnId: string): void;
   removeMessages(sessionId: string, ids: string[]): void;
   applyEvent(event: ChatEvent): void;
+  addApproval(request: ApprovalRequest): void;
+  removeApproval(requestId: string): void;
 }
 
 const TITLE_LENGTH = 48;
@@ -59,8 +85,22 @@ export const useSessions = create<SessionsState>()((set) => ({
         (text.length > TITLE_LENGTH ? `${text.slice(0, TITLE_LENGTH).trimEnd()}…` : text);
       const messages: Message[] = [
         ...session.messages,
-        { id: crypto.randomUUID(), role: "user", content: text, status: "done" },
-        { id: turnId, role: "assistant", content: "", status: "streaming" },
+        {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text,
+          parts: [{ type: "text", text }],
+          status: "done",
+          approvals: [],
+        },
+        {
+          id: turnId,
+          role: "assistant",
+          content: "",
+          parts: [],
+          status: "streaming",
+          approvals: [],
+        },
       ];
       return {
         sessions: { ...state.sessions, [sessionId]: { ...session, title, messages } },
@@ -77,15 +117,39 @@ export const useSessions = create<SessionsState>()((set) => ({
     }),
 
   applyEvent: (event) =>
-    set((state) => {
-      const sessionId = state.turnToSession[event.turnId];
-      const session = sessionId ? state.sessions[sessionId] : undefined;
-      if (!sessionId || !session) return state;
-      const messages = session.messages.map((m): Message => {
-        if (m.id !== event.turnId) return m;
+    set((state) =>
+      updateTurn(state, event.turnId, (m): Message => {
         switch (event.type) {
           case "text-delta":
-            return { ...m, content: m.content + event.text };
+            return {
+              ...m,
+              content: m.content + event.text,
+              parts: appendText(m.parts, event.text),
+            };
+          case "tool-call":
+            return {
+              ...m,
+              parts: [
+                ...m.parts,
+                {
+                  type: "tool",
+                  callId: event.callId,
+                  server: event.server,
+                  tool: event.tool,
+                  input: event.input,
+                  status: "running",
+                },
+              ],
+            };
+          case "tool-result":
+            return {
+              ...m,
+              parts: m.parts.map((p) =>
+                p.type === "tool" && p.callId === event.callId
+                  ? { ...p, status: event.status, output: event.output }
+                  : p,
+              ),
+            };
           case "turn-end":
             return {
               ...m,
@@ -95,14 +159,62 @@ export const useSessions = create<SessionsState>()((set) => ({
                   : event.reason === "length"
                     ? "length"
                     : "done",
+              approvals: [],
             };
           case "error":
-            return { ...m, status: "error", error: { code: event.code, message: event.message } };
+            return {
+              ...m,
+              status: "error",
+              error: { code: event.code, message: event.message },
+              approvals: [],
+            };
         }
-      });
-      return { sessions: { ...state.sessions, [sessionId]: { ...session, messages } } };
+      }),
+    ),
+
+  addApproval: (request) =>
+    set((state) =>
+      updateTurn(state, request.turnId, (m) => ({ ...m, approvals: [...m.approvals, request] })),
+    ),
+
+  removeApproval: (requestId) =>
+    set((state) => {
+      const sessions = Object.fromEntries(
+        Object.entries(state.sessions).map(([id, session]) => [
+          id,
+          {
+            ...session,
+            messages: session.messages.map((m) =>
+              m.approvals.some((a) => a.requestId === requestId)
+                ? { ...m, approvals: m.approvals.filter((a) => a.requestId !== requestId) }
+                : m,
+            ),
+          },
+        ]),
+      );
+      return { sessions };
     }),
 }));
+
+/** Applies `update` to the assistant message of a turn, wherever its session is. */
+function updateTurn(
+  state: SessionsState,
+  turnId: string,
+  update: (message: Message) => Message,
+): Partial<SessionsState> {
+  const sessionId = state.turnToSession[turnId];
+  const session = sessionId ? state.sessions[sessionId] : undefined;
+  if (!sessionId || !session) return state;
+  const messages = session.messages.map((m) => (m.id === turnId ? update(m) : m));
+  return { sessions: { ...state.sessions, [sessionId]: { ...session, messages } } };
+}
+
+function appendText(parts: MessagePart[], text: string): MessagePart[] {
+  const last = parts.at(-1);
+  if (last?.type === "text")
+    return [...parts.slice(0, -1), { type: "text", text: last.text + text }];
+  return [...parts, { type: "text", text }];
+}
 
 /**
  * The conversation as the model should see it: failed exchanges are left out entirely, so
@@ -129,7 +241,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
   const messages = [...toHistory(session.messages), { role: "user" as const, content: text }];
   useSessions.getState().addExchange(sessionId, text, turnId);
   window.bochica.chat
-    .send({ turnId, provider: choice.provider, model: choice.model, messages })
+    .send({ turnId, sessionId, provider: choice.provider, model: choice.model, messages })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({
         turnId,
@@ -152,4 +264,9 @@ export function retry(sessionId: string, failedTurnId: string, choice: ModelChoi
 
 export function stopTurn(turnId: string): void {
   void window.bochica.chat.stop(turnId);
+}
+
+export function answerApproval(requestId: string, decision: ApprovalDecision): void {
+  useSessions.getState().removeApproval(requestId);
+  void window.bochica.approvals.respond({ requestId, decision });
 }

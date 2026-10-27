@@ -73,5 +73,70 @@
       "network": "No se ha podido conectar. Comprueba tu conexión a internet y reintenta.",
       "unknown": "Algo ha fallado al responder. Reintenta o abre Detalles para ver qué ha pasado."
     }
+  },
+  "activity": {
+    "search": {
+      "docs2027": "Buscó «{{query}}» en la documentación de EPLAN 2027",
+      "docs2026": "Buscó «{{query}}» en la documentación de EPLAN 2026",
+      "eecPro": "Buscó «{{query}}» en la documentación de EEC Pro"
+    },
+    "read": {
+      "docs2027": "Leyó {{path}} en la documentación de EPLAN 2027",
+      "docs2026": "Leyó {{path}} en la documentación de EPLAN 2026",
+      "eecPro": "Leyó {{path}} en la documentación de EEC Pro"
+    },
+    "stats": {
+      "docs2027": "Consultó el índice de la documentación de EPLAN 2027",
+      "docs2026": "Consultó el índice de la documentación de EPLAN 2026",
+      "eecPro": "Consultó el índice de la documentación de EEC Pro"
+    },
+    "group": {
+      "docs2027_one": "Consultó la documentación de EPLAN 2027",
+      "docs2027_other": "Consultó la documentación de EPLAN 2027 {{count}} veces",
+      "docs2026_one": "Consultó la documentación de EPLAN 2026",
+      "docs2026_other": "Consultó la documentación de EPLAN 2026 {{count}} veces",
+      "eecPro_one": "Consultó la documentación de EEC Pro",
+      "eecPro_other": "Consultó la documentación de EEC Pro {{count}} veces",
+      "bochica_one": "Usó una herramienta de Bochica",
+      "bochica_other": "Usó herramientas de Bochica {{count}} veces",
+      "mixed_one": "Usó una herramienta",
+      "mixed_other": "Usó {{count}} herramientas"
+    },
+    "devEcho": "Repetir «{{text}}» (prueba de aprobación)",
+    "used": "Usó {{tool}}",
+    "input": "Entrada",
+    "output": "Resultado"
+  },
+  "approval": {
+    "title": "Bochica quiere hacer esto:",
+    "once": "Permitir una vez",
+    "session": "Permitir en esta sesión",
+    "deny": "Denegar"
+  },
+  "docs": {
+    "title": "Documentación de EPLAN",
+    "description": "Fuentes que el asistente consulta antes de responder preguntas sobre EPLAN. Son servicios en línea; de tus proyectos solo se envían los términos de búsqueda.",
+    "alwaysOn": "{{description}} Siempre activa.",
+    "status": {
+      "ready_one": "Lista · {{count}} herramienta",
+      "ready_other": "Lista · {{count}} herramientas",
+      "connecting": "Conectando…",
+      "error": "No disponible",
+      "disabled": "Desactivada"
+    },
+    "sources": {
+      "eplan-docs-2027": {
+        "name": "EPLAN Electric P8 2027",
+        "description": "Documentación de la API; funciona mejor con nombres exactos de clases, acciones y propiedades."
+      },
+      "eplan-docs-2026": {
+        "name": "EPLAN Electric P8 2026",
+        "description": "Referencia de la API y guía de usuario, con búsqueda por significado."
+      },
+      "eec-pro-docs": {
+        "name": "EPLAN EEC Pro 2026",
+        "description": "Fórmulas, scripting, típicos y generación en EEC Pro."
+      }
+    }
   }
 }

@@ -1,9 +1,13 @@
 import { join } from "node:path";
+import { ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
-import { ChatService } from "./chat";
+import { ApprovalService } from "./approvals";
+import { ChatService, devEchoTool } from "./chat";
 import { CredentialStore } from "./credentials";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
+import { McpService } from "./mcp-service";
+import { SettingsStore } from "./settings";
 
 const logger = createLogger(app.getPath("logs"));
 
@@ -54,9 +58,26 @@ void app.whenReady().then(() => {
     join(app.getPath("userData"), "credentials.json"),
     safeStorage,
   );
-  const chat = new ChatService(credentials, logger);
-  registerIpc(credentials, chat, logger);
-  app.on("before-quit", () => chat.stopAll());
+  const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
+  const mcp = new McpService(settings);
+  const approvals = new ApprovalService();
+  const devTools = !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
+  const chat = new ChatService(credentials, mcp.manager, approvals, logger, devTools);
+  registerIpc({ credentials, chat, mcp, approvals, logger });
+
+  // Every window learns about MCP status changes (connecting → ready, errors, toggles).
+  mcp.manager.onChange(() => {
+    const servers = McpServerList.parse(mcp.list());
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(ipcChannels.mcpChanged, servers);
+    }
+  });
+  mcp.start();
+
+  app.on("before-quit", () => {
+    chat.stopAll();
+    void mcp.manager.close();
+  });
   createWindow();
 });
 

@@ -1,12 +1,27 @@
 import type { ChatErrorCode, ChatMessage, TurnEvent } from "@bochica/shared";
-import { APICallError, type LanguageModel, RetryError, streamText } from "ai";
+import { APICallError, type LanguageModel, RetryError, stepCountIs, streamText } from "ai";
 import { systemPrompt } from "./prompts";
 import { redactSecrets } from "./redact";
+import {
+  type AgentTool,
+  type Approver,
+  DISPLAY_OUTPUT_LIMIT,
+  type ToolOutcome,
+  toToolSet,
+  truncate,
+} from "./tools";
+
+/** Model calls per turn; each tool round-trip uses one. */
+const DEFAULT_MAX_STEPS = 12;
 
 export interface TurnOptions {
   model: LanguageModel;
   messages: ChatMessage[];
   abortSignal: AbortSignal;
+  tools?: AgentTool[];
+  /** Asked before any tool with `needsApproval` runs. Without it, such calls are denied. */
+  approve?: Approver;
+  maxSteps?: number;
 }
 
 /**
@@ -17,7 +32,11 @@ export async function* runTurn({
   model,
   messages,
   abortSignal,
+  tools = [],
+  approve,
+  maxSteps = DEFAULT_MAX_STEPS,
 }: TurnOptions): AsyncGenerator<TurnEvent> {
+  const byName = new Map(tools.map((tool) => [tool.name, tool]));
   try {
     const result = streamText({
       model,
@@ -25,6 +44,9 @@ export async function* runTurn({
       messages,
       abortSignal,
       maxRetries: 2,
+      ...(tools.length > 0
+        ? { tools: toToolSet(tools, approve), stopWhen: stepCountIs(maxSteps) }
+        : {}),
       // Errors arrive as stream parts and are reported below; skip the SDK's console logging.
       onError: () => {},
     });
@@ -32,6 +54,37 @@ export async function* runTurn({
       switch (part.type) {
         case "text-delta":
           if (part.text) yield { type: "text-delta", text: part.text };
+          break;
+        case "tool-call": {
+          const tool = byName.get(part.toolName);
+          yield {
+            type: "tool-call",
+            callId: part.toolCallId,
+            server: tool?.server ?? "unknown",
+            tool: tool?.tool ?? part.toolName,
+            input: part.input,
+          };
+          break;
+        }
+        case "tool-result": {
+          const outcome = part.output as ToolOutcome;
+          yield {
+            type: "tool-result",
+            callId: part.toolCallId,
+            status: outcome.status,
+            output: truncate(outcome.text, DISPLAY_OUTPUT_LIMIT),
+          };
+          break;
+        }
+        case "tool-error":
+          yield {
+            type: "tool-result",
+            callId: part.toolCallId,
+            status: "error",
+            output: redactSecrets(
+              part.error instanceof Error ? part.error.message : String(part.error),
+            ),
+          };
           break;
         case "error":
           yield toErrorEvent(part.error);

@@ -1,24 +1,37 @@
 import { getProvider, listModels, testConnection } from "@bochica/agent";
 import {
   AppInfo,
+  ApprovalResponse,
   ChatSendRequest,
   ConnectionResult,
   CredentialList,
   ipcChannels,
+  McpServerList,
   ModelList,
   ProviderId,
   SetCredentialRequest,
+  SetMcpEnabledRequest,
 } from "@bochica/shared";
 import { app, ipcMain, type WebContents } from "electron";
 import { z } from "zod";
+import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
 import type { CredentialStore } from "./credentials";
 import type { Logger } from "./logger";
+import type { McpService } from "./mcp-service";
+
+export interface Services {
+  credentials: CredentialStore;
+  chat: ChatService;
+  mcp: McpService;
+  approvals: ApprovalService;
+  logger: Logger;
+}
 
 // Requests from the renderer are untrusted input: every handler parses its argument with the
 // channel's schema before using it, and parses its result before returning it.
 
-export function registerIpc(credentials: CredentialStore, chat: ChatService, logger: Logger): void {
+export function registerIpc({ credentials, chat, mcp, approvals, logger }: Services): void {
   const handle = (
     channel: string,
     handler: (arg: unknown, sender: WebContents) => unknown,
@@ -80,5 +93,18 @@ export function registerIpc(credentials: CredentialStore, chat: ChatService, log
 
   handle(ipcChannels.chatStop, (arg) => {
     chat.stop(z.string().parse(arg));
+  });
+
+  handle(ipcChannels.mcpList, () => McpServerList.parse(mcp.list()));
+
+  handle(ipcChannels.mcpSetEnabled, (arg) => {
+    const { id, enabled } = SetMcpEnabledRequest.parse(arg);
+    mcp.setEnabled(id, enabled);
+    return McpServerList.parse(mcp.list());
+  });
+
+  handle(ipcChannels.approvalRespond, (arg) => {
+    const { requestId, decision } = ApprovalResponse.parse(arg);
+    approvals.respond(requestId, decision);
   });
 }

@@ -2,9 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S2 done.** Streaming chat with any configured provider (model picker, Markdown, Stop,
-> error cards), in-memory sessions, and Settings with encrypted API keys. Not built yet: tools and MCP,
-> SQLite, the Python runtime and the updater. Sections below describe the target design.
+> **Status: S3 done (milestone M0).** Streaming chat with any configured provider, EPLAN docs
+> RAGs over MCP with a visible activity log, approval cards, in-memory sessions, and Settings
+> (API keys, docs sources, language). Not built yet: the local EPLAN MCP server (stdio),
+> built-in tools, SQLite, the Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -137,6 +138,19 @@ How the pieces fit:
   which routes the event to the session that owns the turn. `toHistory` drops failed exchanges
   so user/assistant roles keep alternating. Models are listed live from each provider
   (`models:list`); never hard-code model ids.
+- **Tools:** every tool, MCP or built-in, is an `AgentTool` (`packages/agent/src/tools.ts`).
+  `toToolSet` wraps them for the AI SDK and is where approval, redaction and truncation happen;
+  don't bypass it. `McpManager` (`mcp.ts`) owns MCP connections and is told which servers are on
+  by `McpService` in main (`mcp-service.ts`, defaults from `@bochica/eplan`, toggles persisted by
+  `SettingsStore`). Tools of servers marked `readOnly` never ask; everything else does.
+- **Approvals:** a tool with `needsApproval` makes `ApprovalService` (main) send
+  `approval:request`; the renderer attaches it to the turn's message and shows `ApprovalCard`;
+  the answer comes back on `approval:respond`. No answer in 5 minutes, or Stop, means deny.
+  "Allow for this session" is keyed by session id + server + tool. Run the dev build with
+  `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that always asks, for testing cards.
+- **Activity log:** assistant messages are ordered `parts` (text and tool calls).
+  `message-list.tsx` groups consecutive tool calls into one `ActivityGroup`; labels come from
+  `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es).
 - **i18n:** strings live in `src/renderer/src/i18n/<lang>.json`; `en.json` is the reference and
   a test fails if another language has different keys. New language = new JSON + an entry in
   `supportedLanguages`.

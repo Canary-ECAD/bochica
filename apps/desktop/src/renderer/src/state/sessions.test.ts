@@ -5,13 +5,17 @@ const user = (id: string, content: string): Message => ({
   id,
   role: "user",
   content,
+  parts: [{ type: "text", text: content }],
   status: "done",
+  approvals: [],
 });
 const assistant = (id: string, content: string, status: Message["status"] = "done"): Message => ({
   id,
   role: "assistant",
   content,
+  parts: content ? [{ type: "text", text: content }] : [],
   status,
+  approvals: [],
 });
 
 describe("toHistory", () => {
@@ -76,6 +80,61 @@ describe("useSessions", () => {
     const id = store.createSession();
     store.addExchange(id, "x".repeat(100), "t1");
     expect(useSessions.getState().sessions[id]?.title).toBe(`${"x".repeat(48)}…`);
+  });
+
+  test("tool calls interleave with text in order", () => {
+    const store = useSessions.getState();
+    const id = store.createSession();
+    store.addExchange(id, "macro?", "t1");
+    store.applyEvent({ turnId: "t1", type: "text-delta", text: "Let me check. " });
+    store.applyEvent({
+      turnId: "t1",
+      type: "tool-call",
+      callId: "c1",
+      server: "docs",
+      tool: "search",
+      input: { query: "macro" },
+    });
+    store.applyEvent({
+      turnId: "t1",
+      type: "tool-result",
+      callId: "c1",
+      status: "ok",
+      output: "3 hits",
+    });
+    store.applyEvent({ turnId: "t1", type: "text-delta", text: "Found it." });
+
+    const message = useSessions.getState().sessions[id]?.messages.at(-1);
+    expect(message?.parts).toEqual([
+      { type: "text", text: "Let me check. " },
+      {
+        type: "tool",
+        callId: "c1",
+        server: "docs",
+        tool: "search",
+        input: { query: "macro" },
+        status: "ok",
+        output: "3 hits",
+      },
+      { type: "text", text: "Found it." },
+    ]);
+    expect(message?.content).toBe("Let me check. Found it.");
+  });
+
+  test("approvals attach to their turn and can be removed", () => {
+    const store = useSessions.getState();
+    const id = store.createSession();
+    store.addExchange(id, "do it", "t1");
+    store.addApproval({
+      requestId: "r1",
+      turnId: "t1",
+      server: "bochica",
+      tool: "dev_echo",
+      input: {},
+    });
+    expect(useSessions.getState().sessions[id]?.messages.at(-1)?.approvals).toHaveLength(1);
+    useSessions.getState().removeApproval("r1");
+    expect(useSessions.getState().sessions[id]?.messages.at(-1)?.approvals).toEqual([]);
   });
 
   test("events for unknown turns are ignored", () => {

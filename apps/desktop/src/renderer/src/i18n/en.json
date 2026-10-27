@@ -73,5 +73,70 @@
       "network": "Couldn't connect. Check your internet connection and retry.",
       "unknown": "Something went wrong while answering. Retry, or open Details to see what happened."
     }
+  },
+  "activity": {
+    "search": {
+      "docs2027": "Searched the EPLAN 2027 docs for “{{query}}”",
+      "docs2026": "Searched the EPLAN 2026 docs for “{{query}}”",
+      "eecPro": "Searched the EEC Pro docs for “{{query}}”"
+    },
+    "read": {
+      "docs2027": "Read {{path}} in the EPLAN 2027 docs",
+      "docs2026": "Read {{path}} in the EPLAN 2026 docs",
+      "eecPro": "Read {{path}} in the EEC Pro docs"
+    },
+    "stats": {
+      "docs2027": "Checked the EPLAN 2027 docs index",
+      "docs2026": "Checked the EPLAN 2026 docs index",
+      "eecPro": "Checked the EEC Pro docs index"
+    },
+    "group": {
+      "docs2027_one": "Consulted the EPLAN 2027 docs",
+      "docs2027_other": "Consulted the EPLAN 2027 docs {{count}} times",
+      "docs2026_one": "Consulted the EPLAN 2026 docs",
+      "docs2026_other": "Consulted the EPLAN 2026 docs {{count}} times",
+      "eecPro_one": "Consulted the EEC Pro docs",
+      "eecPro_other": "Consulted the EEC Pro docs {{count}} times",
+      "bochica_one": "Used a Bochica tool",
+      "bochica_other": "Used Bochica tools {{count}} times",
+      "mixed_one": "Used a tool",
+      "mixed_other": "Used {{count}} tools"
+    },
+    "devEcho": "Echo “{{text}}” (approval test)",
+    "used": "Used {{tool}}",
+    "input": "Input",
+    "output": "Result"
+  },
+  "approval": {
+    "title": "Bochica wants to do this:",
+    "once": "Allow once",
+    "session": "Allow for this session",
+    "deny": "Deny"
+  },
+  "docs": {
+    "title": "EPLAN documentation",
+    "description": "Sources the assistant searches before answering EPLAN questions. They are online services; nothing from your projects is sent to them except the search terms.",
+    "alwaysOn": "{{description}} Always on.",
+    "status": {
+      "ready_one": "Ready · {{count}} tool",
+      "ready_other": "Ready · {{count}} tools",
+      "connecting": "Connecting…",
+      "error": "Unavailable",
+      "disabled": "Off"
+    },
+    "sources": {
+      "eplan-docs-2027": {
+        "name": "EPLAN Electric P8 2027",
+        "description": "API documentation, best for exact class, action and property names."
+      },
+      "eplan-docs-2026": {
+        "name": "EPLAN Electric P8 2026",
+        "description": "API reference and user guide, searched by meaning."
+      },
+      "eec-pro-docs": {
+        "name": "EPLAN EEC Pro 2026",
+        "description": "Formulas, scripting, typicals and generation in EEC Pro."
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: [S3 — EPLAN docs over MCP](sprints/S3-mcp-docs.md)**
+**Active sprint: S4 — Act on EPLAN (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -13,7 +13,7 @@ documentation.
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------ |
 | [S1](sprints/S1-foundations.md) | Quality gate, error handling, API keys stored safely and testable from Settings                                     | Done   |
 | [S2](sprints/S2-chat.md)        | Streaming chat with any configured provider; Claude Code-style message view                                         | Done   |
-| [S3](sprints/S3-mcp-docs.md)    | MCP client; P8 2027 docs RAG always on, 2026/EEC Pro toggles; tool calls shown in the chat; approval card framework | Active |
+| [S3](sprints/S3-mcp-docs.md)    | MCP client; P8 2027 docs RAG always on, 2026/EEC Pro toggles; tool calls shown in the chat; approval card framework | Done   |
 
 ## M1 — Act on EPLAN
 

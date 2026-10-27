@@ -2,9 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDown, CircleAlert, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ActivityGroup } from "@/components/activity-log";
+import { ApprovalCard } from "@/components/approval-card";
 import { Markdown } from "@/components/markdown";
 import { Button } from "@/components/ui/button";
-import type { Message } from "@/state/sessions";
+import type { Message, MessagePart, ToolPart } from "@/state/sessions";
 
 /** Distance from the bottom, in px, within which new text keeps the view pinned. */
 const STICK_THRESHOLD = 48;
@@ -95,19 +97,31 @@ function AssistantMessage({
   onRetry(turnId: string): void;
 }) {
   const { t } = useTranslation();
-
-  if (message.status === "streaming" && !message.content) {
-    return (
-      <div className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
-        <span className="size-1.5 animate-pulse rounded-full bg-current" />
-        {t("chat.thinking")}
-      </div>
-    );
-  }
+  const last = message.parts.at(-1);
+  // Waiting on the model: nothing yet, or a tool just finished and the next step hasn't started.
+  const thinking =
+    message.status === "streaming" &&
+    message.approvals.length === 0 &&
+    (!last || (last.type === "tool" && last.status !== "running"));
 
   return (
-    <div className="flex flex-col gap-2">
-      {message.content && <Markdown>{message.content}</Markdown>}
+    <div className="flex flex-col gap-3">
+      {groupParts(message.parts).map((group) =>
+        group.type === "text" ? (
+          <Markdown key={group.key}>{group.text}</Markdown>
+        ) : (
+          <ActivityGroup key={group.key} parts={group.parts} />
+        ),
+      )}
+      {message.approvals.map((request) => (
+        <ApprovalCard key={request.requestId} request={request} />
+      ))}
+      {thinking && (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
+          <span className="size-1.5 animate-pulse rounded-full bg-current" />
+          {t("chat.thinking")}
+        </div>
+      )}
       {message.status === "stopped" && (
         <p className="text-xs text-muted-foreground">{t("chat.stopped")}</p>
       )}
@@ -164,4 +178,24 @@ function ErrorNotice({
       </div>
     </div>
   );
+}
+
+type PartGroup =
+  | { type: "text"; key: string; text: string }
+  | { type: "tools"; key: string; parts: ToolPart[] };
+
+/** Consecutive tool calls form one activity group; text parts stay as they are. */
+function groupParts(parts: MessagePart[]): PartGroup[] {
+  const groups: PartGroup[] = [];
+  for (const [index, part] of parts.entries()) {
+    const previous = groups.at(-1);
+    if (part.type === "text") {
+      if (part.text.trim()) groups.push({ type: "text", key: `text-${index}`, text: part.text });
+    } else if (previous?.type === "tools") {
+      previous.parts.push(part);
+    } else {
+      groups.push({ type: "tools", key: part.callId, parts: [part] });
+    }
+  }
+  return groups;
 }

@@ -16,6 +16,7 @@
     "@ai-sdk/openai": "4.0.103",
     "@ai-sdk/openai-compatible": "3.0.79",
     "@bochica/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "ai": "7.0.154",
     "zod": "4.6.7"
   },
