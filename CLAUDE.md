@@ -226,7 +226,8 @@ bun test -t "ids are unique"    # tests whose name matches
 ```
 
 Before calling a change done, `bun run check` must pass (typecheck, lint, format check, knip,
-tests). There is no CI yet, so this local run is the only gate.
+tests). CI (`.github/workflows/check.yml`) runs the same command on `windows-latest` for every
+push to `main` and every PR.
 
 Notes:
 

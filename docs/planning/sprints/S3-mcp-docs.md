@@ -13,9 +13,9 @@ the "Visible activity log" item in [BACKLOG.md](../BACKLOG.md).
 
 Packages: root.
 
-- [ ] Public repository `Canary-ECAD/bochica` created and `main` pushed (needs the maintainer's
-      permission).
-- [ ] `.github/workflows/check.yml` has run green on GitHub.
+- [x] Public repository `Canary-ECAD/bochica` created and `main` pushed.
+- [x] `.github/workflows/check.yml` has run green on GitHub (S1 and S2 pushes, ~1–1.5 min on
+      `windows-latest`).
 
 ### S3-01 · MCP client manager
 

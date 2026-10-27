@@ -29,4 +29,4 @@ move it there and leave a link here (`→ S4-03`).
 
 ## Infrastructure
 
-- GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → S1-07.
+- GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
