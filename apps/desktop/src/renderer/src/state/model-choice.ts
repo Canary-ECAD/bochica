@@ -59,12 +59,17 @@ export function useModelChoice(): ModelChoiceState {
   );
   const first = groups[0];
   const firstModel = first?.models[0];
-  const choice =
+  const picked =
     stored && storedIsAvailable
-      ? stored
+      ? { provider: stored.provider, model: stored.model }
       : first && firstModel
         ? { provider: first.provider.id, model: firstModel.id }
         : null;
+  // The window comes from the current list, never from what was stored.
+  const contextWindow = groups
+    .find((g) => g.provider.id === picked?.provider)
+    ?.models.find((m) => m.id === picked?.model)?.contextWindow;
+  const choice = picked && contextWindow ? { ...picked, contextWindow } : picked;
 
   return {
     groups,

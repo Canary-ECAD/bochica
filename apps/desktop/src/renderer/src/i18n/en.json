@@ -187,11 +187,20 @@
       "blocked_one": "blocked an action",
       "blocked_other": "blocked {{count}} actions",
       "skill_one": "used a skill",
-      "skill_other": "used {{count}} skills"
+      "skill_other": "used {{count}} skills",
+      "todo_one": "updated the task list",
+      "todo_other": "updated the task list {{count}} times",
+      "helper_one": "asked a helper",
+      "helper_other": "asked {{count}} helpers",
+      "compacted_one": "summarised the conversation",
+      "compacted_other": "summarised the conversation {{count}} times"
     },
     "blocked": "Blocked by Bochica: {{reason}}",
     "changes": "Changes",
-    "useSkill": "Used the skill {{name}}"
+    "useSkill": "Used the skill {{name}}",
+    "todoWrite": "Updated the task list",
+    "compact": "Summarised the earlier conversation",
+    "task": "Asked a helper: {{description}}"
   },
   "approval": {
     "title": "Bochica wants to do this:",
@@ -330,7 +339,8 @@
     "consult": "Switch to Consult: questions and scripts",
     "tasks": "Switch to Tasks: work in EPLAN",
     "draw": "Switch to Draw (experimental)",
-    "settings": "Open Settings"
+    "settings": "Open Settings",
+    "compact": "Summarise the conversation so far to free up space"
   },
   "composer": {
     "noFiles": "No files match in the working folder.",
@@ -371,5 +381,21 @@
     "added_one": "Added the skill {{names}}.",
     "added_other": "Added {{count}} skills: {{names}}.",
     "refused": "{{folder}} was not added: {{reason}}"
+  },
+  "todos": {
+    "title": "Task list",
+    "progress": "{{done}} of {{total}} done"
+  },
+  "context": {
+    "label": "Context {{percent}}% full",
+    "title": "Context",
+    "used": "{{used}} of {{window}} tokens ({{percent}}%) after the last answer.",
+    "parts": {
+      "instructions": "Instructions and skills",
+      "tools": "Tools",
+      "conversation": "Conversation",
+      "free": "Free"
+    },
+    "note": "At {{percent}}% Bochica summarises the older conversation by itself. You can also type /compact. The split is an estimate."
   }
 }

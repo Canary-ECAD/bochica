@@ -42,6 +42,7 @@ describe("listModels", () => {
           name: "models/gemini-pro-x",
           displayName: "Gemini Pro X",
           supportedGenerationMethods: ["generateContent"],
+          inputTokenLimit: 1048576,
         },
         {
           name: "models/gemini-embedding",
@@ -56,7 +57,7 @@ describe("listModels", () => {
       ],
     };
     expect(await listModels("google", "k", respondWith(body))).toEqual([
-      { id: "gemini-pro-x", label: "Gemini Pro X" },
+      { id: "gemini-pro-x", label: "Gemini Pro X", contextWindow: 1048576 },
     ]);
   });
 
@@ -64,6 +65,13 @@ describe("listModels", () => {
     expect(
       await listModels("openrouter", "k", respondWith({ data: [{ id: "a/b", name: "A: B" }] })),
     ).toEqual([{ id: "a/b", label: "A: B" }]);
+    expect(
+      await listModels(
+        "openrouter",
+        "k",
+        respondWith({ data: [{ id: "a/c", name: "C", context_length: 64_000 }] }),
+      ),
+    ).toEqual([{ id: "a/c", label: "C", contextWindow: 64_000 }]);
     expect(await listModels("ollama", "", respondWith({ data: [{ id: "llama-x" }] }))).toEqual([
       { id: "llama-x", label: "llama-x" },
     ]);

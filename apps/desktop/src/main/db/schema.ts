@@ -25,6 +25,8 @@ export const messages = sqliteTable(
     status: text("status").notNull(),
     /** JSON: { code, message } or null */
     error: text("error"),
+    /** JSON: { context?, compaction? } or null */
+    meta: text("meta"),
     createdAt: integer("created_at").notNull(),
   },
   (table) => [index("messages_session").on(table.sessionId, table.position)],

@@ -68,6 +68,10 @@ The user's working folder for this conversation is ${folder}. Relative paths sta
 - Do not edit files inside an EPLAN project folder (*.edb); change projects through EPLAN.`;
 }
 
+const longerJobs = `# Longer jobs
+- For a job with three or more steps, keep a task list with bochica__todo_write: the user sees it next to the chat. Mark one step in_progress before you start it and completed as soon as it is done. Skip it for quick questions.
+- For research that needs many searches or reads (documentation, many files), hand it to a helper with bochica__task and a complete prompt; you get its report back. Helpers can only read. Do the changes yourself.`;
+
 /** The skills the model may load with use_skill: only name and description go in the prompt. */
 function skillList(skills: ReadonlyArray<{ name: string; description: string }>): string {
   return `# Skills
@@ -92,5 +96,5 @@ export function systemPrompt(
   const section = mode === "consult" ? consult(skills) : mode === "tasks" ? tasks : draw;
   const files = options.folder ? `\n\n${workspace(options.folder, options.terminal ?? false)}` : "";
   const listed = options.skills?.length ? `\n\n${skillList(options.skills)}` : "";
-  return `${base}\n\n${section}${files}${listed}`;
+  return `${base}\n\n${section}${files}${listed}\n\n${longerJobs}`;
 }

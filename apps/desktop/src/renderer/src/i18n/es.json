@@ -187,11 +187,20 @@
       "blocked_one": "bloqueó una acción",
       "blocked_other": "bloqueó {{count}} acciones",
       "skill_one": "usó una skill",
-      "skill_other": "usó {{count}} skills"
+      "skill_other": "usó {{count}} skills",
+      "todo_one": "actualizó la lista de tareas",
+      "todo_other": "actualizó la lista de tareas {{count}} veces",
+      "helper_one": "pidió ayuda a un ayudante",
+      "helper_other": "pidió ayuda a {{count}} ayudantes",
+      "compacted_one": "resumió la conversación",
+      "compacted_other": "resumió la conversación {{count}} veces"
     },
     "blocked": "Bloqueado por Bochica: {{reason}}",
     "changes": "Cambios",
-    "useSkill": "Usó la skill {{name}}"
+    "useSkill": "Usó la skill {{name}}",
+    "todoWrite": "Actualizó la lista de tareas",
+    "compact": "Resumió la conversación anterior",
+    "task": "Pidió ayuda a un ayudante: {{description}}"
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
@@ -330,7 +339,8 @@
     "consult": "Cambiar a Consulta: preguntas y scripts",
     "tasks": "Cambiar a Tareas: trabajar en EPLAN",
     "draw": "Cambiar a Draw (experimental)",
-    "settings": "Abrir Ajustes"
+    "settings": "Abrir Ajustes",
+    "compact": "Resumir la conversación hasta ahora para liberar espacio"
   },
   "composer": {
     "noFiles": "Ningún archivo de la carpeta de trabajo coincide.",
@@ -371,5 +381,21 @@
     "added_one": "Se añadió la skill {{names}}.",
     "added_other": "Se añadieron {{count}} skills: {{names}}.",
     "refused": "{{folder}} no se añadió: {{reason}}"
+  },
+  "todos": {
+    "title": "Lista de tareas",
+    "progress": "{{done}} de {{total}} hechas"
+  },
+  "context": {
+    "label": "Contexto lleno al {{percent}}%",
+    "title": "Contexto",
+    "used": "{{used}} de {{window}} tokens ({{percent}}%) tras la última respuesta.",
+    "parts": {
+      "instructions": "Instrucciones y skills",
+      "tools": "Herramientas",
+      "conversation": "Conversación",
+      "free": "Libre"
+    },
+    "note": "Al {{percent}}% Bochica resume la conversación anterior por su cuenta. También puedes escribir /compact. El reparto es una estimación."
   }
 }

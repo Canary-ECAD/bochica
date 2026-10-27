@@ -75,6 +75,7 @@ const sources: Record<ProviderId, ModelSource> = {
               name: z.string(),
               displayName: z.string(),
               supportedGenerationMethods: z.array(z.string()).default([]),
+              inputTokenLimit: z.number().int().positive().optional(),
             }),
           ),
         })
@@ -83,15 +84,31 @@ const sources: Record<ProviderId, ModelSource> = {
           (m) =>
             m.name.includes("gemini") && m.supportedGenerationMethods.includes("generateContent"),
         )
-        .map((m) => ({ id: m.name.replace(/^models\//, ""), label: m.displayName })),
+        .map((m) => ({
+          id: m.name.replace(/^models\//, ""),
+          label: m.displayName,
+          ...(m.inputTokenLimit ? { contextWindow: m.inputTokenLimit } : {}),
+        })),
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/models",
     parse: (body) =>
       z
-        .object({ data: z.array(z.object({ id: z.string(), name: z.string() })) })
+        .object({
+          data: z.array(
+            z.object({
+              id: z.string(),
+              name: z.string(),
+              context_length: z.number().int().positive().nullish(),
+            }),
+          ),
+        })
         .parse(body)
-        .data.map((m) => ({ id: m.id, label: m.name })),
+        .data.map((m) => ({
+          id: m.id,
+          label: m.name,
+          ...(m.context_length ? { contextWindow: m.context_length } : {}),
+        })),
   },
   ollama: {
     url: "http://127.0.0.1:11434/v1/models",

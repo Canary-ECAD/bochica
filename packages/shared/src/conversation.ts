@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { ChatErrorCode, type ChatMessage, FileDiff, ToolStatus, type TurnEvent } from "./ipc";
+import {
+  ChatErrorCode,
+  type ChatMessage,
+  Compaction,
+  ContextUsage,
+  FileDiff,
+  ToolStatus,
+  type TurnEvent,
+} from "./ipc";
 
 // The conversation model shared by main (which saves it) and the renderer (which shows it).
 // Both build assistant messages from chat events with the same reducer, so what is saved is
@@ -34,6 +42,10 @@ export const ConversationMessage = z.object({
   parts: z.array(MessagePart),
   status: z.enum(["streaming", "done", "stopped", "length", "error"]),
   error: z.object({ code: ChatErrorCode, message: z.string() }).optional(),
+  /** Answers: how full the context was at the end of the turn. */
+  context: ContextUsage.optional(),
+  /** Answers: the summary made before this turn, which later turns start from. */
+  compaction: Compaction.optional(),
 });
 export type ConversationMessage = z.infer<typeof ConversationMessage>;
 
@@ -126,21 +138,45 @@ export function applyTurnEvent(
       };
     case "error":
       return { ...message, status: "error", error: { code: event.code, message: event.message } };
+    case "context":
+      return { ...message, context: event.usage };
+    case "compacted":
+      return { ...message, compaction: event.compaction };
   }
+}
+
+/** What the model gets in place of everything a compaction summarised. */
+export function summaryExchange(summary: string): ChatMessage[] {
+  return [
+    {
+      role: "user",
+      content: `The earlier part of this conversation was summarised to save space. Summary:\n\n${summary}`,
+    },
+    { role: "assistant", content: "Understood. I'll continue from that summary." },
+  ];
 }
 
 /**
  * The conversation as the model should see it: failed exchanges are left out entirely, so
- * user and assistant messages keep alternating.
+ * user and assistant messages keep alternating. After a compaction it starts with the summary
+ * and goes on from the first exchange the compaction kept.
  */
 export function toHistory(messages: ConversationMessage[]): ChatMessage[] {
   const history: ChatMessage[] = [];
-  for (let i = 0; i < messages.length; i++) {
+  let start = 0;
+  const compacted = messages.findLastIndex((m) => m.role === "assistant" && m.compaction);
+  const compaction = messages[compacted]?.compaction;
+  if (compaction) {
+    const from = compaction.from ? messages.findIndex((m) => m.id === compaction.from) : -1;
+    start = from >= 0 && from < compacted ? from : Math.max(0, compacted - 1);
+    history.push(...summaryExchange(compaction.summary));
+  }
+  for (let i = start; i < messages.length; i++) {
     const message = messages[i];
     const reply = messages[i + 1];
     if (message?.role !== "user" || reply?.role !== "assistant") continue;
     if (reply.status === "error" || reply.status === "streaming" || !reply.content) continue;
-    history.push({ role: "user", content: message.content });
+    history.push({ role: "user", content: message.content, id: message.id });
     history.push({ role: "assistant", content: reply.content });
     i++;
   }

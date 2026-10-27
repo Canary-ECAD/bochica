@@ -20,6 +20,11 @@ const assistant = (
   status,
 });
 
+const compacted = (id: string, content: string, from?: string): ConversationMessage => ({
+  ...assistant(id, content),
+  compaction: { summary: "They asked about pages 1-3.", ...(from ? { from } : {}) },
+});
+
 const run = (events: TurnEvent[]) => events.reduce(applyTurnEvent, assistantPlaceholder("t1"));
 
 describe("applyTurnEvent", () => {
@@ -74,10 +79,20 @@ describe("applyTurnEvent", () => {
   });
 });
 
+test("context and compaction events are stored on the answer", () => {
+  const usage = { used: 900, window: 8192, instructions: 300, tools: 200, conversation: 400 };
+  const message = run([
+    { type: "compacted", compaction: { summary: "S", from: "u1" } },
+    { type: "context", usage },
+  ]);
+  expect(message.compaction).toEqual({ summary: "S", from: "u1" });
+  expect(message.context).toEqual(usage);
+});
+
 describe("toHistory", () => {
   test("keeps complete exchanges in order", () => {
     expect(toHistory([userMessage("1", "Hi"), assistant("2", "Hello")])).toEqual([
-      { role: "user", content: "Hi" },
+      { role: "user", content: "Hi", id: "1" },
       { role: "assistant", content: "Hello" },
     ]);
   });
@@ -93,8 +108,53 @@ describe("toHistory", () => {
         assistant("6", "partial", "stopped"),
       ]),
     ).toEqual([
-      { role: "user", content: "third" },
+      { role: "user", content: "third", id: "5" },
       { role: "assistant", content: "partial" },
     ]);
+  });
+
+  test("after a compaction, starts with the summary and the exchanges it kept", () => {
+    const messages = [
+      userMessage("1", "page 1?"),
+      assistant("2", "one"),
+      userMessage("3", "page 2?"),
+      assistant("4", "two"),
+      userMessage("5", "page 3?"),
+      compacted("6", "three", "3"),
+      userMessage("7", "page 4?"),
+      assistant("8", "four"),
+    ];
+    expect(toHistory(messages).map((m) => m.content)).toEqual([
+      expect.stringContaining("They asked about pages 1-3."),
+      "Understood. I'll continue from that summary.",
+      "page 2?",
+      "two",
+      "page 3?",
+      "three",
+      "page 4?",
+      "four",
+    ]);
+  });
+
+  test("without a kept part it starts at the compacting turn, and the latest summary wins", () => {
+    const messages = [
+      userMessage("1", "a"),
+      compacted("2", "b"),
+      userMessage("3", "c"),
+      { ...compacted("4", "d"), compaction: { summary: "Newer summary." } },
+    ];
+    const history = toHistory(messages);
+    expect(history[0]?.content).toContain("Newer summary.");
+    expect(history.slice(2).map((m) => m.content)).toEqual(["c", "d"]);
+  });
+
+  test("a compaction survives its own turn failing", () => {
+    const messages = [
+      userMessage("1", "a"),
+      assistant("2", "b"),
+      userMessage("3", "c"),
+      { ...compacted("4", ""), status: "error" as const },
+    ];
+    expect(toHistory(messages)).toHaveLength(2);
   });
 });

@@ -59,6 +59,16 @@ describe("SessionRepository", () => {
     ]);
   });
 
+  test("keeps context usage and compaction summaries", async () => {
+    await repo.createSession("s1", "Long", "C:/Work", 1000);
+    const usage = { used: 900, window: 8192, instructions: 300, tools: 200, conversation: 400 };
+    const compaction = { summary: "Earlier: pages 1-3.", from: "u0" };
+    await repo.saveMessage("s1", { ...answer, context: usage, compaction }, 1001);
+    const [saved] = (await repo.getSession("s1"))?.messages ?? [];
+    expect(saved?.context).toEqual(usage);
+    expect(saved?.compaction).toEqual(compaction);
+  });
+
   test("keeps errors", async () => {
     await repo.createSession("s1", "t", "C:/Work");
     const failed: ConversationMessage = {
@@ -140,6 +150,7 @@ describe("migrations", () => {
       "status",
       "error",
       "created_at",
+      "meta",
     ]);
     fresh.close();
   });

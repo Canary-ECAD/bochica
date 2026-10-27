@@ -2,14 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S8 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S9 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skill and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
-> `/` commands and `@file` mentions in the composer; guardrails core (hardline blocks, risky
+> `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
+> read-only helpers (subagents); the agent's task list above the composer; guardrails core (hardline blocks, risky
 > commands that always ask, protected paths, filtered terminal environment, injection scan);
 > visible activity log with file diffs; approval cards plus typed confirmation; automatic
-> backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet: compaction and
-> subagents (S9), the bundled Python runtime and the updater.
+> backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet: checkpoints,
+> plan mode and the advanced guardrails (S10), the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -183,6 +184,16 @@ How the pieces fit:
   in `settings.json`). Added skills are listed by name and description in every mode; a
   `/skill …` message is expanded by `expandSkillCommands` in main. The composer's app commands
   (`/new`, `/tasks`…) are reserved names, listed in `composer.tsx` and `APP_COMMANDS`.
+- **Context and compaction:** `ChatService` estimates each turn (`estimateContext`, window from
+  `contextWindowFor`) and, above `COMPACT_AT`, runs `compactConversation` first; the summary is
+  a `compacted` event on the answer (`meta` column) and `toHistory` starts from the latest one,
+  so main and the renderer agree. After the turn it emits `context` (real tokens of the last
+  model call, split by estimate) for the ring. `/compact` is sent to main, which summarises
+  everything and skips the model.
+- **Task list and helpers:** `todo_write` (`agent/src/todos.ts`) is read back by the renderer
+  from the session's latest call (`lib/todos.ts`). `bochica__task` (`agent/src/subagent.ts`)
+  runs a fresh `runTurn` with only the tools `helperCanUse` allows (never ask, never change a
+  project, no `task` / `todo_write`); keep that filter when adding tools.
 - **`@file` mentions:** `parseMentions` (shared) finds them; main's `attachMentions` reads each
   one of the new message through the `read_file` tool (same checks) and appends it for the model
   only; `files:search` (`findFiles`) feeds the composer's menu.

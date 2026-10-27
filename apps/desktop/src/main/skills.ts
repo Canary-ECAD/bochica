@@ -23,7 +23,7 @@ import type { SkillInfo, SkillInstallReport } from "@bochica/shared";
 const BUILTIN_DIRS = ["eplan-p8/eplan-scripting", "eec-pro/eec-pro-development"];
 
 /** The composer's own `/` commands (composer.tsx); no added skill may take these names. */
-const APP_COMMANDS = ["new", "consult", "tasks", "draw", "settings"];
+const APP_COMMANDS = ["new", "consult", "tasks", "draw", "settings", "compact"];
 
 interface Source {
   repository: string;

@@ -40,11 +40,14 @@ export async function* runTurn({
   maxSteps = DEFAULT_MAX_STEPS,
 }: TurnOptions): AsyncGenerator<TurnEvent> {
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
+  // What is really in the context: the last model call's input and output, not the sum of steps.
+  let contextTokens: number | null = null;
   try {
     const result = streamText({
       model,
       instructions: system,
-      messages,
+      // Only what the SDK expects: ids are Bochica's bookkeeping.
+      messages: messages.map(({ role, content }) => ({ role, content })),
       abortSignal,
       maxRetries: 2,
       ...(tools.length > 0
@@ -91,6 +94,12 @@ export async function* runTurn({
             ),
           };
           break;
+        case "finish-step":
+          contextTokens =
+            part.usage.inputTokens === undefined
+              ? null
+              : part.usage.inputTokens + (part.usage.outputTokens ?? 0);
+          break;
         case "error":
           yield toErrorEvent(part.error);
           return;
@@ -104,6 +113,7 @@ export async function* runTurn({
             usage: {
               inputTokens: part.totalUsage.inputTokens ?? null,
               outputTokens: part.totalUsage.outputTokens ?? null,
+              contextTokens,
             },
           };
           return;

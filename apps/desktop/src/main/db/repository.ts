@@ -81,6 +81,10 @@ export class SessionRepository {
       parts: JSON.stringify(message.parts),
       status: message.status,
       error: message.error ? JSON.stringify(message.error) : null,
+      meta:
+        message.context || message.compaction
+          ? JSON.stringify({ context: message.context, compaction: message.compaction })
+          : null,
     };
     await this.db
       .insert(messages)
@@ -126,6 +130,7 @@ export class SessionRepository {
 }
 
 const StoredError = ConversationMessage.shape.error;
+const StoredMeta = ConversationMessage.pick({ context: true, compaction: true });
 
 function parseJson<T>(schema: z.ZodType<T>, text: string | null): T | undefined {
   if (text === null) return undefined;
@@ -145,6 +150,7 @@ function toMessage(row: typeof messages.$inferSelect): ConversationMessage {
     { type: "text" as const, text: row.content },
   ];
   const error = parseJson(StoredError, row.error);
+  const meta = parseJson(StoredMeta, row.meta);
   return {
     id: row.id,
     role,
@@ -152,5 +158,7 @@ function toMessage(row: typeof messages.$inferSelect): ConversationMessage {
     parts,
     status: status.success ? status.data : "done",
     ...(error ? { error } : {}),
+    ...(meta?.context ? { context: meta.context } : {}),
+    ...(meta?.compaction ? { compaction: meta.compaction } : {}),
   };
 }

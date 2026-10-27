@@ -4,13 +4,22 @@ import {
   type AgentTool,
   attachMentions,
   checkPath,
+  COMPACT_AT,
+  compactConversation,
+  contextUsage,
+  contextWindowFor,
   createModel,
+  estimateContext,
   expandSkillCommands,
   getProvider,
   type McpManager,
+  redactSecrets,
   runTurn,
   type SkillSet,
+  subagentTool,
   systemPrompt,
+  todoTool,
+  total,
 } from "@bochica/agent";
 import { eplanToolInMode } from "@bochica/eplan";
 import {
@@ -18,11 +27,13 @@ import {
   ApprovalRequest,
   assistantPlaceholder,
   ChatEvent,
+  type ChatMessage,
   type ChatMode,
   type ChatSendRequest,
   type ConversationMessage,
   ipcChannels,
   parseSlashCommand,
+  summaryExchange,
   titleFrom,
   type TurnEvent,
   userMessage,
@@ -38,6 +49,10 @@ import { EPLAN_SERVER_ID } from "./mcp-service";
 import type { SkillService } from "./skills";
 
 const TEXT_SAVE_INTERVAL_MS = 1_000;
+/** Exchanges a compaction keeps word for word. */
+const KEEP_EXCHANGES = 2;
+
+type Model = ReturnType<typeof createModel>;
 
 export interface ChatDeps {
   credentials: CredentialStore;
@@ -81,14 +96,18 @@ export class ChatService {
   /**
    * The tools a mode allows. Consult: the docs and the file tools. Tasks: the docs, the EPLAN
    * tools, the file tools and PowerShell. Draw: the docs and the drawing tools. Every mode can
-   * open the skills.
+   * open the skills, keep a task list and hand research to a helper, which gets only the mode's
+   * read-only tools.
    */
-  private toolsFor(mode: ChatMode, folder: string, skills: SkillSet): AgentTool[] {
+  private toolsFor(mode: ChatMode, folder: string, skills: SkillSet, model: Model): AgentTool[] {
     const mcpTools = this.mcp
       .tools()
       .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
     const builtin = builtinTools(mode, folder, this.folders.policy, process.env);
-    return [...mcpTools, ...skills.tools(), ...builtin, ...this.extraTools];
+    const own = [...mcpTools, ...skills.tools(), ...builtin, ...this.extraTools];
+    const files = builtin.length > 0 ? `The user's working folder is ${folder}.` : undefined;
+    const helper = subagentTool({ model, tools: own, ...(files ? { context: files } : {}) });
+    return [...own, todoTool, helper];
   }
 
   /** Whether `@path` names a file to attach. Refused paths count, so the log says why. */
@@ -170,7 +189,7 @@ export class ChatService {
         const model = createModel(request.provider, key, request.model);
         const folder = await this.folderOf(request.sessionId);
         const skills = this.skills.available();
-        const tools = this.toolsFor(request.mode, folder, skills);
+        const tools = this.toolsFor(request.mode, folder, skills, model);
         const find = (name: string) => tools.find((t) => t.server === "bochica" && t.tool === name);
         const guides = request.mode === "consult" ? this.skills.guides() : [];
         const messages = expandSkillCommands(request.messages, (name) => skills.find(name));
@@ -204,13 +223,32 @@ export class ChatService {
         const last = messages.at(-1);
         if (last && next.value)
           messages[messages.length - 1] = { ...last, content: last.content + next.value };
+        const system = systemPrompt(request.mode, guides, {
+          ...(find("read_file") ? { folder, terminal: Boolean(find("powershell")) } : {}),
+          skills: skills.skills.filter((skill) => !guides.includes(skill)),
+        });
+        // Summarise the older conversation when this turn would fill most of the window, or
+        // when the user asked for it with /compact (which needs no answer from the model).
+        const window = contextWindowFor(request.provider, request.contextWindow);
+        const forced = command?.name === "compact";
+        let estimate = estimateContext(system, tools, messages);
+        // Automatically only when there is something older than the kept exchanges: a big
+        // prompt with a short conversation has nothing a summary could save.
+        const older = messages.length - 1 > KEEP_EXCHANGES * 2;
+        if (forced || (older && total(estimate) > COMPACT_AT * window)) {
+          const compacted = await this.compact(model, messages, window, forced, controller, emit);
+          if (compacted) estimate = estimateContext(system, tools, compacted);
+          if (compacted) messages.splice(0, messages.length, ...compacted);
+        }
+        if (forced) {
+          emit({ type: "context", usage: contextUsage(null, window, estimate) });
+          emit({ type: "turn-end", reason: controller.signal.aborted ? "aborted" : "stop" });
+          return;
+        }
         for await (const event of runTurn({
           model,
           messages,
-          system: systemPrompt(request.mode, guides, {
-            ...(find("read_file") ? { folder, terminal: Boolean(find("powershell")) } : {}),
-            skills: skills.skills.filter((skill) => !guides.includes(skill)),
-          }),
+          system,
           abortSignal: controller.signal,
           tools: tools.map((tool) =>
             tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
@@ -223,12 +261,60 @@ export class ChatService {
               event.message,
             );
           }
+          if (event.type === "turn-end" && event.reason !== "aborted") {
+            const reported = event.usage?.contextTokens;
+            emit({ type: "context", usage: contextUsage(reported, window, estimate) });
+          }
           emit(event);
         }
       } finally {
         this.running.delete(request.turnId);
       }
     })();
+  }
+
+  /**
+   * Summarises all but the last exchanges (all of them for /compact) and returns the history to
+   * send instead, or null when there was nothing to summarise or it failed. Either way the log
+   * shows what happened, and a failure never stops the turn.
+   */
+  private async compact(
+    model: Model,
+    messages: ChatMessage[],
+    window: number,
+    forced: boolean,
+    controller: AbortController,
+    emit: (event: TurnEvent) => void,
+  ): Promise<ChatMessage[] | null> {
+    const callId = `compact-${randomUUID()}`;
+    emit({ type: "tool-call", callId, server: "bochica", tool: "compact_context", input: {} });
+    try {
+      const result = await compactConversation({
+        model,
+        history: messages.slice(0, -1),
+        keep: forced ? 0 : KEEP_EXCHANGES,
+        // The transcript to summarise must itself fit: about 70 % of the window.
+        maxChars: Math.floor(window * 2.5),
+        abortSignal: controller.signal,
+      });
+      if (!result) {
+        emit({ type: "tool-result", callId, status: "ok", output: "Nothing to summarise yet." });
+        return null;
+      }
+      emit({ type: "compacted", compaction: result.compaction });
+      emit({ type: "tool-result", callId, status: "ok", output: result.compaction.summary });
+      const last = messages.at(-1);
+      return [
+        ...summaryExchange(result.compaction.summary),
+        ...result.kept,
+        ...(last ? [last] : []),
+      ];
+    } catch (error) {
+      const message = redactSecrets(error instanceof Error ? error.message : String(error));
+      this.logger.error("Compacting the conversation failed", message);
+      emit({ type: "tool-result", callId, status: "error", output: message });
+      return null;
+    }
   }
 
   /**

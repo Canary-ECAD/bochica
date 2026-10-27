@@ -1,8 +1,9 @@
-import { type ChatMode, mentionFor, parseSlashCommand } from "@bochica/shared";
+import { type ChatMode, type ContextUsage, mentionFor, parseSlashCommand } from "@bochica/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUp,
+  FoldVertical,
   LoaderCircle,
   MessageCircleQuestion,
   PenTool,
@@ -14,6 +15,7 @@ import {
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ComposerMenu, fileIcon, type MenuItem, skillIcon } from "@/components/composer-menu";
+import { ContextMeter } from "@/components/context-meter";
 import { FolderPicker } from "@/components/folder-picker";
 import { ModelPicker } from "@/components/model-picker";
 import { ModePicker } from "@/components/mode-picker";
@@ -24,18 +26,22 @@ import { useMode } from "@/state/mode";
 import { useModelChoice } from "@/state/model-choice";
 import type { ModelChoice } from "@/state/sessions";
 
-/** Commands that run in the app instead of being sent. */
+/**
+ * The app's own commands. All run in the app except /compact, which is sent: main summarises
+ * the conversation. Their names are reserved for skills (APP_COMMANDS in main/skills.ts).
+ */
 const appCommands = [
   { name: "new", icon: SquarePen },
   { name: "consult", icon: MessageCircleQuestion },
   { name: "tasks", icon: Wrench },
   { name: "draw", icon: PenTool },
+  { name: "compact", icon: FoldVertical },
   { name: "settings", icon: Settings },
 ] as const;
-type AppCommand = (typeof appCommands)[number]["name"];
+type AppCommand = Exclude<(typeof appCommands)[number]["name"], "compact">;
 
 const isAppCommand = (name: string): name is AppCommand =>
-  appCommands.some((command) => command.name === name);
+  name !== "compact" && appCommands.some((command) => command.name === name);
 
 interface ComposerProps {
   onSend(text: string, choice: ModelChoice): void;
@@ -45,6 +51,8 @@ interface ComposerProps {
   /** The session's working folder; with `onPickFolder` the user can still change it. */
   folder?: string | undefined;
   onPickFolder?: (() => void) | undefined;
+  /** How full the model's context was after the last answer, in a session. */
+  context?: ContextUsage | undefined;
 }
 
 export function Composer({
@@ -53,6 +61,7 @@ export function Composer({
   autoFocus = false,
   folder,
   onPickFolder,
+  context,
 }: ComposerProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -82,7 +91,9 @@ export function Composer({
     if (trigger?.kind === "command") {
       const commands = appCommands.map((c) => ({ ...c, description: t(`commands.${c.name}`) }));
       const usable = (skills.data ?? [])
-        .filter((s) => s.status === "ok" && s.enabled && !isAppCommand(s.name))
+        .filter(
+          (s) => s.status === "ok" && s.enabled && !appCommands.some((c) => c.name === s.name),
+        )
         .map((s) => ({ name: s.name, icon: skillIcon, description: s.description }));
       return matchByName([...commands, ...usable], trigger.query).map((item) => ({
         key: `/${item.name}`,
@@ -125,6 +136,11 @@ export function Composer({
       const name = item.label.slice(1);
       if (isAppCommand(name)) {
         runCommand(name);
+        return;
+      }
+      if (name === "compact") {
+        if (choice && !onStop) onSend("/compact", choice);
+        edit("", 0);
         return;
       }
     }
@@ -210,6 +226,7 @@ export function Composer({
           {folder && (
             <FolderPicker folder={folder} {...(onPickFolder ? { onPick: onPickFolder } : {})} />
           )}
+          {context && <ContextMeter usage={context} />}
           {models.groups.length > 0 ? (
             <ModelPicker state={models} />
           ) : models.loading ? (

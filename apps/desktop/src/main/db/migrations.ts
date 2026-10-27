@@ -24,6 +24,8 @@ export const migrations: readonly string[] = [
    CREATE INDEX messages_session ON messages(session_id, position);`,
   // S7: each session's working folder.
   `ALTER TABLE sessions ADD COLUMN folder TEXT;`,
+  // S9: context usage and compaction summaries on answers.
+  `ALTER TABLE messages ADD COLUMN meta TEXT;`,
 ];
 
 function userVersion(driver: SqlDriver): number {

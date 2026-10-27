@@ -55,6 +55,9 @@ const builtinKinds: Record<string, string> = {
   powershell: "ran",
   use_skill: "skill",
   read_skill_file: "read",
+  todo_write: "todo",
+  task: "helper",
+  compact_context: "compacted",
 };
 
 function field(input: unknown, name: string): string {
@@ -116,6 +119,11 @@ export function describeCall(
   }
   if (server === "bochica" && tool === "backup_project") {
     return t("activity.backup", { project: field(input, "project") });
+  }
+  if (server === "bochica" && tool === "todo_write") return t("activity.todoWrite");
+  if (server === "bochica" && tool === "compact_context") return t("activity.compact");
+  if (server === "bochica" && tool === "task") {
+    return t("activity.task", { description: field(input, "description") });
   }
   if (server === "bochica" && tool === "use_skill") {
     return t("activity.useSkill", { name: field(input, "name") });

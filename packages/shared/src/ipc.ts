@@ -93,7 +93,12 @@ export type ConnectionResult = z.infer<typeof ConnectionResult>;
 
 // Models and chat.
 
-export const ModelInfo = z.object({ id: z.string(), label: z.string() });
+export const ModelInfo = z.object({
+  id: z.string(),
+  label: z.string(),
+  /** Tokens the model can take in, when the provider's list says so. */
+  contextWindow: z.number().int().positive().optional(),
+});
 export type ModelInfo = z.infer<typeof ModelInfo>;
 
 export const ModelList = z.array(ModelInfo);
@@ -101,6 +106,8 @@ export const ModelList = z.array(ModelInfo);
 export const ChatMessage = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  /** The saved message's id, on user messages: compaction records where it kept from. */
+  id: z.string().optional(),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
@@ -127,6 +134,8 @@ export const ChatSendRequest = z.object({
    * folder it saved, so a session never moves.
    */
   folder: z.string().min(1).max(1_000).optional(),
+  /** The model's context window, when the model list gave one; main has defaults. */
+  contextWindow: z.number().int().positive().max(100_000_000).optional(),
 });
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>;
 
@@ -157,15 +166,45 @@ export const FileDiff = z.object({
 });
 export type FileDiff = z.infer<typeof FileDiff>;
 
+/**
+ * How full the model's context was at the end of a turn: `used` is what the provider reported
+ * for the last model call; the three parts are Bochica's estimate of how it splits.
+ */
+export const ContextUsage = z.object({
+  used: z.number().int().nonnegative(),
+  window: z.number().int().positive(),
+  instructions: z.number().int().nonnegative(),
+  tools: z.number().int().nonnegative(),
+  conversation: z.number().int().nonnegative(),
+});
+export type ContextUsage = z.infer<typeof ContextUsage>;
+
+/**
+ * The older conversation, summarised. From this turn on the model gets the summary, then the
+ * exchanges from the user message `from` (or this turn's, without it), then the new message.
+ */
+export const Compaction = z.object({
+  summary: z.string(),
+  from: z.string().optional(),
+});
+export type Compaction = z.infer<typeof Compaction>;
+
 export const TurnEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text-delta"), text: z.string() }),
   z.object({
     type: z.literal("turn-end"),
     reason: z.enum(["stop", "length", "aborted"]),
     usage: z
-      .object({ inputTokens: z.number().nullable(), outputTokens: z.number().nullable() })
+      .object({
+        inputTokens: z.number().nullable(),
+        outputTokens: z.number().nullable(),
+        /** Input plus output of the last model call: what is really in the context. */
+        contextTokens: z.number().nullable().optional(),
+      })
       .optional(),
   }),
+  z.object({ type: z.literal("context"), usage: ContextUsage }),
+  z.object({ type: z.literal("compacted"), compaction: Compaction }),
   /** `message` has already been through redaction; it is shown under "Details" only. */
   z.object({ type: z.literal("error"), code: ChatErrorCode, message: z.string() }),
   z.object({

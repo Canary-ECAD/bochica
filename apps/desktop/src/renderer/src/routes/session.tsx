@@ -3,6 +3,8 @@ import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Composer } from "@/components/composer";
 import { MessageList } from "@/components/message-list";
+import { TodoPanel } from "@/components/todo-panel";
+import { currentTodos } from "@/lib/todos";
 import { useModelChoice } from "@/state/model-choice";
 import { ensureLoaded, retry, sendMessage, stopTurn, useSessions } from "@/state/sessions";
 
@@ -34,6 +36,8 @@ export function SessionPage({ sessionId }: { sessionId: string }) {
   }
 
   const streaming = session.messages.find((m) => m.status === "streaming");
+  const context = session.messages.findLast((m) => m.context)?.context;
+  const todos = currentTodos(session.messages);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -44,8 +48,10 @@ export function SessionPage({ sessionId }: { sessionId: string }) {
         }}
       />
       <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+        {todos.length > 0 && <TodoPanel todos={todos} />}
         <Composer
           autoFocus
+          context={context}
           folder={session.folder}
           onSend={(text, picked) => sendMessage(sessionId, text, picked)}
           onStop={streaming ? () => stopTurn(streaming.id) : undefined}

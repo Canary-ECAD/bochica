@@ -49,6 +49,26 @@ const apiError = (statusCode: number) =>
     isRetryable: false,
   });
 
+const step = (input: number, output: number, chunks: LanguageModelV4StreamPart[]) => ({
+  stream: new ReadableStream<LanguageModelV4StreamPart>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.enqueue({
+        type: "finish",
+        finishReason:
+          chunks.length > 1
+            ? { unified: "stop", raw: "stop" }
+            : { unified: "tool-calls", raw: "tool_use" },
+        usage: {
+          inputTokens: { total: input, noCache: input, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: output, text: output, reasoning: 0 },
+        },
+      });
+      controller.close();
+    },
+  }),
+});
+
 describe("runTurn", () => {
   test("streams text deltas and ends with usage", async () => {
     const model = streamingModel([
@@ -61,8 +81,51 @@ describe("runTurn", () => {
     expect(await collect(model)).toEqual([
       { type: "text-delta", text: "Hel" },
       { type: "text-delta", text: "lo" },
-      { type: "turn-end", reason: "stop", usage: { inputTokens: 12, outputTokens: 3 } },
+      {
+        type: "turn-end",
+        reason: "stop",
+        usage: { inputTokens: 12, outputTokens: 3, contextTokens: 15 },
+      },
     ]);
+  });
+
+  test("the context is the last model call, not the sum of every step", async () => {
+    const model = new MockLanguageModelV4({
+      doStream: [
+        step(100, 10, [{ type: "tool-call", toolCallId: "c1", toolName: "look", input: "{}" }]),
+        step(130, 5, [
+          { type: "text-start", id: "t" },
+          { type: "text-delta", id: "t", delta: "Done" },
+          { type: "text-end", id: "t" },
+        ]),
+      ],
+    });
+    const events: TurnEvent[] = [];
+    for await (const event of runTurn({
+      model,
+      messages: [{ role: "user", content: "Hi", id: "u1" }],
+      abortSignal: new AbortController().signal,
+      tools: [
+        {
+          name: "look",
+          server: "bochica",
+          tool: "look",
+          description: "Look",
+          inputSchema: { type: "object", properties: {} },
+          approval: "never",
+          execute: async () => ({ ok: true, text: "seen" }),
+        },
+      ],
+    })) {
+      events.push(event);
+    }
+    expect(events.at(-1)).toEqual({
+      type: "turn-end",
+      reason: "stop",
+      usage: { inputTokens: 230, outputTokens: 15, contextTokens: 135 },
+    });
+    // Message ids are Bochica's own and never reach the provider.
+    expect(JSON.stringify(model.doStreamCalls[0]?.prompt)).not.toContain("u1");
   });
 
   test("sends the system prompt and the conversation", async () => {

@@ -36,6 +36,8 @@ interface Session {
 export interface ModelChoice {
   provider: ProviderId;
   model: string;
+  /** From the provider's model list, when it says; main has defaults. */
+  contextWindow?: number;
 }
 
 interface SessionsState {
@@ -223,6 +225,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
       model: choice.model,
       messages,
       ...(session.folder ? { folder: session.folder } : {}),
+      ...(choice.contextWindow ? { contextWindow: choice.contextWindow } : {}),
     })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({

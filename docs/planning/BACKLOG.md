@@ -27,7 +27,7 @@ move it there and leave a link here (`→ S4-03`).
   usage for every provider); the per-category split is estimated by counting each part with a
   local tokenizer and scaling it to that total; the window size comes from a model catalog.
   Exact per-category counts are shown only where a provider offers a token-counting API.
-  → S9 (with compaction)
+  → S9 (a ring with used / window and three estimated parts); the full popover is still open
 
 ## Agent
 
@@ -54,6 +54,10 @@ move it there and leave a link here (`→ S4-03`).
   grants tools the mode doesn't have. Later, optional: short durable memory facts and a
   background review after turns (costs tokens, so not on by default). Own sprint, or with S10
   (approvals).
+
+- **Left out of S9:** the full "Context" popover (every MCP tool, deferred tools, compaction
+  buffer), exact token counting where a provider has an API for it, and a helper's own tool
+  calls shown nested in the activity log.
 
 ## Infrastructure
 
