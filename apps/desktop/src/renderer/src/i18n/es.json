@@ -7,7 +7,6 @@
     "untitled": "Nueva sesión"
   },
   "session": {
-    "greeting": "¿Qué quieres hacer hoy en EPLAN?",
     "placeholder": "Describe la tarea con tus palabras…",
     "send": "Enviar"
   },
@@ -212,5 +211,21 @@
       "enable": "Marca «Allow remote access via Remote Client» y pulsa OK.",
       "wait": "Bochica se conecta solo en menos de 15 segundos."
     }
+  },
+  "sessions": {
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "actions": "Acciones de {{title}}",
+    "renameLabel": "Nombre de la sesión",
+    "deleteTitle": "¿Eliminar esta sesión?",
+    "deleteDescription": "«{{title}}» y todos sus mensajes se eliminarán de este equipo. Tus proyectos de EPLAN y sus copias de seguridad no se tocan."
+  },
+  "greeting": {
+    "morning": "Buenos días",
+    "afternoon": "Buenas tardes",
+    "evening": "Buenas noches",
+    "weekday": "Feliz {{day}}",
+    "newTask": "Nueva tarea"
   }
 }

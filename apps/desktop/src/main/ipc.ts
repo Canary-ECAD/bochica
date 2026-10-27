@@ -5,11 +5,15 @@ import {
   ChatSendRequest,
   ConnectionResult,
   CredentialList,
+  DeleteMessagesRequest,
   EplanStatus,
   ipcChannels,
   McpServerList,
   ModelList,
   ProviderId,
+  RenameSessionRequest,
+  SessionDetail,
+  SessionSummary,
   SetCredentialRequest,
   SetMcpEnabledRequest,
 } from "@bochica/shared";
@@ -21,6 +25,7 @@ import type { CredentialStore } from "./credentials";
 import type { EplanStatusService } from "./eplan-status";
 import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
+import type { SessionRepository } from "./db/repository";
 
 export interface Services {
   credentials: CredentialStore;
@@ -28,13 +33,22 @@ export interface Services {
   mcp: McpService;
   approvals: ApprovalService;
   eplan: EplanStatusService;
+  sessions: SessionRepository;
   logger: Logger;
 }
 
 // Requests from the renderer are untrusted input: every handler parses its argument with the
 // channel's schema before using it, and parses its result before returning it.
 
-export function registerIpc({ credentials, chat, mcp, approvals, eplan, logger }: Services): void {
+export function registerIpc({
+  credentials,
+  chat,
+  mcp,
+  approvals,
+  eplan,
+  sessions,
+  logger,
+}: Services): void {
   const handle = (
     channel: string,
     handler: (arg: unknown, sender: WebContents) => unknown,
@@ -104,6 +118,28 @@ export function registerIpc({ credentials, chat, mcp, approvals, eplan, logger }
     const { id, enabled } = SetMcpEnabledRequest.parse(arg);
     mcp.setEnabled(id, enabled);
     return McpServerList.parse(mcp.list());
+  });
+
+  handle(ipcChannels.sessionsList, async () =>
+    SessionSummary.array().parse(await sessions.listSessions()),
+  );
+
+  handle(ipcChannels.sessionsGet, async (arg) =>
+    SessionDetail.nullable().parse(await sessions.getSession(z.string().parse(arg))),
+  );
+
+  handle(ipcChannels.sessionsRename, async (arg) => {
+    const { id, title } = RenameSessionRequest.parse(arg);
+    await sessions.renameSession(id, title);
+  });
+
+  handle(ipcChannels.sessionsDelete, async (arg) => {
+    await sessions.deleteSession(z.string().parse(arg));
+  });
+
+  handle(ipcChannels.messagesDelete, async (arg) => {
+    const { sessionId, ids } = DeleteMessagesRequest.parse(arg);
+    await sessions.deleteMessages(sessionId, ids);
   });
 
   handle(ipcChannels.eplanStatus, () => EplanStatus.parse(eplan.current()));

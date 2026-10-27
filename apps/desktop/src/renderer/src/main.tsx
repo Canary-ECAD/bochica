@@ -8,7 +8,7 @@ import { mcpKey } from "./components/docs-settings";
 import { eplanStatusKey } from "./components/eplan-indicator";
 import { ErrorBoundary } from "./components/error-screen";
 import { router } from "./router";
-import { useSessions } from "./state/sessions";
+import { loadSavedSessions, useSessions } from "./state/sessions";
 
 // Follow the Windows light/dark setting.
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -26,6 +26,7 @@ window.bochica.chat.onEvent((event) => useSessions.getState().applyEvent(event))
 window.bochica.approvals.onRequest((request) => useSessions.getState().addApproval(request));
 window.bochica.mcp.onChange((servers) => queryClient.setQueryData(mcpKey, servers));
 window.bochica.eplan.onStatus((status) => queryClient.setQueryData(eplanStatusKey, status));
+void loadSavedSessions();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

@@ -7,7 +7,6 @@
     "untitled": "New session"
   },
   "session": {
-    "greeting": "What do you want to do in EPLAN today?",
     "placeholder": "Describe the task in your own words…",
     "send": "Send"
   },
@@ -212,5 +211,21 @@
       "enable": "Tick “Allow remote access via Remote Client” and click OK.",
       "wait": "Bochica connects on its own within 15 seconds."
     }
+  },
+  "sessions": {
+    "rename": "Rename",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "actions": "Actions for {{title}}",
+    "renameLabel": "Session name",
+    "deleteTitle": "Delete this session?",
+    "deleteDescription": "“{{title}}” and all its messages will be deleted from this computer. Your EPLAN projects and backups are not affected."
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "weekday": "Happy {{day}}",
+    "newTask": "New task"
   }
 }

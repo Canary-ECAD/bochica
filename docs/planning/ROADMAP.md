@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S5 — Sessions that survive a restart (to be planned)**
+**Active sprint: S6 — Modes and typed confirmation (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -19,26 +19,27 @@ documentation.
 
 The agent drives a running EPLAN safely, and conversations survive a restart.
 
-| Sprint                            | Goal                                                                                                                                                                       | Status  |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change | Done    |
-| S5                                | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                     | Outline |
-| S6                                | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                         | Outline |
+| Sprint                            | Goal                                                                                                                                                                                                                                              | Status  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change                                                                        | Done    |
+| [S5](sprints/S5-sessions.md)      | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                                                                                            | Done    |
+| S6                                | Modes: **Consulta** (docs RAG + script assistance with eplan-scripting-skill, no EPLAN actions), **Tareas** (EPLAN actions over MCP), **Draw** (experimental drawing tools); typed confirmation for destructive actions such as deleting projects | Outline |
+| S7                                | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                                                                                                | Outline |
 
 ## M2 — Claude Code parity
 
 | Sprint | Goal                                                                                       | Status  |
 | ------ | ------------------------------------------------------------------------------------------ | ------- |
-| S7     | Skills (eplan-scripting-skill by default), slash commands, `@file` mentions                | Outline |
-| S8     | Context compaction, subagents, todo list in the UI                                         | Outline |
-| S9     | Checkpoints and rewind; plan mode; guardrails advanced (smart approvals, approval history) | Outline |
+| S8     | Skills beyond the default one, slash commands, `@file` mentions                            | Outline |
+| S9     | Context compaction, subagents, todo list in the UI                                         | Outline |
+| S10    | Checkpoints and rewind; plan mode; guardrails advanced (smart approvals, approval history) | Outline |
 
 ## M3 — Ship it
 
 | Sprint | Goal                                                                                        | Status  |
 | ------ | ------------------------------------------------------------------------------------------- | ------- |
-| S10    | Installer with bundled Python + `uv`; first-run wizard (EPLAN detected? key? test question) | Outline |
-| S11    | One-click updater; release process; components.lock bump procedure                          | Outline |
-| S12    | OAuth (device code, PKCE) for providers that allow it; multiple keys per provider           | Outline |
+| S11    | Installer with bundled Python + `uv`; first-run wizard (EPLAN detected? key? test question) | Outline |
+| S12    | One-click updater; release process; components.lock bump procedure                          | Outline |
+| S13    | OAuth (device code, PKCE) for providers that allow it; multiple keys per provider           | Outline |
 
 Requests from [BACKLOG.md](BACKLOG.md) are slotted into these sprints when each one is planned.

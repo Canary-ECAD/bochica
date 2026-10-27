@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SessionDetail, SessionSummary } from "./conversation";
 
 // Every IPC channel is declared here once. The main process validates what it receives and
 // returns, and the preload validates what it receives, so a contract change breaks the
@@ -22,6 +23,11 @@ export const ipcChannels = {
   /** Main → renderer: a tool call waits for the user's decision. */
   approvalRequest: "approval:request",
   approvalRespond: "approval:respond",
+  sessionsList: "sessions:list",
+  sessionsGet: "sessions:get",
+  sessionsRename: "sessions:rename",
+  sessionsDelete: "sessions:delete",
+  messagesDelete: "messages:delete",
   eplanStatus: "eplan:status",
   /** Main → renderer: the EPLAN connection changed. */
   eplanStatusChanged: "eplan:status-changed",
@@ -94,8 +100,10 @@ export type ChatMessage = z.infer<typeof ChatMessage>;
 export const ChatSendRequest = z.object({
   /** Chosen by the renderer; every event of this turn carries it. */
   turnId: z.string().min(1),
-  /** "Allow for this session" approvals are scoped to this id. */
+  /** Saved under this id; "Allow for this session" approvals are scoped to it too. */
   sessionId: z.string().min(1),
+  /** Id of the new user message, the last entry of `messages`. */
+  userMessageId: z.string().min(1),
   provider: ProviderId,
   model: z.string().min(1),
   messages: z.array(ChatMessage).min(1),
@@ -205,6 +213,20 @@ export const EplanStatus = z.object({
 });
 export type EplanStatus = z.infer<typeof EplanStatus>;
 
+// Saved sessions.
+
+export const RenameSessionRequest = z.object({
+  id: z.string(),
+  title: z.string().trim().min(1).max(120),
+});
+export type RenameSessionRequest = z.infer<typeof RenameSessionRequest>;
+
+export const DeleteMessagesRequest = z.object({
+  sessionId: z.string(),
+  ids: z.array(z.string()).min(1),
+});
+export type DeleteMessagesRequest = z.infer<typeof DeleteMessagesRequest>;
+
 /** The API the preload exposes on `window.bochica`. */
 export interface BochicaApi {
   getAppInfo(): Promise<AppInfo>;
@@ -234,6 +256,15 @@ export interface BochicaApi {
   approvals: {
     onRequest(listener: (request: ApprovalRequest) => void): () => void;
     respond(response: ApprovalResponse): Promise<void>;
+  };
+  sessions: {
+    /** Saved sessions, most recently active first. */
+    list(): Promise<SessionSummary[]>;
+    /** A saved session with its messages, or null if it doesn't exist. */
+    get(id: string): Promise<SessionDetail | null>;
+    rename(request: RenameSessionRequest): Promise<void>;
+    remove(id: string): Promise<void>;
+    removeMessages(request: DeleteMessagesRequest): Promise<void>;
   };
   eplan: {
     status(): Promise<EplanStatus>;

@@ -1,45 +1,33 @@
-import type {
-  ApprovalDecision,
-  ApprovalRequest,
-  ChatErrorCode,
-  ChatEvent,
-  ChatMessage,
-  ProviderId,
+import {
+  applyTurnEvent,
+  type ApprovalDecision,
+  type ApprovalRequest,
+  assistantPlaceholder,
+  type ChatEvent,
+  type ConversationMessage,
+  type ProviderId,
+  type SessionDetail,
+  type SessionSummary,
+  titleFrom,
+  toHistory,
+  userMessage,
 } from "@bochica/shared";
 import { create } from "zustand";
 
-// Conversations live in memory for now; S5 persists them in SQLite.
+// The renderer's view of the conversations. Main saves everything as turns happen; this store
+// mirrors it for the UI and loads saved sessions on demand.
 
-export interface ToolPart {
-  type: "tool";
-  callId: string;
-  server: string;
-  tool: string;
-  input: unknown;
-  status: "running" | "ok" | "error" | "denied";
-  output?: string;
-}
+export type { MessagePart, ToolPart } from "@bochica/shared";
 
-/** What an assistant message shows, in order: text interleaved with tool calls. */
-export type MessagePart = { type: "text"; text: string } | ToolPart;
-
-export interface Message {
-  /** For assistant messages this is the turn id. */
-  id: string;
-  role: "user" | "assistant";
-  /** All text of the message, without tool calls; this is what later turns send as history. */
-  content: string;
-  parts: MessagePart[];
-  status: "streaming" | "done" | "stopped" | "length" | "error";
-  error?: { code: ChatErrorCode; message: string };
-  /** Tool calls of this turn waiting for the user. */
-  approvals: ApprovalRequest[];
-}
+/** A message as shown: what is saved, plus tool calls waiting for the user (never saved). */
+export type Message = ConversationMessage & { approvals: ApprovalRequest[] };
 
 interface Session {
   id: string;
   title: string;
   messages: Message[];
+  /** False for a saved session listed in the sidebar whose messages aren't loaded yet. */
+  loaded: boolean;
 }
 
 export interface ModelChoice {
@@ -49,18 +37,22 @@ export interface ModelChoice {
 
 interface SessionsState {
   sessions: Record<string, Session>;
-  /** Newest first. */
+  /** Most recently active first. */
   order: string[];
   turnToSession: Record<string, string>;
   createSession(): string;
-  addExchange(sessionId: string, text: string, turnId: string): void;
+  setSummaries(summaries: SessionSummary[]): void;
+  loadSession(detail: SessionDetail): void;
+  addExchange(sessionId: string, text: string, userMessageId: string, turnId: string): void;
   removeMessages(sessionId: string, ids: string[]): void;
   applyEvent(event: ChatEvent): void;
   addApproval(request: ApprovalRequest): void;
   removeApproval(requestId: string): void;
+  rename(sessionId: string, title: string): void;
+  remove(sessionId: string): void;
 }
 
-const TITLE_LENGTH = 48;
+const withApprovals = (message: ConversationMessage): Message => ({ ...message, approvals: [] });
 
 export const useSessions = create<SessionsState>()((set) => ({
   sessions: {},
@@ -70,40 +62,58 @@ export const useSessions = create<SessionsState>()((set) => ({
   createSession: () => {
     const id = crypto.randomUUID();
     set((state) => ({
-      sessions: { ...state.sessions, [id]: { id, title: "", messages: [] } },
+      sessions: { ...state.sessions, [id]: { id, title: "", messages: [], loaded: true } },
       order: [id, ...state.order],
     }));
     return id;
   },
 
-  addExchange: (sessionId, text, turnId) =>
+  setSummaries: (summaries) =>
+    set((state) => {
+      const sessions = { ...state.sessions };
+      for (const summary of summaries) {
+        sessions[summary.id] ??= {
+          id: summary.id,
+          title: summary.title,
+          messages: [],
+          loaded: false,
+        };
+      }
+      // Sessions only in memory (nothing sent yet) stay on top; saved ones follow, newest first.
+      const saved = new Set(summaries.map((s) => s.id));
+      const unsaved = state.order.filter((id) => !saved.has(id));
+      return { sessions, order: [...unsaved, ...summaries.map((s) => s.id)] };
+    }),
+
+  loadSession: (detail) =>
+    set((state) => ({
+      sessions: {
+        ...state.sessions,
+        [detail.id]: {
+          id: detail.id,
+          title: detail.title,
+          messages: detail.messages.map(withApprovals),
+          loaded: true,
+        },
+      },
+      order: state.order.includes(detail.id) ? state.order : [detail.id, ...state.order],
+    })),
+
+  addExchange: (sessionId, text, userMessageId, turnId) =>
     set((state) => {
       const session = state.sessions[sessionId];
       if (!session) return state;
-      const title =
-        session.title ||
-        (text.length > TITLE_LENGTH ? `${text.slice(0, TITLE_LENGTH).trimEnd()}…` : text);
       const messages: Message[] = [
         ...session.messages,
-        {
-          id: crypto.randomUUID(),
-          role: "user",
-          content: text,
-          parts: [{ type: "text", text }],
-          status: "done",
-          approvals: [],
-        },
-        {
-          id: turnId,
-          role: "assistant",
-          content: "",
-          parts: [],
-          status: "streaming",
-          approvals: [],
-        },
+        withApprovals(userMessage(userMessageId, text)),
+        withApprovals(assistantPlaceholder(turnId)),
       ];
       return {
-        sessions: { ...state.sessions, [sessionId]: { ...session, title, messages } },
+        sessions: {
+          ...state.sessions,
+          [sessionId]: { ...session, title: session.title || titleFrom(text), messages },
+        },
+        order: [sessionId, ...state.order.filter((id) => id !== sessionId)],
         turnToSession: { ...state.turnToSession, [turnId]: sessionId },
       };
     }),
@@ -118,58 +128,11 @@ export const useSessions = create<SessionsState>()((set) => ({
 
   applyEvent: (event) =>
     set((state) =>
-      updateTurn(state, event.turnId, (m): Message => {
-        switch (event.type) {
-          case "text-delta":
-            return {
-              ...m,
-              content: m.content + event.text,
-              parts: appendText(m.parts, event.text),
-            };
-          case "tool-call":
-            return {
-              ...m,
-              parts: [
-                ...m.parts,
-                {
-                  type: "tool",
-                  callId: event.callId,
-                  server: event.server,
-                  tool: event.tool,
-                  input: event.input,
-                  status: "running",
-                },
-              ],
-            };
-          case "tool-result":
-            return {
-              ...m,
-              parts: m.parts.map((p) =>
-                p.type === "tool" && p.callId === event.callId
-                  ? { ...p, status: event.status, output: event.output }
-                  : p,
-              ),
-            };
-          case "turn-end":
-            return {
-              ...m,
-              status:
-                event.reason === "aborted"
-                  ? "stopped"
-                  : event.reason === "length"
-                    ? "length"
-                    : "done",
-              approvals: [],
-            };
-          case "error":
-            return {
-              ...m,
-              status: "error",
-              error: { code: event.code, message: event.message },
-              approvals: [],
-            };
-        }
-      }),
+      updateTurn(state, event.turnId, (m) => ({
+        ...applyTurnEvent(m, event),
+        // The turn is over: nothing can be waiting for approval any more.
+        approvals: event.type === "turn-end" || event.type === "error" ? [] : m.approvals,
+      })),
     ),
 
   addApproval: (request) =>
@@ -194,6 +157,19 @@ export const useSessions = create<SessionsState>()((set) => ({
       );
       return { sessions };
     }),
+
+  rename: (sessionId, title) =>
+    set((state) => {
+      const session = state.sessions[sessionId];
+      if (!session) return state;
+      return { sessions: { ...state.sessions, [sessionId]: { ...session, title } } };
+    }),
+
+  remove: (sessionId) =>
+    set((state) => {
+      const { [sessionId]: _removed, ...sessions } = state.sessions;
+      return { sessions, order: state.order.filter((id) => id !== sessionId) };
+    }),
 }));
 
 /** Applies `update` to the assistant message of a turn, wherever its session is. */
@@ -209,39 +185,36 @@ function updateTurn(
   return { sessions: { ...state.sessions, [sessionId]: { ...session, messages } } };
 }
 
-function appendText(parts: MessagePart[], text: string): MessagePart[] {
-  const last = parts.at(-1);
-  if (last?.type === "text")
-    return [...parts.slice(0, -1), { type: "text", text: last.text + text }];
-  return [...parts, { type: "text", text }];
+/** Fills the sidebar with the saved sessions. */
+export async function loadSavedSessions(): Promise<void> {
+  useSessions.getState().setSummaries(await window.bochica.sessions.list());
 }
 
-/**
- * The conversation as the model should see it: failed exchanges are left out entirely, so
- * user and assistant messages keep alternating.
- */
-export function toHistory(messages: Message[]): ChatMessage[] {
-  const history: ChatMessage[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    const reply = messages[i + 1];
-    if (message?.role !== "user" || reply?.role !== "assistant") continue;
-    if (reply.status === "error" || reply.status === "streaming" || !reply.content) continue;
-    history.push({ role: "user", content: message.content });
-    history.push({ role: "assistant", content: reply.content });
-    i++;
-  }
-  return history;
+/** Loads a saved session's messages if needed. Resolves false if it doesn't exist. */
+export async function ensureLoaded(sessionId: string): Promise<boolean> {
+  if (useSessions.getState().sessions[sessionId]?.loaded) return true;
+  const detail = await window.bochica.sessions.get(sessionId);
+  if (!detail) return false;
+  useSessions.getState().loadSession(detail);
+  return true;
 }
 
 export function sendMessage(sessionId: string, text: string, choice: ModelChoice): void {
   const session = useSessions.getState().sessions[sessionId];
   if (!session) return;
   const turnId = crypto.randomUUID();
+  const userMessageId = crypto.randomUUID();
   const messages = [...toHistory(session.messages), { role: "user" as const, content: text }];
-  useSessions.getState().addExchange(sessionId, text, turnId);
+  useSessions.getState().addExchange(sessionId, text, userMessageId, turnId);
   window.bochica.chat
-    .send({ turnId, sessionId, provider: choice.provider, model: choice.model, messages })
+    .send({
+      turnId,
+      sessionId,
+      userMessageId,
+      provider: choice.provider,
+      model: choice.model,
+      messages,
+    })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({
         turnId,
@@ -252,13 +225,15 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
     );
 }
 
-/** Drops a failed answer and the question before it, then asks again. */
+/** Drops a failed answer and the question before it (here and on disk), then asks again. */
 export function retry(sessionId: string, failedTurnId: string, choice: ModelChoice): void {
   const session = useSessions.getState().sessions[sessionId];
   const index = session?.messages.findIndex((m) => m.id === failedTurnId) ?? -1;
   const question = session?.messages[index - 1];
   if (!session || index < 1 || question?.role !== "user") return;
-  useSessions.getState().removeMessages(sessionId, [question.id, failedTurnId]);
+  const ids = [question.id, failedTurnId];
+  useSessions.getState().removeMessages(sessionId, ids);
+  void window.bochica.sessions.removeMessages({ sessionId, ids });
   sendMessage(sessionId, question.content, choice);
 }
 
@@ -269,4 +244,14 @@ export function stopTurn(turnId: string): void {
 export function answerApproval(requestId: string, decision: ApprovalDecision): void {
   useSessions.getState().removeApproval(requestId);
   void window.bochica.approvals.respond({ requestId, decision });
+}
+
+export async function renameSession(sessionId: string, title: string): Promise<void> {
+  useSessions.getState().rename(sessionId, title);
+  await window.bochica.sessions.rename({ id: sessionId, title });
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  useSessions.getState().remove(sessionId);
+  await window.bochica.sessions.remove(sessionId);
 }

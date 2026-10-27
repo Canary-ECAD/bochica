@@ -9,6 +9,8 @@ import {
   ipcChannels,
   McpServerList,
   ModelList,
+  SessionDetail,
+  SessionSummary,
 } from "@bochica/shared";
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { z } from "zod";
@@ -59,6 +61,21 @@ const api: BochicaApi = {
     onRequest: (listener) => subscribe(ipcChannels.approvalRequest, ApprovalRequest, listener),
     respond: async (response) => {
       await ipcRenderer.invoke(ipcChannels.approvalRespond, response);
+    },
+  },
+  sessions: {
+    list: async () =>
+      SessionSummary.array().parse(await ipcRenderer.invoke(ipcChannels.sessionsList)),
+    get: async (id) =>
+      SessionDetail.nullable().parse(await ipcRenderer.invoke(ipcChannels.sessionsGet, id)),
+    rename: async (request) => {
+      await ipcRenderer.invoke(ipcChannels.sessionsRename, request);
+    },
+    remove: async (id) => {
+      await ipcRenderer.invoke(ipcChannels.sessionsDelete, id);
+    },
+    removeMessages: async (request) => {
+      await ipcRenderer.invoke(ipcChannels.messagesDelete, request);
     },
   },
   eplan: {

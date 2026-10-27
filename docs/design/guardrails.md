@@ -82,7 +82,7 @@ The approval card:
 YOLO mode: a per-session toggle that skips layer 5 only. While on, a red banner stays visible in
 the session. Layers 1–4, 6's backups and 7–9 still apply.
 
-Later (S9): "smart" mode, where a small model auto-approves clearly harmless commands and
+Later (S10): "smart" mode, where a small model auto-approves clearly harmless commands and
 escalates uncertain ones; and approval-history suggestions ("You allowed `git status` 14 times —
 always allow it?"), never proposing destructive classes.
 
@@ -96,6 +96,10 @@ Specific to Bochica:
   and tells the user where it is. No backup, no write.
 - Closing or restarting EPLAN (`eplan_app_shutdown`, `eplan_app_restart`) and deleting pages or
   projects always ask, even with session allowance, because they can lose unsaved work.
+- Deleting projects, and other bulk-destructive actions, need **typed confirmation** (S6): the
+  card has a text box and the action only runs after the user types the exact phrase it asks
+  for (the project name, or a fixed word for bulk actions). Never allowed for the session, not
+  skippable in YOLO mode.
 
 ### 7. Secret isolation
 

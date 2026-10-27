@@ -1,140 +1,86 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { type Message, toHistory, useSessions } from "./sessions";
+import { userMessage } from "@bochica/shared";
+import { useSessions } from "./sessions";
 
-const user = (id: string, content: string): Message => ({
-  id,
-  role: "user",
-  content,
-  parts: [{ type: "text", text: content }],
-  status: "done",
-  approvals: [],
-});
-const assistant = (id: string, content: string, status: Message["status"] = "done"): Message => ({
-  id,
-  role: "assistant",
-  content,
-  parts: content ? [{ type: "text", text: content }] : [],
-  status,
-  approvals: [],
-});
+// The event reducer itself is tested in @bochica/shared; these cover the store around it.
 
-describe("toHistory", () => {
-  test("keeps complete exchanges in order", () => {
-    expect(toHistory([user("1", "Hi"), assistant("2", "Hello")])).toEqual([
-      { role: "user", content: "Hi" },
-      { role: "assistant", content: "Hello" },
-    ]);
-  });
-
-  test("drops failed and empty exchanges so roles keep alternating", () => {
-    const messages = [
-      user("1", "first"),
-      assistant("2", "", "error"),
-      user("3", "second"),
-      assistant("4", "", "stopped"),
-      user("5", "third"),
-      assistant("6", "partial", "stopped"),
-    ];
-    expect(toHistory(messages)).toEqual([
-      { role: "user", content: "third" },
-      { role: "assistant", content: "partial" },
-    ]);
-  });
-});
+beforeEach(() => useSessions.setState({ sessions: {}, order: [], turnToSession: {} }));
 
 describe("useSessions", () => {
-  beforeEach(() => useSessions.setState({ sessions: {}, order: [], turnToSession: {} }));
-
-  test("streams a turn into its session", () => {
+  test("streams a turn into its session and titles it", () => {
     const store = useSessions.getState();
     const id = store.createSession();
-    store.addExchange(id, "What is a macro?", "t1");
-    store.applyEvent({ turnId: "t1", type: "text-delta", text: "A macro " });
-    store.applyEvent({ turnId: "t1", type: "text-delta", text: "is…" });
+    store.addExchange(id, "What is a macro?", "u1", "t1");
+    store.applyEvent({ turnId: "t1", type: "text-delta", text: "A macro is…" });
     store.applyEvent({ turnId: "t1", type: "turn-end", reason: "stop" });
 
     const session = useSessions.getState().sessions[id];
     expect(session?.title).toBe("What is a macro?");
-    expect(session?.messages.at(-1)).toMatchObject({ content: "A macro is…", status: "done" });
-  });
-
-  test("marks stopped, cut-off and failed turns", () => {
-    const store = useSessions.getState();
-    const id = store.createSession();
-    store.addExchange(id, "a", "t1");
-    store.addExchange(id, "b", "t2");
-    store.addExchange(id, "c", "t3");
-    store.applyEvent({ turnId: "t1", type: "turn-end", reason: "aborted" });
-    store.applyEvent({ turnId: "t2", type: "turn-end", reason: "length" });
-    store.applyEvent({ turnId: "t3", type: "error", code: "rate_limit", message: "429" });
-
-    const statuses = useSessions
-      .getState()
-      .sessions[id]?.messages.filter((m) => m.role === "assistant")
-      .map((m) => m.status);
-    expect(statuses).toEqual(["stopped", "length", "error"]);
-  });
-
-  test("long first messages become a shortened title", () => {
-    const store = useSessions.getState();
-    const id = store.createSession();
-    store.addExchange(id, "x".repeat(100), "t1");
-    expect(useSessions.getState().sessions[id]?.title).toBe(`${"x".repeat(48)}…`);
-  });
-
-  test("tool calls interleave with text in order", () => {
-    const store = useSessions.getState();
-    const id = store.createSession();
-    store.addExchange(id, "macro?", "t1");
-    store.applyEvent({ turnId: "t1", type: "text-delta", text: "Let me check. " });
-    store.applyEvent({
-      turnId: "t1",
-      type: "tool-call",
-      callId: "c1",
-      server: "docs",
-      tool: "search",
-      input: { query: "macro" },
-    });
-    store.applyEvent({
-      turnId: "t1",
-      type: "tool-result",
-      callId: "c1",
-      status: "ok",
-      output: "3 hits",
-    });
-    store.applyEvent({ turnId: "t1", type: "text-delta", text: "Found it." });
-
-    const message = useSessions.getState().sessions[id]?.messages.at(-1);
-    expect(message?.parts).toEqual([
-      { type: "text", text: "Let me check. " },
-      {
-        type: "tool",
-        callId: "c1",
-        server: "docs",
-        tool: "search",
-        input: { query: "macro" },
-        status: "ok",
-        output: "3 hits",
-      },
-      { type: "text", text: "Found it." },
+    expect(session?.messages.map((m) => [m.id, m.status, m.content])).toEqual([
+      ["u1", "done", "What is a macro?"],
+      ["t1", "done", "A macro is…"],
     ]);
-    expect(message?.content).toBe("Let me check. Found it.");
   });
 
-  test("approvals attach to their turn and can be removed", () => {
+  test("approvals attach to their turn and clear when it ends", () => {
     const store = useSessions.getState();
     const id = store.createSession();
-    store.addExchange(id, "do it", "t1");
+    store.addExchange(id, "do it", "u1", "t1");
     store.addApproval({
       requestId: "r1",
       turnId: "t1",
       server: "bochica",
       tool: "dev_echo",
       input: {},
+      allowSession: true,
     });
     expect(useSessions.getState().sessions[id]?.messages.at(-1)?.approvals).toHaveLength(1);
-    useSessions.getState().removeApproval("r1");
+    store.applyEvent({ turnId: "t1", type: "turn-end", reason: "aborted" });
     expect(useSessions.getState().sessions[id]?.messages.at(-1)?.approvals).toEqual([]);
+  });
+
+  test("saved sessions are listed without messages until loaded", () => {
+    const store = useSessions.getState();
+    store.setSummaries([
+      { id: "a", title: "Newest", updatedAt: 2 },
+      { id: "b", title: "Older", updatedAt: 1 },
+    ]);
+    expect(useSessions.getState().order).toEqual(["a", "b"]);
+    expect(useSessions.getState().sessions["a"]).toMatchObject({ loaded: false, messages: [] });
+
+    store.loadSession({ id: "a", title: "Newest", messages: [userMessage("u1", "hi")] });
+    expect(useSessions.getState().sessions["a"]).toMatchObject({
+      loaded: true,
+      messages: [{ id: "u1", approvals: [] }],
+    });
+  });
+
+  test("an unsent new session stays on top of the saved ones", () => {
+    const store = useSessions.getState();
+    const fresh = store.createSession();
+    store.setSummaries([{ id: "a", title: "Saved", updatedAt: 1 }]);
+    expect(useSessions.getState().order).toEqual([fresh, "a"]);
+  });
+
+  test("a new turn moves its session to the top", () => {
+    const store = useSessions.getState();
+    store.setSummaries([
+      { id: "a", title: "A", updatedAt: 2 },
+      { id: "b", title: "B", updatedAt: 1 },
+    ]);
+    store.loadSession({ id: "b", title: "B", messages: [] });
+    store.addExchange("b", "again", "u1", "t1");
+    expect(useSessions.getState().order).toEqual(["b", "a"]);
+  });
+
+  test("rename and remove", () => {
+    const store = useSessions.getState();
+    const id = store.createSession();
+    store.rename(id, "Renamed");
+    expect(useSessions.getState().sessions[id]?.title).toBe("Renamed");
+    store.remove(id);
+    expect(useSessions.getState().sessions[id]).toBeUndefined();
+    expect(useSessions.getState().order).toEqual([]);
   });
 
   test("events for unknown turns are ignored", () => {

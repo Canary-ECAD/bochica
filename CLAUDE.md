@@ -2,10 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S4 done.** Streaming chat with any provider; EPLAN docs RAGs and the local EPLAN
+> **Status: S5 done.** Streaming chat with any provider; EPLAN docs RAGs and the local EPLAN
 > server over MCP, with a visible activity log, approval cards (never / ask / always), automatic
-> project backups before changes and a live EPLAN connection indicator. Not built yet: SQLite
-> sessions, built-in tools, the bundled Python runtime and the updater.
+> project backups before changes and a live EPLAN connection indicator; sessions saved in SQLite
+> (resume, rename, delete). Not built yet: modes and typed confirmation (S6), built-in tools,
+> the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -135,9 +136,18 @@ How the pieces fit:
 - **Chat flow:** the renderer picks a `turnId` and calls `chat.send`; `ChatService` resolves the
   key, runs `runTurn` and pushes each `TurnEvent` on `chat:event` tagged with the `turnId`.
   `main.tsx` subscribes once and feeds `useSessions.applyEvent` (zustand, `state/sessions.ts`),
-  which routes the event to the session that owns the turn. `toHistory` drops failed exchanges
-  so user/assistant roles keep alternating. Models are listed live from each provider
+  which routes the event to the session that owns the turn. Both sides build messages with the
+  same reducer, `applyTurnEvent` in `@bochica/shared`; `toHistory` drops failed exchanges so
+  user/assistant roles keep alternating. Models are listed live from each provider
   (`models:list`); never hard-code model ids.
+- **Persistence:** main is the only writer. `ChatService` saves the user message, the
+  assistant placeholder, every structural event and streamed text (at most once a second)
+  through a strictly ordered queue, so a crash loses at most a second of text; at start,
+  turns still `streaming` become `stopped`. The renderer only reads (`sessions:list`,
+  `sessions:get`) and asks main to rename or delete. Storage is `userData\bochica.db` through
+  `node:sqlite` + Drizzle's `sqlite-proxy` (`main/db/`); tests use the same repository on
+  `bun:sqlite` (`bun-driver.ts`, never imported by the app). Schema changes are appended to
+  `db/migrations.ts` (never edit a released entry) and mirrored in `db/schema.ts`.
 - **Tools:** every tool, MCP or built-in, is an `AgentTool` (`packages/agent/src/tools.ts`) with
   an `approval` of `never`, `ask` or `always` and a `changesProject` flag. `toToolSet` wraps
   them for the AI SDK and is where approval, redaction and truncation happen; don't bypass it.

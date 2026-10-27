@@ -1,4 +1,16 @@
 export {
+  applyTurnEvent,
+  assistantPlaceholder,
+  ConversationMessage,
+  MessagePart,
+  SessionDetail,
+  SessionSummary,
+  titleFrom,
+  toHistory,
+  ToolPart,
+  userMessage,
+} from "./conversation";
+export {
   AppInfo,
   ApprovalDecision,
   ApprovalRequest,
@@ -11,6 +23,7 @@ export {
   ConnectionResult,
   CredentialInfo,
   CredentialList,
+  DeleteMessagesRequest,
   EplanStatus,
   ipcChannels,
   McpServerInfo,
@@ -18,6 +31,7 @@ export {
   ModelInfo,
   ModelList,
   ProviderId,
+  RenameSessionRequest,
   SetCredentialRequest,
   SetMcpEnabledRequest,
   TurnEvent,

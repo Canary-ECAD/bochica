@@ -1,17 +1,25 @@
 import { randomUUID } from "node:crypto";
 import { type AgentTool, createModel, getProvider, type McpManager, runTurn } from "@bochica/agent";
 import {
+  applyTurnEvent,
   ApprovalRequest,
+  assistantPlaceholder,
   ChatEvent,
   type ChatSendRequest,
+  type ConversationMessage,
   ipcChannels,
+  titleFrom,
   type TurnEvent,
+  userMessage,
 } from "@bochica/shared";
 import type { WebContents } from "electron";
 import type { ApprovalService } from "./approvals";
 import type { BackupGuard } from "./backup";
 import type { CredentialStore } from "./credentials";
+import type { SessionRepository } from "./db/repository";
 import type { Logger } from "./logger";
+
+const TEXT_SAVE_INTERVAL_MS = 1_000;
 
 /** Runs chat turns in the main process and streams their events to the window that asked. */
 export class ChatService {
@@ -22,6 +30,7 @@ export class ChatService {
     private readonly mcp: McpManager,
     private readonly approvals: ApprovalService,
     private readonly backups: BackupGuard,
+    private readonly sessions: SessionRepository,
     private readonly logger: Logger,
     /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
     private readonly extraTools: AgentTool[] = [],
@@ -29,15 +38,48 @@ export class ChatService {
 
   /** Starts the turn and returns at once; events follow on `chat:event`. */
   send(request: ChatSendRequest, target: WebContents): void {
+    // Main keeps its own copy of the answer, built with the same reducer as the renderer, and
+    // saves it as it goes: a closed window or a renderer crash loses nothing already streamed.
+    let answer = assistantPlaceholder(request.turnId);
+    // Saves run one after another, so an older snapshot can never overwrite a newer one.
+    let saving: Promise<void> = Promise.resolve();
+    const save = (message: ConversationMessage): Promise<void> => {
+      saving = saving
+        .then(() => this.sessions.saveMessage(request.sessionId, message))
+        .catch((error: unknown) => this.logger.error("Saving a message failed", error));
+      return saving;
+    };
+    let lastSaved = 0;
     const emit = (event: TurnEvent): void => {
+      answer = applyTurnEvent(answer, event);
+      // Every structural change is saved at once; streamed text at most once a second, so a
+      // crash loses at most a second of it.
+      const now = Date.now();
+      if (event.type !== "text-delta" || now - lastSaved >= TEXT_SAVE_INTERVAL_MS) {
+        lastSaved = now;
+        void save(answer);
+      }
       if (!target.isDestroyed()) {
         target.send(ipcChannels.chatEvent, ChatEvent.parse({ turnId: request.turnId, ...event }));
       }
     };
 
+    const question = request.messages.at(-1)?.content ?? "";
+    saving = this.sessions
+      .createSession(request.sessionId, titleFrom(question))
+      .catch((error: unknown) => this.logger.error("Saving the session failed", error));
+    void save(userMessage(request.userMessageId, question));
+    const started = save(answer);
+
     const key = keyFor(request.provider, this.credentials);
     if (key === undefined) {
-      emit({ type: "error", code: "missing_key", message: "No API key saved for this provider." });
+      void started.then(() =>
+        emit({
+          type: "error",
+          code: "missing_key",
+          message: "No API key saved for this provider.",
+        }),
+      );
       return;
     }
 
@@ -50,6 +92,7 @@ export class ChatService {
     const controller = new AbortController();
     this.running.set(request.turnId, controller);
     void (async () => {
+      await started;
       try {
         const model = createModel(request.provider, key, request.model);
         for await (const event of runTurn({

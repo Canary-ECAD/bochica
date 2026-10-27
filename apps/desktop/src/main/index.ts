@@ -5,6 +5,8 @@ import { ApprovalService } from "./approvals";
 import { BackupGuard } from "./backup";
 import { ChatService, devEchoTool } from "./chat";
 import { CredentialStore } from "./credentials";
+import { nodeSqliteDriver } from "./db/driver";
+import { SessionRepository } from "./db/repository";
 import { EplanStatusService, isEplanRunning } from "./eplan-status";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
@@ -72,7 +74,21 @@ void app.whenReady().then(() => {
     mcp.manager.callTool(EPLAN_SERVER_ID, tool, args);
   const backups = new BackupGuard(callEplan, join(app.getPath("documents"), "Bochica", "Backups"));
   const devTools = !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
-  const chat = new ChatService(credentials, mcp.manager, approvals, backups, logger, devTools);
+  const sessions = new SessionRepository(
+    nodeSqliteDriver(join(app.getPath("userData"), "bochica.db")),
+  );
+  void sessions
+    .markInterruptedTurns()
+    .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
+  const chat = new ChatService(
+    credentials,
+    mcp.manager,
+    approvals,
+    backups,
+    sessions,
+    logger,
+    devTools,
+  );
 
   const eplan = new EplanStatusService(
     {
@@ -83,7 +99,7 @@ void app.whenReady().then(() => {
     },
     (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
   );
-  registerIpc({ credentials, chat, mcp, approvals, eplan, logger });
+  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, logger });
 
   // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
   // EPLAN indicator re-checks as soon as its server comes up.
@@ -98,6 +114,7 @@ void app.whenReady().then(() => {
     chat.stopAll();
     eplan.stop();
     void mcp.manager.close();
+    sessions.close();
   });
   createWindow();
 });

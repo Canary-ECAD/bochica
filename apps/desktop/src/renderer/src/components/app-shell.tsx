@@ -3,6 +3,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EplanIndicator } from "@/components/eplan-indicator";
+import { SessionRow } from "@/components/session-row";
 import { useSessions } from "@/state/sessions";
 
 const navItem =
@@ -37,16 +38,7 @@ export function AppShell() {
           {order.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">{t("nav.noSessions")}</p>
           ) : (
-            order.map((id) => (
-              <Link
-                key={id}
-                to="/session/$sessionId"
-                params={{ sessionId: id }}
-                className="truncate rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground [&.active]:bg-accent [&.active]:text-accent-foreground"
-              >
-                {sessions[id]?.title || t("nav.untitled")}
-              </Link>
-            ))
+            order.map((id) => <SessionRow key={id} id={id} title={sessions[id]?.title ?? ""} />)
           )}
         </nav>
 
