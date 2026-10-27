@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getProvider, providers } from "./providers";
+import { getProvider, providerIds, providers } from "./providers";
 
 describe("providers", () => {
   test("ids are unique", () => {
@@ -16,6 +16,16 @@ describe("providers", () => {
   test("local providers point at this machine", () => {
     for (const p of providers.filter((entry) => entry.auth === "local")) {
       expect(p.baseUrl).toStartWith("http://127.0.0.1:");
+    }
+  });
+
+  test("the catalog covers every provider id", () => {
+    expect(providers.map((p) => p.id).toSorted()).toEqual([...providerIds].toSorted());
+  });
+
+  test("checks use HTTPS except for local servers", () => {
+    for (const p of providers) {
+      expect(p.check.url).toStartWith(p.auth === "local" ? "http://127.0.0.1:" : "https://");
     }
   });
 

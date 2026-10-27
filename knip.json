@@ -3,6 +3,7 @@
   "workspaces": {
     ".": {},
     "apps/desktop": {
+      "entry": ["src/renderer/src/components/ui/*.tsx"],
       "project": ["src/**/*.{ts,tsx,css}"],
       "paths": { "@/*": ["src/renderer/src/*"] }
     },

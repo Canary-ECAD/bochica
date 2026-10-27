@@ -2,8 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: scaffold.** The app shell runs (sidebar, empty session, settings with language), with
-> one IPC channel wired end to end. Not built yet: the agent loop, MCP connections, credentials,
+> **Status: S1 done.** The app shell runs: sidebar, empty session, Settings with AI-provider keys
+> (encrypted, testable) and language. Not built yet: the agent loop, MCP connections,
 > SQLite, the Python runtime and the updater. Sections below describe the target design.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
@@ -117,8 +117,17 @@ How the pieces fit:
   packaged app loads `index.html` from disk). Server-ish state goes through TanStack Query
   wrapping `window.bochica` calls. Theme follows Windows light/dark via a `.dark` class on
   `<html>`; colors come only from the CSS tokens in `styles.css`.
-- **UI components:** shadcn/ui (`components.json`, style new-york). Add components with the
-  shadcn CLI from `apps/desktop`; they land in `src/renderer/src/components/ui`.
+- **UI components:** shadcn/ui (`components.json`, style new-york). Add components with
+  `bunx --bun shadcn@latest add <name> --yes` from `apps/desktop`; they land in
+  `src/renderer/src/components/ui`. Afterwards check two known CLI slips: it may write
+  `import { cn } from "cn"` (should be `@/lib/utils`) and add packages under `dependencies`
+  (move them to `devDependencies` with exact versions; remove a stray `cn` package). Theme tokens
+  the components use (`card`, `secondary`, `destructive`, `success`…) are defined in
+  `styles.css`; add any new one in both `:root` and `.dark`.
+- **Main process:** `index.ts` wires the logger, `CredentialStore` (`credentials.ts`) and IPC
+  (`ipc.ts`). Keys are resolved in main only; `@bochica/agent` holds the provider catalog,
+  `testConnection`, `redactSecrets` and `maskSecret`. Everything written to the log goes
+  through `redactSecrets`.
 - **i18n:** strings live in `src/renderer/src/i18n/<lang>.json`; `en.json` is the reference and
   a test fails if another language has different keys. New language = new JSON + an entry in
   `supportedLanguages`.

@@ -13,7 +13,40 @@
   },
   "settings": {
     "title": "Settings",
+    "general": "General",
     "language": "Language",
     "disclaimer": "Bochica is an independent project by Canary-ECAD. It is not affiliated with, endorsed by, or supported by EPLAN GmbH & Co. KG. EPLAN and EPLAN Electric P8 are trademarks of their respective owner."
+  },
+  "providers": {
+    "title": "AI providers",
+    "description": "Bochica needs at least one AI provider. Paste an API key, or use a model running on this computer. Keys are stored encrypted on this computer and never shown again.",
+    "pasteKey": "Paste your API key",
+    "keyLabel": "{{provider}} API key",
+    "save": "Save",
+    "test": "Test connection",
+    "remove": "Remove key",
+    "whereToGetKey": "Where do I get my key?",
+    "fromEnv": "Using the key from the {{name}} environment variable. Save a key here to use a different one.",
+    "localDescription": "Runs on this computer at {{url}}. No key needed.",
+    "status": {
+      "ok": "Connected",
+      "invalid": "Key rejected",
+      "unknown": "Not tested",
+      "noKey": "No key",
+      "local": "Local"
+    },
+    "result": {
+      "ok": "Connected to {{provider}}.",
+      "invalid": "{{provider}} rejected this key. Check that you copied all of it, or create a new one.",
+      "missing_key": "Save a key first.",
+      "network_error": "Couldn't reach {{provider}}. Check your internet connection and try again.",
+      "localUnreachable": "{{provider}} isn't answering. Make sure it is running on this computer.",
+      "error": "{{provider}} answered with error {{code}}. Try again in a few minutes."
+    }
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "This screen hit an unexpected error. Reloading usually fixes it; your keys and settings are safe.",
+    "reload": "Reload"
   }
 }

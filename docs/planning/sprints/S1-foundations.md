@@ -1,6 +1,6 @@
 # S1 — Foundations and API keys
 
-**Status:** active
+**Status:** done (S1-07 carried over to S2)
 **Goal:** a reliable quality gate, sane error handling, and API keys that the user can add,
 test and remove from Settings without the renderer ever seeing a key.
 
@@ -20,64 +20,66 @@ Packages: root.
 
 Packages: desktop.
 
-- [ ] A React error boundary around the routes shows a friendly message (i18n) with a "Reload"
+- [x] A React error boundary around the routes shows a friendly message (i18n) with a "Reload"
       button instead of a white screen.
-- [ ] Unhandled errors in main are logged to a file under the app's `logs` folder; secrets are
+- [x] Unhandled errors in main are logged to a file under the app's `logs` folder; secrets are
       never written (see S1-05 redaction helper).
-- [ ] Opening DevTools is possible in dev builds only.
+- [x] Opening DevTools is possible in dev builds only.
 
 ### S1-03 · Credential store in main
 
 Packages: shared, desktop (main).
 
-- [ ] A `CredentialStore` in main saves per-provider API keys encrypted with Electron
+- [x] A `CredentialStore` in main saves per-provider API keys encrypted with Electron
       `safeStorage` in a file under `userData`; writes are atomic (temp file + rename).
-- [ ] The data model follows the Credential sketch from Hermes: `id`, `provider`, `kind`
+- [x] The data model follows the Credential sketch from Hermes: `id`, `provider`, `kind`
       (`api_key` only for now), `label`, `source` (`app` | `env`), `priority`, `status`.
       Several credentials per provider are allowed by the model even if the UI shows one.
-- [ ] Keys from environment variables (e.g. `ANTHROPIC_API_KEY`) are detected and shown as
+- [x] Keys from environment variables (e.g. `ANTHROPIC_API_KEY`) are detected and shown as
       `source: env`, read-only.
-- [ ] Unit tests cover save/load/delete and atomic write, with `safeStorage` stubbed.
+- [x] Unit tests cover save/load/delete and atomic write, with `safeStorage` stubbed.
 
 ### S1-04 · Credentials over IPC, never in clear
 
 Packages: shared, desktop (main + preload).
 
-- [ ] IPC channels `credentials:list`, `credentials:set`, `credentials:delete`,
+- [x] IPC channels `credentials:list`, `credentials:set`, `credentials:delete`,
       `credentials:test`, declared in `packages/shared/src/ipc.ts` with Zod schemas.
-- [ ] `list` returns only metadata plus a masked preview (`sk-ant-…a1b2`), never the key.
-- [ ] `test` makes the cheapest possible authenticated call to the provider (e.g. list models)
+- [x] `list` returns only metadata plus a masked preview (`sk-ant-…a1b2`), never the key.
+- [x] `test` makes the cheapest possible authenticated call to the provider (e.g. list models)
       from main and returns `ok` / `invalid` / `network_error` with a plain-language message.
-- [ ] A test asserts that no channel's response schema contains a field that could carry the
+- [x] A test asserts that no channel's response schema contains a field that could carry the
       raw key.
 
 ### S1-05 · Secret redaction helper
 
 Packages: agent.
 
-- [ ] `redactSecrets(text)` masks known key shapes (`sk-…`, `sk-ant-…`, `AIza…`, `ghp_…`,
+- [x] `redactSecrets(text)` masks known key shapes (`sk-…`, `sk-ant-…`, `AIza…`, `ghp_…`,
       bearer tokens, `key=`/`token=`/`password=` pairs).
-- [ ] Used by the main-process logger. Table-driven tests for each shape and for text that
+- [x] Used by the main-process logger. Table-driven tests for each shape and for text that
       must stay untouched.
 
 ### S1-06 · Providers screen in Settings
 
 Packages: desktop (renderer), agent.
 
-- [ ] Settings lists every provider from `@bochica/agent`'s catalog. API-key providers show a
+- [x] Settings lists every provider from `@bochica/agent`'s catalog. API-key providers show a
       masked field, a "Where do I get my key?" link (opens the system browser), **Save**,
       **Test** and **Remove**. Local providers show their base URL and a **Test** button.
-- [ ] Test results appear inline with an icon and the plain-language message.
-- [ ] All strings exist in `en.json` and `es.json`.
-- [ ] Uses shadcn components (Input, Card, Badge as needed) added with the shadcn CLI.
+- [x] Test results appear inline with an icon and the plain-language message.
+- [x] All strings exist in `en.json` and `es.json`.
+- [x] Uses shadcn components (Input, Card, Badge as needed) added with the shadcn CLI.
 
 ### S1-07 · CI on GitHub
 
 Packages: root.
 
-- [ ] Public repository `Canary-ECAD/bochica` created and `main` pushed.
+- [ ] Public repository `Canary-ECAD/bochica` created and `main` pushed. _Needs the maintainer:
+      creating a public repository requires an explicit permission._
 - [ ] A GitHub Actions workflow runs `bun install --frozen-lockfile` and `bun run check` on
-      `windows-latest` for pushes to `main` and for pull requests.
+      `windows-latest` for pushes to `main` and for pull requests. _Written
+      (`.github/workflows/check.yml`); tick once it has run green on GitHub._
 
 ## Demo
 
@@ -87,4 +89,20 @@ Search the logs folder for the key: no match.
 
 ## Outcome
 
-_(fill in when the sprint closes)_
+Closed 2026-10-27 with S1-07 still open (moved to S2 as S2-00).
+
+- Shipped: `bun run check`; main-process log with redaction and crash handlers; error screen
+  for render failures (router `defaultErrorComponent` + top-level boundary); DevTools disabled
+  in packaged builds; `CredentialStore` (safeStorage, atomic writes, env keys read-only, corrupt
+  file set aside); four credential IPC channels validated with Zod on both ends;
+  `redactSecrets`/`maskSecret`; `testConnection` per provider; Providers section in Settings
+  (en/es). 53 tests.
+- Demo run against the built app with a **fake** Anthropic key: saved, masked as
+  `sk-ant-…0000`, Test → "Anthropic rejected this key" (real 401 from the API), still there
+  after a restart, and the key string appears in no file under the app's data folder, logs
+  included. Not exercised: the "Connected" path with a real key, and the error screen (no
+  route throws yet).
+- Provider ids moved to `@bochica/shared` (`ProviderId`) so IPC schemas can validate them;
+  `@bochica/agent` now depends on `@bochica/shared`.
+- The shadcn CLI wrote `import { cn } from "cn"` and added `cn`/`radix-ui` as runtime
+  dependencies; fixed by hand (see CLAUDE.md).

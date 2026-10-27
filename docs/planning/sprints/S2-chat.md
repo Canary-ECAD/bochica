@@ -1,10 +1,18 @@
 # S2 — Streaming chat
 
-**Status:** planned (depends on S1-03, S1-04)
+**Status:** active
 **Goal:** the user picks a provider and model, types a message and watches the answer stream in,
 in a message view that looks and feels like Claude Code Desktop. No tools yet.
 
 ## Tasks
+
+### S2-00 · Publish and CI (carried over from S1-07)
+
+Packages: root.
+
+- [ ] Public repository `Canary-ECAD/bochica` created and `main` pushed (needs the maintainer's
+      permission).
+- [ ] `.github/workflows/check.yml` has run green on GitHub.
 
 ### S2-01 · Agent loop skeleton
 

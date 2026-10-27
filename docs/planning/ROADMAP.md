@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: [S1 — Foundations and API keys](sprints/S1-foundations.md)**
+**Active sprint: [S2 — Streaming chat](sprints/S2-chat.md)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -11,8 +11,8 @@ documentation.
 
 | Sprint                          | Goal                                                                                                                | Status  |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S1](sprints/S1-foundations.md) | Quality gate, error handling, API keys stored safely and testable from Settings                                     | Active  |
-| [S2](sprints/S2-chat.md)        | Streaming chat with any configured provider; Claude Code-style message view                                         | Planned |
+| [S1](sprints/S1-foundations.md) | Quality gate, error handling, API keys stored safely and testable from Settings                                     | Done    |
+| [S2](sprints/S2-chat.md)        | Streaming chat with any configured provider; Claude Code-style message view                                         | Active  |
 | S3                              | MCP client; P8 2027 docs RAG always on, 2026/EEC Pro toggles; tool calls shown in the chat; approval card framework | Outline |
 
 ## M1 — Act on EPLAN

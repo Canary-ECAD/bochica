@@ -1,6 +1,13 @@
 import { join } from "node:path";
-import { AppInfo, ipcChannels } from "@bochica/shared";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, safeStorage, shell } from "electron";
+import { CredentialStore } from "./credentials";
+import { registerIpc } from "./ipc";
+import { createLogger } from "./logger";
+
+const logger = createLogger(app.getPath("logs"));
+
+process.on("uncaughtException", (error) => logger.error("Uncaught exception", error));
+process.on("unhandledRejection", (reason) => logger.error("Unhandled rejection", reason));
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -16,6 +23,7 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      devTools: !app.isPackaged,
     },
   });
 
@@ -27,6 +35,9 @@ function createWindow(): void {
     return { action: "deny" };
   });
   window.webContents.on("will-navigate", (event) => event.preventDefault());
+  window.webContents.on("render-process-gone", (_event, details) =>
+    logger.error(`Renderer process gone: ${details.reason} (exit code ${details.exitCode})`),
+  );
 
   const devServerUrl = process.env["ELECTRON_RENDERER_URL"];
   if (!app.isPackaged && devServerUrl) {
@@ -36,14 +47,13 @@ function createWindow(): void {
   }
 }
 
-function registerIpc(): void {
-  ipcMain.handle(ipcChannels.appInfo, () =>
-    AppInfo.parse({ name: app.getName(), version: app.getVersion(), platform: process.platform }),
-  );
-}
-
 void app.whenReady().then(() => {
-  registerIpc();
+  logger.info(`Starting Bochica ${app.getVersion()}`);
+  const credentials = new CredentialStore(
+    join(app.getPath("userData"), "credentials.json"),
+    safeStorage,
+  );
+  registerIpc(credentials, logger);
   createWindow();
 });
 

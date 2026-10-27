@@ -5,6 +5,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell";
+import { ErrorScreen } from "./components/error-screen";
 import { SessionPage } from "./routes/session";
 import { SettingsPage } from "./routes/settings";
 
@@ -27,6 +28,7 @@ const settingsRoute = createRoute({
 export const router = createRouter({
   routeTree: rootRoute.addChildren([sessionRoute, settingsRoute]),
   history: createHashHistory(),
+  defaultErrorComponent: ErrorScreen,
 });
 
 declare module "@tanstack/react-router" {

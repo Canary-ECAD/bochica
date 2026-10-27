@@ -13,7 +13,40 @@
   },
   "settings": {
     "title": "Ajustes",
+    "general": "General",
     "language": "Idioma",
     "disclaimer": "Bochica es un proyecto independiente de Canary-ECAD. No está afiliado, respaldado ni soportado por EPLAN GmbH & Co. KG. EPLAN y EPLAN Electric P8 son marcas de su respectivo titular."
+  },
+  "providers": {
+    "title": "Proveedores de IA",
+    "description": "Bochica necesita al menos un proveedor de IA. Pega una API key o usa un modelo que se ejecute en este equipo. Las keys se guardan cifradas en este equipo y no se vuelven a mostrar.",
+    "pasteKey": "Pega tu API key",
+    "keyLabel": "API key de {{provider}}",
+    "save": "Guardar",
+    "test": "Probar conexión",
+    "remove": "Quitar key",
+    "whereToGetKey": "¿Dónde consigo mi key?",
+    "fromEnv": "Se está usando la key de la variable de entorno {{name}}. Guarda una key aquí para usar otra.",
+    "localDescription": "Se ejecuta en este equipo en {{url}}. No necesita key.",
+    "status": {
+      "ok": "Conectado",
+      "invalid": "Key rechazada",
+      "unknown": "Sin probar",
+      "noKey": "Sin key",
+      "local": "Local"
+    },
+    "result": {
+      "ok": "Conectado a {{provider}}.",
+      "invalid": "{{provider}} ha rechazado esta key. Comprueba que la has copiado entera o crea una nueva.",
+      "missing_key": "Primero guarda una key.",
+      "network_error": "No se ha podido conectar con {{provider}}. Comprueba tu conexión a internet y vuelve a intentarlo.",
+      "localUnreachable": "{{provider}} no responde. Comprueba que se está ejecutando en este equipo.",
+      "error": "{{provider}} ha respondido con el error {{code}}. Vuelve a intentarlo en unos minutos."
+    }
+  },
+  "error": {
+    "title": "Algo ha fallado",
+    "description": "Esta pantalla ha tenido un error inesperado. Normalmente se arregla recargando; tus keys y ajustes están a salvo.",
+    "reload": "Recargar"
   }
 }
