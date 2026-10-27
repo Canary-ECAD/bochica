@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > one IPC channel wired end to end. Not built yet: the agent loop, MCP connections, credentials,
 > SQLite, the Python runtime and the updater. Sections below describe the target design.
 
+**Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
+in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
+requests in `BACKLOG.md`. Anything touching tools, the terminal, MCP or EPLAN writes must follow
+[docs/design/guardrails.md](docs/design/guardrails.md).
+
 > **This is a public repository.** Never add local paths, machine names, customer data, real
 > EPLAN projects or information about any company using the tool — not in code, tests,
 > fixtures or commit messages. Use made-up sample data.
@@ -188,6 +193,7 @@ Run from the repository root:
 
 ```bash
 bun install                 # install dependencies for the whole monorepo
+bun run check               # every check below, in order; must pass before a change is done
 bun run dev                 # Electron + Vite with hot reload
 bun run build               # production build into apps/desktop/out
 bun run package             # Windows installer into apps/desktop/release (Python/uv not bundled yet)
@@ -201,7 +207,8 @@ bun test packages/eplan     # tests under a path
 bun test -t "ids are unique"    # tests whose name matches
 ```
 
-Before calling a change done: `typecheck`, `lint`, `format:check`, `knip` and `test` must pass.
+Before calling a change done, `bun run check` must pass (typecheck, lint, format check, knip,
+tests). There is no CI yet, so this local run is the only gate.
 
 Notes:
 
