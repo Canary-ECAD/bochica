@@ -29,36 +29,62 @@ describe("safeEnv", () => {
   });
 });
 
+// A cold PowerShell start takes several seconds on CI runners.
+const SLOW = 30_000;
+
 describe("runPowerShell", () => {
-  test("runs in the working folder and returns UTF-8 output", async () => {
-    const result = await run("Get-Content hello.txt; Write-Output 'ñandú'");
-    expect(result).toEqual({ ok: true, text: "hola\nñandú" });
-  });
+  test(
+    "runs in the working folder and returns UTF-8 output",
+    async () => {
+      const result = await run("Get-Content hello.txt; Write-Output 'ñandú'");
+      expect(result).toEqual({ ok: true, text: "hola\nñandú" });
+    },
+    SLOW,
+  );
 
-  test("does not pass Bochica's secrets on", async () => {
-    const result = await run("if ($env:BOCHICA_TEST_API_KEY) { 'leaked' } else { 'clean' }");
-    expect(result.text).toBe("clean");
-  });
+  test(
+    "does not pass Bochica's secrets on",
+    async () => {
+      const result = await run("if ($env:BOCHICA_TEST_API_KEY) { 'leaked' } else { 'clean' }");
+      expect(result.text).toBe("clean");
+    },
+    SLOW,
+  );
 
-  test("reports failures with their exit code", async () => {
-    expect(await run("cmd /c exit 3")).toEqual({ ok: false, text: "[no output]\n\n[exit code 3]" });
-    const missing = await run("Get-Item .\\missing.txt");
-    expect(missing.ok).toBe(false);
-    expect(missing.text).toContain("missing.txt");
-  });
+  test(
+    "reports failures with their exit code",
+    async () => {
+      expect(await run("cmd /c exit 3")).toEqual({
+        ok: false,
+        text: "[no output]\n\n[exit code 3]",
+      });
+      const missing = await run("Get-Item .\\missing.txt");
+      expect(missing.ok).toBe(false);
+      expect(missing.text).toContain("missing.txt");
+    },
+    SLOW,
+  );
 
-  test("stops at the timeout", async () => {
-    const result = await run("Start-Sleep -Seconds 20", 1_000);
-    expect(result.ok).toBe(false);
-    expect(result.text).toContain("took longer than 1 s");
-  }, 15_000);
+  test(
+    "stops at the timeout",
+    async () => {
+      const result = await run("Start-Sleep -Seconds 20", 1_000);
+      expect(result.ok).toBe(false);
+      expect(result.text).toContain("took longer than 1 s");
+    },
+    SLOW,
+  );
 
-  test("stops when the turn is stopped", async () => {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 500);
-    const result = await run("Start-Sleep -Seconds 20", 30_000, controller.signal);
-    expect(result.text).toContain("stopped by the user");
-  }, 15_000);
+  test(
+    "stops when the turn is stopped",
+    async () => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 500);
+      const result = await run("Start-Sleep -Seconds 20", 30_000, controller.signal);
+      expect(result.text).toContain("stopped by the user");
+    },
+    SLOW,
+  );
 });
 
 const tool = () => powershellTool({ cwd: work, env, readScript: () => null });
