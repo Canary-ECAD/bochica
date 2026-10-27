@@ -7,14 +7,24 @@ import { powershellTool, runPowerShell, safeEnv } from "./powershell";
 let work: string;
 const env = { ...process.env, BOCHICA_TEST_API_KEY: "sk-test-not-a-real-key" };
 
-beforeAll(() => {
+// A cold PowerShell start (and its first error message) can take half a minute on CI
+// runners: warm it up once, so each test measures only its own command.
+const SLOW = 90_000;
+
+beforeAll(async () => {
   work = mkdtempSync(join(tmpdir(), "bochica-ps-"));
   writeFileSync(join(work, "hello.txt"), "hola\n");
-});
+  await runPowerShell(
+    "Get-Item .\\missing.txt",
+    { cwd: work, env },
+    SLOW,
+    new AbortController().signal,
+  );
+}, SLOW);
 
 afterAll(() => rmSync(work, { recursive: true, force: true }));
 
-const run = (command: string, timeoutMs = 30_000, signal = new AbortController().signal) =>
+const run = (command: string, timeoutMs = 60_000, signal = new AbortController().signal) =>
   runPowerShell(command, { cwd: work, env }, timeoutMs, signal);
 
 describe("safeEnv", () => {
@@ -28,9 +38,6 @@ describe("safeEnv", () => {
     expect(filtered).toEqual({ Path: "C:\\Windows", SystemRoot: "C:\\Windows" });
   });
 });
-
-// A cold PowerShell start takes several seconds on CI runners.
-const SLOW = 30_000;
 
 describe("runPowerShell", () => {
   test(
