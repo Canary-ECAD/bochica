@@ -97,6 +97,13 @@ export const ChatMessage = z.object({
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
+/**
+ * What the agent may do this turn. consult: answer and help with scripts, no EPLAN tools.
+ * tasks: work in EPLAN. draw: the experimental drawing tools.
+ */
+export const ChatMode = z.enum(["consult", "tasks", "draw"]);
+export type ChatMode = z.infer<typeof ChatMode>;
+
 export const ChatSendRequest = z.object({
   /** Chosen by the renderer; every event of this turn carries it. */
   turnId: z.string().min(1),
@@ -104,6 +111,7 @@ export const ChatSendRequest = z.object({
   sessionId: z.string().min(1),
   /** Id of the new user message, the last entry of `messages`. */
   userMessageId: z.string().min(1),
+  mode: ChatMode,
   provider: ProviderId,
   model: z.string().min(1),
   messages: z.array(ChatMessage).min(1),
@@ -172,7 +180,27 @@ export const McpServerList = z.array(McpServerInfo);
 export const SetMcpEnabledRequest = z.object({ id: z.string(), enabled: z.boolean() });
 export type SetMcpEnabledRequest = z.infer<typeof SetMcpEnabledRequest>;
 
-// Approvals (guardrails layer 5).
+// Approvals (guardrails layer 5) and typed confirmation (layer 6).
+
+/**
+ * What the user must type before a destructive action runs: the name of what will be
+ * destroyed, or, when there is no single name, the word DELETE / ELIMINAR.
+ */
+export const Confirmation = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("name"), value: z.string().min(1) }),
+  z.object({ type: z.literal("word") }),
+]);
+export type Confirmation = z.infer<typeof Confirmation>;
+
+const CONFIRM_WORDS = new Set(["DELETE", "ELIMINAR"]);
+
+/** Whether the typed text confirms. Used by the card (button) and by main (enforcement). */
+export function confirmationMatches(confirmation: Confirmation, typed: string): boolean {
+  const text = typed.trim();
+  return confirmation.type === "name"
+    ? text === confirmation.value
+    : CONFIRM_WORDS.has(text.toUpperCase());
+}
 
 export const ApprovalRequest = z.object({
   requestId: z.string(),
@@ -182,13 +210,20 @@ export const ApprovalRequest = z.object({
   input: z.unknown(),
   /** False for tools that must ask every time: the card hides "Allow for this session". */
   allowSession: z.boolean(),
+  /** Present for destructive actions: the card asks the user to type this first. */
+  confirm: Confirmation.optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
 export const ApprovalDecision = z.enum(["once", "session", "deny"]);
 export type ApprovalDecision = z.infer<typeof ApprovalDecision>;
 
-export const ApprovalResponse = z.object({ requestId: z.string(), decision: ApprovalDecision });
+export const ApprovalResponse = z.object({
+  requestId: z.string(),
+  decision: ApprovalDecision,
+  /** What the user typed, for requests with `confirm`. */
+  typed: z.string().max(500).optional(),
+});
 export type ApprovalResponse = z.infer<typeof ApprovalResponse>;
 
 // EPLAN connection.

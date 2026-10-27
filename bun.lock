@@ -71,6 +71,7 @@
       "name": "@bochica/eplan",
       "version": "0.1.0",
       "dependencies": {
+        "@bochica/shared": "workspace:*",
         "zod": "4.6.7",
       },
     },

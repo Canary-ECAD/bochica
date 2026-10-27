@@ -150,6 +150,30 @@ describe("tools in the loop", () => {
     expect(JSON.stringify(model.doStreamCalls[1]?.prompt)).toContain("did not allow");
   });
 
+  test("a destructive call asks every time with what to type, even on a read-only tool", async () => {
+    const tool = searchTool({
+      approval: "never",
+      confirmation: (input) =>
+        (input as { query?: string }).query === "purge" ? { type: "word" } : null,
+    });
+    const asked: Array<Parameters<Approver>[0]> = [];
+    const approve: Approver = async (call) => {
+      asked.push(call);
+      return "allow";
+    };
+    const harmless = new MockLanguageModelV4({
+      doStream: [callStep(tool.name, { query: "macro" }), textStep("ok")],
+    });
+    await collect(harmless, [tool], approve);
+    expect(asked).toEqual([]);
+
+    const destructive = new MockLanguageModelV4({
+      doStream: [callStep(tool.name, { query: "purge" }), textStep("ok")],
+    });
+    await collect(destructive, [tool], approve);
+    expect(asked).toMatchObject([{ approval: "always", confirm: { type: "word" } }]);
+  });
+
   test("without an approver, calls that need approval are denied", async () => {
     const tool = searchTool({ approval: "ask" });
     const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });

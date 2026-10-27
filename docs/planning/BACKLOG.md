@@ -12,7 +12,7 @@ move it there and leave a link here (`→ S4-03`).
 - **Modes** in the composer. **Consulta**: questions about EPLAN (docs RAGs) and help writing
   EPLAN scripts (eplan-scripting-skill), no actions on EPLAN. **Tareas**: acting on EPLAN through
   eplan-mcp. **Draw**: the experimental drawing tools (`eplan_live_*` page/symbol/connection
-  tools), clearly marked experimental. → S6
+  tools), clearly marked experimental. → done in S6
 - **Visible activity log** (like Claude Code Desktop). Between assistant messages, consecutive
   tool calls collapse into one summary line in plain language ("Ran 3 commands", "Created 6
   files, edited 2 files, read 1 file"), with a total diff badge (`+340 −2`). Expanding it lists
@@ -36,10 +36,10 @@ move it there and leave a link here (`→ S4-03`).
   other bulk-destructive actions must not be one click away: the user has to type an explicit
   phrase in a text box (e.g. the project name or "DELETE") before the action can run, every
   time, never allowed for the session. Destructive work stays possible, just never easy.
-  → S6
-- **Open question:** eplan-mcp may already keep its own copy when working (shadow copy). If so,
-  Bochica's per-session backup (S4-03) could be redundant or made optional; to confirm with the
-  maintainer before changing it.
+  → done in S6
+- **Answered:** eplan-mcp's scratch tools work on clones in `%TEMP%eplan_mcp_scratch` (AppData), but only
+  when those tools are used; other tools change the real project, so Bochica's backup stays
+  (see S6-modes.md).
 
 ## Infrastructure
 

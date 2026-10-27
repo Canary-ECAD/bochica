@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Confirmation } from "@bochica/shared";
 import { redactSecrets } from "./redact";
 import { type AgentTool, qualifiedName, type ToolApproval } from "./tools";
 
@@ -18,6 +19,8 @@ interface ServerBase {
   required: boolean;
   /** How each of this server's tools is guarded. */
   policy: (toolName: string) => ToolPolicy;
+  /** Which calls are destructive enough to need typed confirmation. */
+  confirm?: (toolName: string, input: unknown) => Confirmation | null;
 }
 
 export type McpServerConfig = ServerBase &
@@ -213,6 +216,9 @@ export class McpManager {
       inputSchema: tool.inputSchema,
       approval: policy.approval,
       changesProject: policy.changesProject,
+      ...(entry.config.confirm
+        ? { confirmation: (input: unknown) => entry.config.confirm?.(tool.name, input) ?? null }
+        : {}),
       execute: async (input, signal) => {
         const connection = entry.connection;
         if (!connection) throw new Error(`The ${entry.config.id} server is not connected.`);

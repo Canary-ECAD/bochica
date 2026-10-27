@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S6 — Modes and typed confirmation (to be planned)**
+**Active sprint: S7 — Built-in tools and guardrails core (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -23,7 +23,7 @@ The agent drives a running EPLAN safely, and conversations survive a restart.
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change                                                                        | Done    |
 | [S5](sprints/S5-sessions.md)      | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                                                                                            | Done    |
-| S6                                | Modes: **Consulta** (docs RAG + script assistance with eplan-scripting-skill, no EPLAN actions), **Tareas** (EPLAN actions over MCP), **Draw** (experimental drawing tools); typed confirmation for destructive actions such as deleting projects | Outline |
+| [S6](sprints/S6-modes.md)         | Modes: **Consulta** (docs RAG + script assistance with eplan-scripting-skill, no EPLAN actions), **Tareas** (EPLAN actions over MCP), **Draw** (experimental drawing tools); typed confirmation for destructive actions such as deleting projects | Active  |
 | S7                                | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                                                                                                | Outline |
 
 ## M2 — Claude Code parity

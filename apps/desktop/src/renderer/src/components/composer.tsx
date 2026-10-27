@@ -3,6 +3,7 @@ import { ArrowUp, LoaderCircle, Square } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ModelPicker } from "@/components/model-picker";
+import { ModePicker } from "@/components/mode-picker";
 import { Button } from "@/components/ui/button";
 import { useModelChoice } from "@/state/model-choice";
 import type { ModelChoice } from "@/state/sessions";
@@ -50,18 +51,21 @@ export function Composer({ onSend, onStop, autoFocus = false }: ComposerProps) {
         className="field-sizing-content max-h-60 min-h-12 w-full resize-none bg-transparent px-1 text-sm leading-6 outline-none placeholder:text-muted-foreground"
       />
       <div className="mt-1 flex items-center justify-between gap-2">
-        {models.groups.length > 0 ? (
-          <ModelPicker state={models} />
-        ) : models.loading ? (
-          <span className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
-            <LoaderCircle className="size-3 animate-spin" />
-            {t("chat.loadingModels")}
-          </span>
-        ) : (
-          <Link to="/settings" className="px-2 text-xs text-primary hover:underline">
-            {t("chat.addProvider")}
-          </Link>
-        )}
+        <div className="flex min-w-0 items-center gap-1">
+          <ModePicker />
+          {models.groups.length > 0 ? (
+            <ModelPicker state={models} />
+          ) : models.loading ? (
+            <span className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
+              <LoaderCircle className="size-3 animate-spin" />
+              {t("chat.loadingModels")}
+            </span>
+          ) : (
+            <Link to="/settings" className="px-2 text-xs text-primary hover:underline">
+              {t("chat.addProvider")}
+            </Link>
+          )}
+        </div>
         {onStop ? (
           <Button type="button" size="icon" onClick={onStop} aria-label={t("chat.stop")}>
             <Square className="fill-current" />

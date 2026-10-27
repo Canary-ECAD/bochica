@@ -145,7 +145,7 @@ export function registerIpc({
   handle(ipcChannels.eplanStatus, () => EplanStatus.parse(eplan.current()));
 
   handle(ipcChannels.approvalRespond, (arg) => {
-    const { requestId, decision } = ApprovalResponse.parse(arg);
-    approvals.respond(requestId, decision);
+    const { requestId, decision, typed } = ApprovalResponse.parse(arg);
+    approvals.respond(requestId, decision, typed);
   });
 }

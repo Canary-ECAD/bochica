@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { componentsLock } from "@bochica/eplan";
 import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
@@ -12,6 +13,7 @@ import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { SettingsStore } from "./settings";
+import { SkillStore } from "./skills";
 
 const logger = createLogger(app.getPath("logs"));
 
@@ -21,6 +23,18 @@ process.on("unhandledRejection", (reason) => logger.error("Unhandled rejection",
 /** Sends a main → renderer message to every open window. */
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload);
+}
+
+/**
+ * Where the scripting skill comes from: a local eplan-scripting-skill checkout during
+ * development (BOCHICA_SKILLS_DIR), otherwise a cache of the commit pinned in
+ * components.lock.json, downloaded on first use.
+ */
+function skillLocation(): [string, { repository: string; commit: string } | null] {
+  const local = process.env["BOCHICA_SKILLS_DIR"];
+  if (local) return [join(local, "skills"), null];
+  const pinned = componentsLock["eplan-scripting-skill"];
+  return [join(app.getPath("userData"), "skills", pinned.commit), pinned];
 }
 
 function createWindow(): void {
@@ -80,15 +94,20 @@ void app.whenReady().then(() => {
   void sessions
     .markInterruptedTurns()
     .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
-  const chat = new ChatService(
+  const skills = new SkillStore(...skillLocation());
+  void skills
+    .load()
+    .then((loaded) => logger.info(`Scripting skill: ${loaded.length} skill(s) loaded`));
+  const chat = new ChatService({
     credentials,
-    mcp.manager,
+    mcp: mcp.manager,
     approvals,
     backups,
     sessions,
+    skills,
     logger,
-    devTools,
-  );
+    extraTools: devTools,
+  });
 
   const eplan = new EplanStatusService(
     {

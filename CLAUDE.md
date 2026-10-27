@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S5 done.** Streaming chat with any provider; EPLAN docs RAGs and the local EPLAN
-> server over MCP, with a visible activity log, approval cards (never / ask / always), automatic
-> project backups before changes and a live EPLAN connection indicator; sessions saved in SQLite
-> (resume, rename, delete). Not built yet: modes and typed confirmation (S6), built-in tools,
-> the bundled Python runtime and the updater.
+> **Status: S6 done.** Streaming chat with any provider in three modes (Consult: docs and the
+> scripting skill; Tasks: EPLAN over MCP; Draw: experimental drawing tools); visible activity
+> log; approval cards (never / ask / always) plus typed confirmation for destructive actions;
+> automatic backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet:
+> built-in tools (S7), the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -169,6 +169,15 @@ How the pieces fit:
   "Allow for this session" is keyed by session id + server + tool. Run the dev build with
   `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that asks, for testing cards. `always`
   tools send `allowSession: false`: the card hides "Allow for this session" and main ignores it.
+- **Modes:** every turn carries a `ChatMode`. `ChatService.toolsFor` filters tools with
+  `eplanToolInMode` (`packages/eplan/src/modes.ts`) and `systemPrompt(mode, skills)` adds the
+  mode's section. Consult also gets eplan-scripting-skill (`main/skills.ts`): downloaded at the
+  commit pinned in `components.lock.json` into `userDataskills<commit>`, or read from
+  `BOCHICA_SKILLS_DIR` (a checkout); `bochica__read_skill_file` only reads inside it.
+- **Typed confirmation** (guardrails layer 6): `eplanConfirmation` (`packages/eplan/src/confirmation.ts`)
+  decides which calls are destructive and what to type (project name, or DELETE / ELIMINAR).
+  Such calls always ask; main re-checks the text with `confirmationMatches`, so the renderer's
+  button state is never trusted. Add new destructive cases there, with a test.
 - **Activity log:** assistant messages are ordered `parts` (text and tool calls).
   `message-list.tsx` groups consecutive tool calls into one `ActivityGroup`; labels come from
   `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es: past tense under

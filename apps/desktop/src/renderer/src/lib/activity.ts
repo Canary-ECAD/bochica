@@ -73,6 +73,12 @@ export function describeCall(
         property: field(input, "property_name") || field(input, "property_id"),
       });
     }
+    if (tool === "eplan_project_management") {
+      const group = mode === "request" ? "eplanRequest" : "eplan";
+      const type = field(input, "type").trim().toUpperCase();
+      const key = type === "REORGANIZE" ? "reorganize" : "projectManagement";
+      return t(`activity.${group}.${key}`, { project: projectName(input), type });
+    }
     if (tool.startsWith("eplan_search_")) return t("activity.eplan.search");
     return t("activity.eplan.other", {
       action: tool.replace(/^(eplan|aas)_/, "").replaceAll("_", " "),
@@ -80,6 +86,9 @@ export function describeCall(
   }
   if (server === "bochica" && tool === "backup_project") {
     return t("activity.backup", { project: field(input, "project") });
+  }
+  if (server === "bochica" && tool === "read_skill_file") {
+    return t("activity.bochicaRead", { path: field(input, "path").split("/").at(-1) ?? "" });
   }
   if (server === "bochica" && tool === "dev_echo") {
     return t("activity.devEcho", { text: field(input, "text") });

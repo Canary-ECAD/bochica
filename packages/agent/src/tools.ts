@@ -1,3 +1,4 @@
+import type { Confirmation } from "@bochica/shared";
 import { dynamicTool, jsonSchema, type ToolSet } from "ai";
 import { redactSecrets } from "./redact";
 
@@ -18,6 +19,11 @@ export interface AgentTool {
   approval: ToolApproval;
   /** Changes an EPLAN project, so a backup must exist first (see the desktop BackupGuard). */
   changesProject?: boolean;
+  /**
+   * Guardrails layer 6: for a destructive call, what the user must type before it runs. When
+   * this returns something, the call asks every time, whatever `approval` says.
+   */
+  confirmation?: (input: unknown) => Confirmation | null;
   execute(input: unknown, signal: AbortSignal): Promise<{ ok: boolean; text: string }>;
 }
 
@@ -31,6 +37,7 @@ export type Approver = (call: {
   tool: string;
   input: unknown;
   approval: Exclude<ToolApproval, "never">;
+  confirm?: Confirmation;
 }) => Promise<ApprovalAnswer>;
 
 /** What a tool call produced, as the loop and the UI see it. */
@@ -62,14 +69,17 @@ export function toToolSet(tools: AgentTool[], approve: Approver | undefined): To
         description: tool.description,
         inputSchema: jsonSchema(tool.inputSchema),
         execute: async (input, { abortSignal, toolCallId }): Promise<ToolOutcome> => {
-          if (tool.approval !== "never") {
+          const confirm = tool.confirmation?.(input) ?? undefined;
+          if (confirm || tool.approval !== "never") {
             const answer = approve
               ? await approve({
                   callId: toolCallId,
                   server: tool.server,
                   tool: tool.tool,
                   input,
-                  approval: tool.approval,
+                  // Destructive calls ask every time, even on an otherwise read-only tool.
+                  approval: confirm || tool.approval === "never" ? "always" : tool.approval,
+                  ...(confirm ? { confirm } : {}),
                 })
               : "deny";
             if (answer === "deny") {

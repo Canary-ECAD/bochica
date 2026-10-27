@@ -18,6 +18,8 @@ export interface TurnOptions {
   model: LanguageModel;
   messages: ChatMessage[];
   abortSignal: AbortSignal;
+  /** The system prompt; see systemPrompt(mode). */
+  system?: string;
   tools?: AgentTool[];
   /** Asked before any tool with `needsApproval` runs. Without it, such calls are denied. */
   approve?: Approver;
@@ -32,6 +34,7 @@ export async function* runTurn({
   model,
   messages,
   abortSignal,
+  system = systemPrompt("consult"),
   tools = [],
   approve,
   maxSteps = DEFAULT_MAX_STEPS,
@@ -40,7 +43,7 @@ export async function* runTurn({
   try {
     const result = streamText({
       model,
-      instructions: systemPrompt,
+      instructions: system,
       messages,
       abortSignal,
       maxRetries: 2,

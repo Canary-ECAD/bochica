@@ -71,6 +71,31 @@ describe("ApprovalService", () => {
     expect(sent).toHaveLength(2);
   });
 
+  test("typed confirmation: the right text allows, anything else denies", async () => {
+    const { service, sent, approver } = setup();
+    const destructive = {
+      ...call,
+      approval: "always" as const,
+      confirm: { type: "name" as const, value: "Demo" },
+    };
+
+    const wrong = approver(destructive);
+    expect(sent[0]).toMatchObject({
+      allowSession: false,
+      confirm: { type: "name", value: "Demo" },
+    });
+    service.respond(sent[0]?.requestId ?? "", "once", "demo");
+    expect(await wrong).toBe("deny");
+
+    const missing = approver(destructive);
+    service.respond(sent[1]?.requestId ?? "", "once");
+    expect(await missing).toBe("deny");
+
+    const right = approver(destructive);
+    service.respond(sent[2]?.requestId ?? "", "once", "Demo");
+    expect(await right).toBe("allow");
+  });
+
   test("no answer before the timeout means deny", async () => {
     const { approver } = setup(10);
     expect(await approver(call)).toBe("deny");

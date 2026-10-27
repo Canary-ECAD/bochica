@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { McpManager, type McpServerConfig, readOnlyPolicy } from "@bochica/agent";
-import { defaultMcpServers, eplanToolPolicy } from "@bochica/eplan";
+import { defaultMcpServers, eplanConfirmation, eplanToolPolicy } from "@bochica/eplan";
 import type { McpServerInfo } from "@bochica/shared";
 import type { Logger } from "./logger";
 import type { SettingsStore } from "./settings";
@@ -48,6 +48,7 @@ function toConfig(
     env: server.env,
     required: true,
     policy: eplanToolPolicy,
+    confirm: eplanConfirmation,
   };
 }
 

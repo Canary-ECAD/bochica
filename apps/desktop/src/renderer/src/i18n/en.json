@@ -129,7 +129,9 @@
       "eplan_app_shutdown": "Close EPLAN",
       "eplan_app_restart": "Restart EPLAN",
       "search": "Searched the project",
-      "other": "EPLAN: {{action}}"
+      "other": "EPLAN: {{action}}",
+      "reorganize": "Reorganized the project {{project}}",
+      "projectManagement": "Project management ({{type}}) on {{project}}"
     },
     "eplanRequest": {
       "eplan_connect": "Connect to EPLAN",
@@ -150,15 +152,23 @@
       "eplan_update_reports": "Update the reports",
       "eplan_backup_project": "Back up the project {{project}}",
       "eplan_app_shutdown": "Close EPLAN",
-      "eplan_app_restart": "Restart EPLAN"
-    }
+      "eplan_app_restart": "Restart EPLAN",
+      "reorganize": "Reorganize the project {{project}}: deleted data is purged for good",
+      "projectManagement": "Project management ({{type}}) on {{project}}"
+    },
+    "bochicaRead": "Read the scripting guide: {{path}}"
   },
   "approval": {
     "title": "Bochica wants to do this:",
     "once": "Allow once",
     "session": "Allow for this session",
     "deny": "Deny",
-    "alwaysAsks": "Bochica asks every time for this kind of action."
+    "alwaysAsks": "Bochica asks every time for this kind of action.",
+    "destructiveTitle": "Bochica wants to do something that can't be undone:",
+    "cannotUndo": "This can't be undone. Bochica asks every time.",
+    "typeToConfirm": "To confirm, type",
+    "confirmWord": "DELETE",
+    "confirmDestructive": "Yes, do it"
   },
   "docs": {
     "title": "EPLAN documentation",
@@ -227,5 +237,21 @@
     "evening": "Good evening",
     "weekday": "Happy {{day}}",
     "newTask": "New task"
+  },
+  "modes": {
+    "label": "Mode",
+    "experimental": "Experimental",
+    "consult": {
+      "name": "Consult",
+      "description": "Questions about EPLAN and help writing scripts. Doesn't touch EPLAN."
+    },
+    "tasks": {
+      "name": "Tasks",
+      "description": "Works in your EPLAN: reads, changes and exports, asking before every change."
+    },
+    "draw": {
+      "name": "Draw",
+      "description": "Creates pages, places symbols and connects them. Experimental."
+    }
   }
 }

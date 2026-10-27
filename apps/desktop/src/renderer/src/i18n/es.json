@@ -129,7 +129,9 @@
       "eplan_app_shutdown": "Cerrar EPLAN",
       "eplan_app_restart": "Reiniciar EPLAN",
       "search": "Buscó en el proyecto",
-      "other": "EPLAN: {{action}}"
+      "other": "EPLAN: {{action}}",
+      "reorganize": "Reorganizó el proyecto {{project}}",
+      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
     },
     "eplanRequest": {
       "eplan_connect": "Conectarse a EPLAN",
@@ -150,15 +152,23 @@
       "eplan_update_reports": "Actualizar los informes",
       "eplan_backup_project": "Hacer una copia de seguridad del proyecto {{project}}",
       "eplan_app_shutdown": "Cerrar EPLAN",
-      "eplan_app_restart": "Reiniciar EPLAN"
-    }
+      "eplan_app_restart": "Reiniciar EPLAN",
+      "reorganize": "Reorganizar el proyecto {{project}}: los datos borrados se eliminan para siempre",
+      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
+    },
+    "bochicaRead": "Leyó la guía de scripting: {{path}}"
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
     "once": "Permitir una vez",
     "session": "Permitir en esta sesión",
     "deny": "Denegar",
-    "alwaysAsks": "Bochica pregunta cada vez para este tipo de acción."
+    "alwaysAsks": "Bochica pregunta cada vez para este tipo de acción.",
+    "destructiveTitle": "Bochica quiere hacer algo que no se puede deshacer:",
+    "cannotUndo": "No se puede deshacer. Bochica pregunta cada vez.",
+    "typeToConfirm": "Para confirmar, escribe",
+    "confirmWord": "ELIMINAR",
+    "confirmDestructive": "Sí, hacerlo"
   },
   "docs": {
     "title": "Documentación de EPLAN",
@@ -227,5 +237,21 @@
     "evening": "Buenas noches",
     "weekday": "Feliz {{day}}",
     "newTask": "Nueva tarea"
+  },
+  "modes": {
+    "label": "Modo",
+    "experimental": "Experimental",
+    "consult": {
+      "name": "Consulta",
+      "description": "Preguntas sobre EPLAN y ayuda para escribir scripts. No toca EPLAN."
+    },
+    "tasks": {
+      "name": "Tareas",
+      "description": "Trabaja en tu EPLAN: lee, cambia y exporta, pidiendo permiso antes de cada cambio."
+    },
+    "draw": {
+      "name": "Draw",
+      "description": "Crea páginas, coloca símbolos y los conecta. Experimental."
+    }
   }
 }

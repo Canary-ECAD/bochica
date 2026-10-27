@@ -1,10 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { type AgentTool, createModel, getProvider, type McpManager, runTurn } from "@bochica/agent";
+import {
+  type AgentTool,
+  createModel,
+  getProvider,
+  type McpManager,
+  runTurn,
+  systemPrompt,
+} from "@bochica/agent";
+import { eplanToolInMode } from "@bochica/eplan";
 import {
   applyTurnEvent,
   ApprovalRequest,
   assistantPlaceholder,
   ChatEvent,
+  type ChatMode,
   type ChatSendRequest,
   type ConversationMessage,
   ipcChannels,
@@ -18,23 +27,59 @@ import type { BackupGuard } from "./backup";
 import type { CredentialStore } from "./credentials";
 import type { SessionRepository } from "./db/repository";
 import type { Logger } from "./logger";
+import { EPLAN_SERVER_ID } from "./mcp-service";
+import type { SkillStore } from "./skills";
 
 const TEXT_SAVE_INTERVAL_MS = 1_000;
+
+export interface ChatDeps {
+  credentials: CredentialStore;
+  mcp: McpManager;
+  approvals: ApprovalService;
+  backups: BackupGuard;
+  sessions: SessionRepository;
+  skills: SkillStore;
+  logger: Logger;
+  /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
+  extraTools?: AgentTool[];
+}
 
 /** Runs chat turns in the main process and streams their events to the window that asked. */
 export class ChatService {
   private readonly running = new Map<string, AbortController>();
 
-  constructor(
-    private readonly credentials: CredentialStore,
-    private readonly mcp: McpManager,
-    private readonly approvals: ApprovalService,
-    private readonly backups: BackupGuard,
-    private readonly sessions: SessionRepository,
-    private readonly logger: Logger,
-    /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
-    private readonly extraTools: AgentTool[] = [],
-  ) {}
+  private readonly credentials: CredentialStore;
+  private readonly mcp: McpManager;
+  private readonly approvals: ApprovalService;
+  private readonly backups: BackupGuard;
+  private readonly sessions: SessionRepository;
+  private readonly skills: SkillStore;
+  private readonly logger: Logger;
+  private readonly extraTools: AgentTool[];
+
+  constructor(deps: ChatDeps) {
+    this.credentials = deps.credentials;
+    this.mcp = deps.mcp;
+    this.approvals = deps.approvals;
+    this.backups = deps.backups;
+    this.sessions = deps.sessions;
+    this.skills = deps.skills;
+    this.logger = deps.logger;
+    this.extraTools = deps.extraTools ?? [];
+  }
+
+  /**
+   * The tools a mode allows. Consult: the docs and the scripting guide. Tasks and Draw: the
+   * docs plus the EPLAN tools of that mode.
+   */
+  private toolsFor(mode: ChatMode): AgentTool[] {
+    const mcpTools = this.mcp
+      .tools()
+      .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
+    const skillTools =
+      mode === "consult" && this.skills.loaded().length > 0 ? [this.skills.readTool()] : [];
+    return [...mcpTools, ...skillTools, ...this.extraTools];
+  }
 
   /** Starts the turn and returns at once; events follow on `chat:event`. */
   send(request: ChatSendRequest, target: WebContents): void {
@@ -98,8 +143,12 @@ export class ChatService {
         for await (const event of runTurn({
           model,
           messages: request.messages,
+          system: systemPrompt(
+            request.mode,
+            request.mode === "consult" ? this.skills.loaded() : [],
+          ),
           abortSignal: controller.signal,
-          tools: [...this.mcp.tools(), ...this.extraTools].map((tool) =>
+          tools: this.toolsFor(request.mode).map((tool) =>
             tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
           ),
           approve,

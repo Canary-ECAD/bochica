@@ -13,6 +13,7 @@ import {
   userMessage,
 } from "@bochica/shared";
 import { create } from "zustand";
+import { useMode } from "./mode";
 
 // The renderer's view of the conversations. Main saves everything as turns happen; this store
 // mirrors it for the UI and loads saved sessions on demand.
@@ -211,6 +212,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
       turnId,
       sessionId,
       userMessageId,
+      mode: useMode.getState().mode,
       provider: choice.provider,
       model: choice.model,
       messages,
@@ -241,9 +243,17 @@ export function stopTurn(turnId: string): void {
   void window.bochica.chat.stop(turnId);
 }
 
-export function answerApproval(requestId: string, decision: ApprovalDecision): void {
+export function answerApproval(
+  requestId: string,
+  decision: ApprovalDecision,
+  typed?: string,
+): void {
   useSessions.getState().removeApproval(requestId);
-  void window.bochica.approvals.respond({ requestId, decision });
+  void window.bochica.approvals.respond({
+    requestId,
+    decision,
+    ...(typed === undefined ? {} : { typed }),
+  });
 }
 
 export async function renameSession(sessionId: string, title: string): Promise<void> {
