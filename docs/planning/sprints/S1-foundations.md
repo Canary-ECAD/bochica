@@ -71,6 +71,14 @@ Packages: desktop (renderer), agent.
 - [ ] All strings exist in `en.json` and `es.json`.
 - [ ] Uses shadcn components (Input, Card, Badge as needed) added with the shadcn CLI.
 
+### S1-07 · CI on GitHub
+
+Packages: root.
+
+- [ ] Public repository `Canary-ECAD/bochica` created and `main` pushed.
+- [ ] A GitHub Actions workflow runs `bun install --frozen-lockfile` and `bun run check` on
+      `windows-latest` for pushes to `main` and for pull requests.
+
 ## Demo
 
 Open Settings → Providers, paste a real Anthropic key, press Test → "Connected". Paste a bad
