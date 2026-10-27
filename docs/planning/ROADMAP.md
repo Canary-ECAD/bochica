@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S4 — Act on EPLAN (to be planned)**
+**Active sprint: S5 — Sessions that survive a restart (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -19,11 +19,11 @@ documentation.
 
 The agent drives a running EPLAN safely, and conversations survive a restart.
 
-| Sprint | Goal                                                                                                                                                                       | Status  |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| S4     | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change | Outline |
-| S5     | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                     | Outline |
-| S6     | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                         | Outline |
+| Sprint                            | Goal                                                                                                                                                                       | Status  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change | Done    |
+| S5                                | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                     | Outline |
+| S6                                | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                         | Outline |
 
 ## M2 — Claude Code parity
 

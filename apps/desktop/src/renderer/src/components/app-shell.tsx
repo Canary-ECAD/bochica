@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
 import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { EplanIndicator } from "@/components/eplan-indicator";
 import { useSessions } from "@/state/sessions";
 
 const navItem =
@@ -50,6 +51,7 @@ export function AppShell() {
         </nav>
 
         <div className="mt-3 flex flex-col gap-1">
+          <EplanIndicator />
           <Link to="/settings" className={navItem}>
             <Settings />
             {t("nav.settings")}

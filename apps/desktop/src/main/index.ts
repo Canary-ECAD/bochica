@@ -1,18 +1,25 @@
 import { join } from "node:path";
-import { ipcChannels, McpServerList } from "@bochica/shared";
+import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
+import { BackupGuard } from "./backup";
 import { ChatService, devEchoTool } from "./chat";
 import { CredentialStore } from "./credentials";
+import { EplanStatusService, isEplanRunning } from "./eplan-status";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
-import { McpService } from "./mcp-service";
+import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { SettingsStore } from "./settings";
 
 const logger = createLogger(app.getPath("logs"));
 
 process.on("uncaughtException", (error) => logger.error("Uncaught exception", error));
 process.on("unhandledRejection", (reason) => logger.error("Unhandled rejection", reason));
+
+/** Sends a main → renderer message to every open window. */
+function broadcast(channel: string, payload: unknown): void {
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload);
+}
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -59,23 +66,37 @@ void app.whenReady().then(() => {
     safeStorage,
   );
   const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
-  const mcp = new McpService(settings);
+  const mcp = new McpService(settings, logger);
   const approvals = new ApprovalService();
+  const callEplan = (tool: string, args: Record<string, unknown>) =>
+    mcp.manager.callTool(EPLAN_SERVER_ID, tool, args);
+  const backups = new BackupGuard(callEplan, join(app.getPath("documents"), "Bochica", "Backups"));
   const devTools = !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
-  const chat = new ChatService(credentials, mcp.manager, approvals, logger, devTools);
-  registerIpc({ credentials, chat, mcp, approvals, logger });
+  const chat = new ChatService(credentials, mcp.manager, approvals, backups, logger, devTools);
 
-  // Every window learns about MCP status changes (connecting → ready, errors, toggles).
+  const eplan = new EplanStatusService(
+    {
+      configured: () => mcp.eplanConfigured(),
+      serverState: () => mcp.manager.states().find((s) => s.id === EPLAN_SERVER_ID),
+      callTool: callEplan,
+      isEplanRunning,
+    },
+    (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
+  );
+  registerIpc({ credentials, chat, mcp, approvals, eplan, logger });
+
+  // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
+  // EPLAN indicator re-checks as soon as its server comes up.
   mcp.manager.onChange(() => {
-    const servers = McpServerList.parse(mcp.list());
-    for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send(ipcChannels.mcpChanged, servers);
-    }
+    broadcast(ipcChannels.mcpChanged, McpServerList.parse(mcp.list()));
+    void eplan.check();
   });
   mcp.start();
+  eplan.start();
 
   app.on("before-quit", () => {
     chat.stopAll();
+    eplan.stop();
     void mcp.manager.close();
   });
   createWindow();

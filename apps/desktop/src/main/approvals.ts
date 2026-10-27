@@ -8,6 +8,7 @@ const DEFAULT_TIMEOUT_MS = 5 * 60_000;
 interface Pending {
   turnId: string;
   sessionKey: string;
+  allowSession: boolean;
   resolve(answer: ApprovalAnswer): void;
   timer: ReturnType<typeof setTimeout>;
 }
@@ -28,14 +29,15 @@ export class ApprovalService {
     turnId: string,
     send: (request: ApprovalRequest) => void,
   ): Approver {
-    return async ({ server, tool, input }) => {
+    return async ({ server, tool, input, approval }) => {
+      const allowSession = approval === "ask";
       const sessionKey = `${sessionId}\u0000${server}\u0000${tool}`;
-      if (this.allowedForSession.has(sessionKey)) return "allow";
+      if (allowSession && this.allowedForSession.has(sessionKey)) return "allow";
       const requestId = randomUUID();
       return new Promise<ApprovalAnswer>((resolve) => {
         const timer = setTimeout(() => this.settle(requestId, "deny"), this.timeoutMs);
-        this.pending.set(requestId, { turnId, sessionKey, resolve, timer });
-        send({ requestId, turnId, server, tool, input });
+        this.pending.set(requestId, { turnId, sessionKey, allowSession, resolve, timer });
+        send({ requestId, turnId, server, tool, input, allowSession });
       });
     };
   }
@@ -43,7 +45,8 @@ export class ApprovalService {
   respond(requestId: string, decision: ApprovalDecision): void {
     const entry = this.pending.get(requestId);
     if (!entry) return;
-    if (decision === "session") this.allowedForSession.add(entry.sessionKey);
+    // "always" tools can't be allowed for the session, whatever the renderer sends.
+    if (decision === "session" && entry.allowSession) this.allowedForSession.add(entry.sessionKey);
     this.settle(requestId, decision === "deny" ? "deny" : "allow");
   }
 

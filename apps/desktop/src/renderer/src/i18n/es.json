@@ -100,18 +100,66 @@
       "bochica_one": "Usó una herramienta de Bochica",
       "bochica_other": "Usó herramientas de Bochica {{count}} veces",
       "mixed_one": "Usó una herramienta",
-      "mixed_other": "Usó {{count}} herramientas"
+      "mixed_other": "Usó {{count}} herramientas",
+      "eplan_one": "Trabajó en EPLAN",
+      "eplan_other": "Trabajó en EPLAN ({{count}} pasos)"
     },
     "devEcho": "Repetir «{{text}}» (prueba de aprobación)",
     "used": "Usó {{tool}}",
     "input": "Entrada",
-    "output": "Resultado"
+    "output": "Resultado",
+    "backup": "Hizo una copia de seguridad de {{project}} antes de cambiarlo",
+    "eplan": {
+      "eplan_connect": "Se conectó a EPLAN",
+      "eplan_status": "Comprobó la conexión con EPLAN",
+      "eplan_ping": "Comprobó que EPLAN responde",
+      "eplan_get_current_project": "Comprobó qué proyecto está abierto",
+      "eplan_open_project": "Abrió el proyecto {{project}}",
+      "eplan_close_project": "Cerró el proyecto {{project}}",
+      "eplan_get_project_property": "Leyó una propiedad del proyecto",
+      "eplan_get_page_property": "Leyó una propiedad de página",
+      "eplan_get_property": "Leyó una propiedad",
+      "eplan_set_project_property": "Cambió una propiedad del proyecto",
+      "eplan_set_page_property": "Cambió una propiedad de página",
+      "eplan_set_property": "Cambió una propiedad",
+      "eplan_export_pdf_project": "Exportó el proyecto a PDF",
+      "eplan_export_pdf_pages": "Exportó páginas a PDF",
+      "eplan_check_project": "Revisó el proyecto en busca de errores",
+      "eplan_update_reports": "Actualizó los informes",
+      "eplan_backup_project": "Hizo una copia de seguridad del proyecto {{project}}",
+      "eplan_app_shutdown": "Cerrar EPLAN",
+      "eplan_app_restart": "Reiniciar EPLAN",
+      "search": "Buscó en el proyecto",
+      "other": "EPLAN: {{action}}"
+    },
+    "eplanRequest": {
+      "eplan_connect": "Conectarse a EPLAN",
+      "eplan_status": "Comprobar la conexión con EPLAN",
+      "eplan_ping": "Comprobar que EPLAN responde",
+      "eplan_get_current_project": "Comprobar qué proyecto está abierto",
+      "eplan_open_project": "Abrir el proyecto {{project}}",
+      "eplan_close_project": "Cerrar el proyecto {{project}}",
+      "eplan_get_project_property": "Leer una propiedad del proyecto",
+      "eplan_get_page_property": "Leer una propiedad de página",
+      "eplan_get_property": "Leer una propiedad",
+      "eplan_set_project_property": "Cambiar una propiedad del proyecto",
+      "eplan_set_page_property": "Cambiar una propiedad de página",
+      "eplan_set_property": "Cambiar una propiedad",
+      "eplan_export_pdf_project": "Exportar el proyecto a PDF",
+      "eplan_export_pdf_pages": "Exportar páginas a PDF",
+      "eplan_check_project": "Revisar el proyecto en busca de errores",
+      "eplan_update_reports": "Actualizar los informes",
+      "eplan_backup_project": "Hacer una copia de seguridad del proyecto {{project}}",
+      "eplan_app_shutdown": "Cerrar EPLAN",
+      "eplan_app_restart": "Reiniciar EPLAN"
+    }
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
     "once": "Permitir una vez",
     "session": "Permitir en esta sesión",
-    "deny": "Denegar"
+    "deny": "Denegar",
+    "alwaysAsks": "Bochica pregunta cada vez para este tipo de acción."
   },
   "docs": {
     "title": "Documentación de EPLAN",
@@ -137,6 +185,32 @@
         "name": "EPLAN EEC Pro 2026",
         "description": "Fórmulas, scripting, típicos y generación en EEC Pro."
       }
+    }
+  },
+  "eplan": {
+    "label": {
+      "connected": "EPLAN {{version}} conectado",
+      "busy": "EPLAN {{version}} está ocupado",
+      "starting": "Iniciando la conexión con EPLAN…",
+      "not_configured": "EPLAN sin configurar",
+      "closed": "EPLAN está cerrado",
+      "unreachable": "No se puede conectar con EPLAN",
+      "error": "Falló la conexión con EPLAN"
+    },
+    "help": {
+      "connected": "Bochica puede leer y modificar tus proyectos de EPLAN. Cada cambio te pide permiso antes.",
+      "busy": "EPLAN está abierto pero no responde, normalmente porque hay un diálogo abierto. Ciérralo y Bochica continúa.",
+      "starting": "Bochica está iniciando su conexión con EPLAN. Tarda unos segundos.",
+      "not_configured": "Esta copia de Bochica todavía no puede iniciar su conexión con EPLAN. En esta versión de desarrollo, define BOCHICA_EPLAN_MCP_DIR con una carpeta de eplan-mcp y reinicia Bochica.",
+      "closed": "Abre EPLAN en este equipo. Bochica se conecta solo en menos de 15 segundos.",
+      "unreachable": "EPLAN está abierto pero no acepta conexiones. Permite el acceso remoto en EPLAN una vez:",
+      "error": "La conexión de Bochica con EPLAN no ha arrancado. Reinicia Bochica; si se repite, los detalles de abajo sirven para informar del problema."
+    },
+    "remoteSteps": {
+      "open": "En EPLAN, abre File → Settings.",
+      "navigate": "Ve a Workstation → Interfaces → Remote access.",
+      "enable": "Marca «Allow remote access via Remote Client» y pulsa OK.",
+      "wait": "Bochica se conecta solo en menos de 15 segundos."
     }
   }
 }

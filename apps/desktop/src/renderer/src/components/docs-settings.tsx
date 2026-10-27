@@ -19,30 +19,32 @@ export function DocsSettings() {
 
   return (
     <div className="flex flex-col divide-y rounded-lg border">
-      {(servers.data ?? []).map((server) => (
-        <div key={server.id} className="flex items-start justify-between gap-4 p-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{t(`docs.sources.${server.id}.name`)}</span>
-              <StatusBadge server={server} />
+      {(servers.data ?? [])
+        .filter((server) => server.url)
+        .map((server) => (
+          <div key={server.id} className="flex items-start justify-between gap-4 p-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{t(`docs.sources.${server.id}.name`)}</span>
+                <StatusBadge server={server} />
+              </div>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {server.required
+                  ? t("docs.alwaysOn", { description: t(`docs.sources.${server.id}.description`) })
+                  : t(`docs.sources.${server.id}.description`)}
+              </p>
+              {server.state === "error" && server.error && (
+                <p className="mt-1 text-xs text-destructive">{server.error}</p>
+              )}
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {server.required
-                ? t("docs.alwaysOn", { description: t(`docs.sources.${server.id}.description`) })
-                : t(`docs.sources.${server.id}.description`)}
-            </p>
-            {server.state === "error" && server.error && (
-              <p className="mt-1 text-xs text-destructive">{server.error}</p>
-            )}
+            <Switch
+              checked={server.enabled}
+              disabled={server.required || toggle.isPending}
+              onCheckedChange={(enabled) => toggle.mutate({ id: server.id, enabled })}
+              aria-label={t(`docs.sources.${server.id}.name`)}
+            />
           </div>
-          <Switch
-            checked={server.enabled}
-            disabled={server.required || toggle.isPending}
-            onCheckedChange={(enabled) => toggle.mutate({ id: server.id, enabled })}
-            aria-label={t(`docs.sources.${server.id}.name`)}
-          />
-        </div>
-      ))}
+        ))}
     </div>
   );
 }

@@ -1,11 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": ["tasklist"],
   "workspaces": {
     ".": {},
     "apps/desktop": {
       "entry": ["src/renderer/src/components/ui/*.tsx"],
       "project": ["src/**/*.{ts,tsx,css}"],
-      "paths": { "@/*": ["src/renderer/src/*"] }
+      "paths": {
+        "@/*": ["src/renderer/src/*"]
+      }
     },
     "packages/*": {
       "project": ["src/**/*.ts"]

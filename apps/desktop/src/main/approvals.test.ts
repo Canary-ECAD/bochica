@@ -2,7 +2,13 @@ import { describe, expect, test } from "bun:test";
 import type { ApprovalRequest } from "@bochica/shared";
 import { ApprovalService } from "./approvals";
 
-const call = { callId: "c1", server: "docs", tool: "write", input: { x: 1 } };
+const call = {
+  callId: "c1",
+  server: "docs",
+  tool: "write",
+  input: { x: 1 },
+  approval: "ask" as const,
+};
 
 function setup(timeoutMs?: number) {
   const service = new ApprovalService(timeoutMs);
@@ -16,7 +22,7 @@ describe("ApprovalService", () => {
     const { service, sent, approver } = setup();
     const answer = approver(call);
     expect(sent).toMatchObject([
-      { turnId: "turn-1", server: "docs", tool: "write", input: { x: 1 } },
+      { turnId: "turn-1", server: "docs", tool: "write", input: { x: 1 }, allowSession: true },
     ]);
     service.respond(sent[0]?.requestId ?? "", "once");
     expect(await answer).toBe("allow");
@@ -52,6 +58,17 @@ describe("ApprovalService", () => {
     void otherSession(call);
     void approver({ ...call, tool: "delete" });
     expect(sent).toHaveLength(3);
+  });
+
+  test("'always' tools ask every time, even after 'session'", async () => {
+    const { service, sent, approver } = setup();
+    const always = { ...call, approval: "always" as const };
+    const first = approver(always);
+    expect(sent[0]?.allowSession).toBe(false);
+    service.respond(sent[0]?.requestId ?? "", "session");
+    expect(await first).toBe("allow");
+    void approver(always);
+    expect(sent).toHaveLength(2);
   });
 
   test("no answer before the timeout means deny", async () => {

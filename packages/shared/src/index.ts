@@ -11,6 +11,7 @@ export {
   ConnectionResult,
   CredentialInfo,
   CredentialList,
+  EplanStatus,
   ipcChannels,
   McpServerInfo,
   McpServerList,

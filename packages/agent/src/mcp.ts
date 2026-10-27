@@ -1,18 +1,43 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { redactSecrets } from "./redact";
-import { type AgentTool, qualifiedName } from "./tools";
+import { type AgentTool, qualifiedName, type ToolApproval } from "./tools";
 
 // Connections to MCP servers. A server that fails never blocks chat: it contributes no tools
-// and is retried with backoff. Only HTTP servers are handled here; stdio arrives in S4.
+// and is retried with backoff.
 
-export interface McpServerConfig {
-  id: string;
-  url: string;
-  required: boolean;
-  /** Tools of read-only servers never ask for approval. */
-  readOnly: boolean;
+export interface ToolPolicy {
+  approval: ToolApproval;
+  changesProject: boolean;
 }
+
+interface ServerBase {
+  id: string;
+  /** Required servers are always on. */
+  required: boolean;
+  /** How each of this server's tools is guarded. */
+  policy: (toolName: string) => ToolPolicy;
+}
+
+export type McpServerConfig = ServerBase &
+  (
+    | { transport: "http"; url: string }
+    | {
+        transport: "stdio";
+        command: string;
+        args: string[];
+        /**
+         * Added to the SDK's minimal default environment (PATH, SYSTEMROOT, TEMP, USERPROFILE…).
+         * Nothing else from Bochica's environment, such as API keys, reaches the child.
+         */
+        env: Record<string, string>;
+        cwd?: string;
+      }
+  );
+
+/** Every tool of a read-only server: never asks, never changes a project. */
+export const readOnlyPolicy = (): ToolPolicy => ({ approval: "never", changesProject: false });
 
 interface RemoteTool {
   name: string;
@@ -20,18 +45,22 @@ interface RemoteTool {
   inputSchema: Record<string, unknown>;
 }
 
+export interface ToolResult {
+  ok: boolean;
+  text: string;
+}
+
 /** The part of an MCP client the manager needs; swapped for a fake in tests. */
 export interface McpConnection {
   listTools(): Promise<RemoteTool[]>;
-  callTool(
-    name: string,
-    args: unknown,
-    signal: AbortSignal,
-  ): Promise<{ ok: boolean; text: string }>;
+  callTool(name: string, args: unknown, signal: AbortSignal): Promise<ToolResult>;
   close(): Promise<void>;
 }
 
-export type Connector = (config: McpServerConfig) => Promise<McpConnection>;
+export type Connector = (
+  config: McpServerConfig,
+  log: (line: string) => void,
+) => Promise<McpConnection>;
 
 export interface McpServerState {
   id: string;
@@ -59,7 +88,11 @@ export class McpManager {
   private readonly entries = new Map<string, Entry>();
   private readonly listeners = new Set<() => void>();
 
-  constructor(private readonly connector: Connector = connectHttp) {}
+  constructor(
+    private readonly connector: Connector = connect,
+    /** Receives the stderr lines of stdio servers, already redacted. */
+    private readonly log: (serverId: string, line: string) => void = () => {},
+  ) {}
 
   /** Declares the servers and which are enabled; connects or disconnects as needed. */
   configure(servers: Array<{ config: McpServerConfig; enabled: boolean }>): void {
@@ -72,6 +105,7 @@ export class McpManager {
         attempt: 0,
         generation: 0,
       };
+      entry.config = config;
       this.entries.set(config.id, entry);
       const shouldRun = enabled || config.required;
       if (shouldRun && !entry.enabled) {
@@ -99,6 +133,23 @@ export class McpManager {
     return [...this.entries.values()].filter((e) => e.state === "ready").flatMap((e) => e.tools);
   }
 
+  isReady(serverId: string): boolean {
+    return this.entries.get(serverId)?.state === "ready";
+  }
+
+  /** Calls a tool directly, outside any chat turn (connection checks, backups). */
+  async callTool(
+    serverId: string,
+    tool: string,
+    args: Record<string, unknown>,
+    signal: AbortSignal = AbortSignal.timeout(120_000),
+  ): Promise<ToolResult> {
+    const connection = this.entries.get(serverId)?.connection;
+    if (!connection) throw new Error(`The ${serverId} server is not connected.`);
+    const result = await connection.callTool(tool, args, signal);
+    return { ok: result.ok, text: redactSecrets(result.text) };
+  }
+
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -115,7 +166,9 @@ export class McpManager {
     delete entry.error;
     this.notify();
     try {
-      const connection = await this.connector(entry.config);
+      const connection = await this.connector(entry.config, (line) =>
+        this.log(entry.config.id, redactSecrets(line)),
+      );
       const remote = await connection.listTools();
       if (generation !== entry.generation) {
         await connection.close();
@@ -151,13 +204,15 @@ export class McpManager {
   }
 
   private toAgentTool(entry: Entry, tool: RemoteTool): AgentTool {
+    const policy = entry.config.policy(tool.name);
     return {
       name: qualifiedName(entry.config.id, tool.name),
       server: entry.config.id,
       tool: tool.name,
       description: tool.description ?? tool.name,
       inputSchema: tool.inputSchema,
-      needsApproval: !entry.config.readOnly,
+      approval: policy.approval,
+      changesProject: policy.changesProject,
       execute: async (input, signal) => {
         const connection = entry.connection;
         if (!connection) throw new Error(`The ${entry.config.id} server is not connected.`);
@@ -171,16 +226,37 @@ export class McpManager {
   }
 }
 
-async function connectHttp(config: McpServerConfig): Promise<McpConnection> {
+async function connect(
+  config: McpServerConfig,
+  log: (line: string) => void,
+): Promise<McpConnection> {
   const client = new Client({ name: "bochica", version: "0.1.0" });
-  await client.connect(new StreamableHTTPClientTransport(new URL(config.url)));
+  if (config.transport === "http") {
+    await client.connect(new StreamableHTTPClientTransport(new URL(config.url)));
+  } else {
+    const transport = new StdioClientTransport({
+      command: config.command,
+      args: config.args,
+      env: config.env,
+      ...(config.cwd ? { cwd: config.cwd } : {}),
+      stderr: "pipe",
+    });
+    let buffered = "";
+    transport.stderr?.on("data", (chunk: Buffer) => {
+      buffered += chunk.toString("utf8");
+      const lines = buffered.split(/\r?\n/);
+      buffered = lines.pop() ?? "";
+      for (const line of lines) if (line.trim()) log(line);
+    });
+    await client.connect(transport);
+  }
   return {
     listTools: async () => (await client.listTools()).tools,
     callTool: async (name, args, signal) => {
       const result = await client.callTool(
         { name, arguments: (args ?? {}) as Record<string, unknown> },
         undefined,
-        { signal },
+        { signal, timeout: 10 * 60_000, resetTimeoutOnProgress: true },
       );
       const content = Array.isArray(result.content) ? result.content : [];
       const text = content

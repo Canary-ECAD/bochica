@@ -5,6 +5,7 @@ import {
   ChatEvent,
   ConnectionResult,
   CredentialList,
+  EplanStatus,
   ipcChannels,
   McpServerList,
   ModelList,
@@ -59,6 +60,10 @@ const api: BochicaApi = {
     respond: async (response) => {
       await ipcRenderer.invoke(ipcChannels.approvalRespond, response);
     },
+  },
+  eplan: {
+    status: async () => EplanStatus.parse(await ipcRenderer.invoke(ipcChannels.eplanStatus)),
+    onStatus: (listener) => subscribe(ipcChannels.eplanStatusChanged, EplanStatus, listener),
   },
 };
 

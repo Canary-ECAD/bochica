@@ -22,6 +22,9 @@ export const ipcChannels = {
   /** Main → renderer: a tool call waits for the user's decision. */
   approvalRequest: "approval:request",
   approvalRespond: "approval:respond",
+  eplanStatus: "eplan:status",
+  /** Main → renderer: the EPLAN connection changed. */
+  eplanStatusChanged: "eplan:status-changed",
 } as const;
 
 export const AppInfo = z.object({
@@ -149,7 +152,7 @@ export const McpServerInfo = z.object({
   url: z.string().optional(),
   required: z.boolean(),
   enabled: z.boolean(),
-  state: z.enum(["disabled", "connecting", "ready", "error"]),
+  state: z.enum(["not_configured", "disabled", "connecting", "ready", "error"]),
   toolCount: z.number().int(),
   /** Plain reason of the last failure, already redacted. */
   error: z.string().optional(),
@@ -169,6 +172,8 @@ export const ApprovalRequest = z.object({
   server: z.string(),
   tool: z.string(),
   input: z.unknown(),
+  /** False for tools that must ask every time: the card hides "Allow for this session". */
+  allowSession: z.boolean(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
@@ -177,6 +182,28 @@ export type ApprovalDecision = z.infer<typeof ApprovalDecision>;
 
 export const ApprovalResponse = z.object({ requestId: z.string(), decision: ApprovalDecision });
 export type ApprovalResponse = z.infer<typeof ApprovalResponse>;
+
+// EPLAN connection.
+
+export const EplanStatus = z.object({
+  state: z.enum([
+    /** The local EPLAN server isn't set up on this machine. */
+    "not_configured",
+    "starting",
+    /** EPLAN isn't running. */
+    "closed",
+    /** EPLAN runs but refuses the connection: Remote Client is probably off. */
+    "unreachable",
+    /** Connected, but EPLAN doesn't answer (a dialog is open or it is busy). */
+    "busy",
+    "connected",
+    "error",
+  ]),
+  version: z.string().optional(),
+  /** Already redacted. */
+  detail: z.string().optional(),
+});
+export type EplanStatus = z.infer<typeof EplanStatus>;
 
 /** The API the preload exposes on `window.bochica`. */
 export interface BochicaApi {
@@ -207,5 +234,9 @@ export interface BochicaApi {
   approvals: {
     onRequest(listener: (request: ApprovalRequest) => void): () => void;
     respond(response: ApprovalResponse): Promise<void>;
+  };
+  eplan: {
+    status(): Promise<EplanStatus>;
+    onStatus(listener: (status: EplanStatus) => void): () => void;
   };
 }

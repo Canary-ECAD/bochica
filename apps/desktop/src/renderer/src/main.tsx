@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { mcpKey } from "./components/docs-settings";
+import { eplanStatusKey } from "./components/eplan-indicator";
 import { ErrorBoundary } from "./components/error-screen";
 import { router } from "./router";
 import { useSessions } from "./state/sessions";
@@ -24,6 +25,7 @@ const queryClient = new QueryClient();
 window.bochica.chat.onEvent((event) => useSessions.getState().applyEvent(event));
 window.bochica.approvals.onRequest((request) => useSessions.getState().addApproval(request));
 window.bochica.mcp.onChange((servers) => queryClient.setQueryData(mcpKey, servers));
+window.bochica.eplan.onStatus((status) => queryClient.setQueryData(eplanStatusKey, status));
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

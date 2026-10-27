@@ -11,10 +11,17 @@ export interface AgentTool {
   tool: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  /** Read-only tools run straight away; the rest wait for the user (guardrails layer 5). */
-  needsApproval: boolean;
+  /**
+   * Guardrails layer 5. "never": read-only, runs straight away. "ask": waits for the user, who
+   * may allow it for the rest of the session. "always": waits for the user every time.
+   */
+  approval: ToolApproval;
+  /** Changes an EPLAN project, so a backup must exist first (see the desktop BackupGuard). */
+  changesProject?: boolean;
   execute(input: unknown, signal: AbortSignal): Promise<{ ok: boolean; text: string }>;
 }
+
+export type ToolApproval = "never" | "ask" | "always";
 
 export type ApprovalAnswer = "allow" | "deny";
 
@@ -23,6 +30,7 @@ export type Approver = (call: {
   server: string;
   tool: string;
   input: unknown;
+  approval: Exclude<ToolApproval, "never">;
 }) => Promise<ApprovalAnswer>;
 
 /** What a tool call produced, as the loop and the UI see it. */
@@ -54,9 +62,15 @@ export function toToolSet(tools: AgentTool[], approve: Approver | undefined): To
         description: tool.description,
         inputSchema: jsonSchema(tool.inputSchema),
         execute: async (input, { abortSignal, toolCallId }): Promise<ToolOutcome> => {
-          if (tool.needsApproval) {
+          if (tool.approval !== "never") {
             const answer = approve
-              ? await approve({ callId: toolCallId, server: tool.server, tool: tool.tool, input })
+              ? await approve({
+                  callId: toolCallId,
+                  server: tool.server,
+                  tool: tool.tool,
+                  input,
+                  approval: tool.approval,
+                })
               : "deny";
             if (answer === "deny") {
               return {

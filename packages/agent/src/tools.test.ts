@@ -40,7 +40,7 @@ function searchTool(overrides: Partial<AgentTool> = {}): AgentTool {
     tool: "search",
     description: "Search the docs",
     inputSchema: { type: "object", properties: { query: { type: "string" } } },
-    needsApproval: false,
+    approval: "never",
     execute: async (input) => ({ ok: true, text: `found: ${JSON.stringify(input)}` }),
     ...overrides,
   };
@@ -116,7 +116,7 @@ describe("tools in the loop", () => {
   test("tools that need approval wait for the answer", async () => {
     let ran = false;
     const tool = searchTool({
-      needsApproval: true,
+      approval: "ask",
       execute: async () => {
         ran = true;
         return { ok: true, text: "done" };
@@ -137,7 +137,7 @@ describe("tools in the loop", () => {
   test("a denied call does not run and tells the model", async () => {
     let ran = false;
     const tool = searchTool({
-      needsApproval: true,
+      approval: "ask",
       execute: async () => {
         ran = true;
         return { ok: true, text: "done" };
@@ -151,7 +151,7 @@ describe("tools in the loop", () => {
   });
 
   test("without an approver, calls that need approval are denied", async () => {
-    const tool = searchTool({ needsApproval: true });
+    const tool = searchTool({ approval: "ask" });
     const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });
     expect((await collect(model, [tool]))[1]).toMatchObject({ status: "denied" });
   });

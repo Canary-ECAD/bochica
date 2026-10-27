@@ -23,7 +23,12 @@ export function ApprovalCard({ request }: { request: ApprovalRequest }) {
         <ShieldQuestion className="mt-0.5 size-4 shrink-0 text-primary" />
         <div className="min-w-0">
           <p className="text-sm font-medium">{t("approval.title")}</p>
-          <p className="text-sm">{describeCall(t, request.server, request.tool, request.input)}</p>
+          <p className="text-sm">
+            {describeCall(t, request.server, request.tool, request.input, "request")}
+          </p>
+          {!request.allowSession && (
+            <p className="mt-1 text-xs text-muted-foreground">{t("approval.alwaysAsks")}</p>
+          )}
         </div>
       </div>
       <details className="text-xs text-muted-foreground">
@@ -38,9 +43,11 @@ export function ApprovalCard({ request }: { request: ApprovalRequest }) {
         <Button size="sm" onClick={answer("once")} autoFocus>
           {t("approval.once")}
         </Button>
-        <Button size="sm" variant="outline" onClick={answer("session")}>
-          {t("approval.session")}
-        </Button>
+        {request.allowSession && (
+          <Button size="sm" variant="outline" onClick={answer("session")}>
+            {t("approval.session")}
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={answer("deny")}>
           {t("approval.deny")}
         </Button>

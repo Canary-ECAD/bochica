@@ -5,6 +5,7 @@ import {
   ChatSendRequest,
   ConnectionResult,
   CredentialList,
+  EplanStatus,
   ipcChannels,
   McpServerList,
   ModelList,
@@ -17,6 +18,7 @@ import { z } from "zod";
 import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
 import type { CredentialStore } from "./credentials";
+import type { EplanStatusService } from "./eplan-status";
 import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
 
@@ -25,13 +27,14 @@ export interface Services {
   chat: ChatService;
   mcp: McpService;
   approvals: ApprovalService;
+  eplan: EplanStatusService;
   logger: Logger;
 }
 
 // Requests from the renderer are untrusted input: every handler parses its argument with the
 // channel's schema before using it, and parses its result before returning it.
 
-export function registerIpc({ credentials, chat, mcp, approvals, logger }: Services): void {
+export function registerIpc({ credentials, chat, mcp, approvals, eplan, logger }: Services): void {
   const handle = (
     channel: string,
     handler: (arg: unknown, sender: WebContents) => unknown,
@@ -102,6 +105,8 @@ export function registerIpc({ credentials, chat, mcp, approvals, logger }: Servi
     mcp.setEnabled(id, enabled);
     return McpServerList.parse(mcp.list());
   });
+
+  handle(ipcChannels.eplanStatus, () => EplanStatus.parse(eplan.current()));
 
   handle(ipcChannels.approvalRespond, (arg) => {
     const { requestId, decision } = ApprovalResponse.parse(arg);

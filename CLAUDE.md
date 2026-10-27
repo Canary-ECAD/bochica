@@ -2,10 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S3 done (milestone M0).** Streaming chat with any configured provider, EPLAN docs
-> RAGs over MCP with a visible activity log, approval cards, in-memory sessions, and Settings
-> (API keys, docs sources, language). Not built yet: the local EPLAN MCP server (stdio),
-> built-in tools, SQLite, the Python runtime and the updater.
+> **Status: S4 done.** Streaming chat with any provider; EPLAN docs RAGs and the local EPLAN
+> server over MCP, with a visible activity log, approval cards (never / ask / always), automatic
+> project backups before changes and a live EPLAN connection indicator. Not built yet: SQLite
+> sessions, built-in tools, the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -138,19 +138,31 @@ How the pieces fit:
   which routes the event to the session that owns the turn. `toHistory` drops failed exchanges
   so user/assistant roles keep alternating. Models are listed live from each provider
   (`models:list`); never hard-code model ids.
-- **Tools:** every tool, MCP or built-in, is an `AgentTool` (`packages/agent/src/tools.ts`).
-  `toToolSet` wraps them for the AI SDK and is where approval, redaction and truncation happen;
-  don't bypass it. `McpManager` (`mcp.ts`) owns MCP connections and is told which servers are on
-  by `McpService` in main (`mcp-service.ts`, defaults from `@bochica/eplan`, toggles persisted by
-  `SettingsStore`). Tools of servers marked `readOnly` never ask; everything else does.
+- **Tools:** every tool, MCP or built-in, is an `AgentTool` (`packages/agent/src/tools.ts`) with
+  an `approval` of `never`, `ask` or `always` and a `changesProject` flag. `toToolSet` wraps
+  them for the AI SDK and is where approval, redaction and truncation happen; don't bypass it.
+  `McpManager` (`mcp.ts`) owns HTTP and stdio connections and gives each tool its server's
+  `policy`; `McpService` in main (`mcp-service.ts`) builds the server list from
+  `@bochica/eplan` (docs RAGs use `readOnlyPolicy`, the local server uses `eplanToolPolicy`).
+- **EPLAN tool policy** (`packages/eplan/src/tool-policy.ts`): eplan-mcp has no safety
+  annotations, so Bochica classifies its tools. Unknown tools default to `ask` + backup. When
+  bumping eplan-mcp in `components.lock.json`, regenerate `fixtures/eplan-mcp-tools.txt` and fix
+  what `tool-policy.test.ts` reports.
+- **Local EPLAN server (dev):** set `BOCHICA_EPLAN_MCP_DIR` to an eplan-mcp checkout and, if
+  needed, `BOCHICA_PYTHON` to a 64-bit Python with its requirements. Without them the indicator
+  says "not set up". `EplanStatusService` connects on its own and re-checks every 15 s;
+  `BackupGuard` (`backup.ts`) backs a project up before its first change in a session, and
+  `ChatService.withBackup` applies it to every `changesProject` tool after approval.
 - **Approvals:** a tool with `needsApproval` makes `ApprovalService` (main) send
   `approval:request`; the renderer attaches it to the turn's message and shows `ApprovalCard`;
   the answer comes back on `approval:respond`. No answer in 5 minutes, or Stop, means deny.
   "Allow for this session" is keyed by session id + server + tool. Run the dev build with
-  `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that always asks, for testing cards.
+  `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that asks, for testing cards. `always`
+  tools send `allowSession: false`: the card hides "Allow for this session" and main ignores it.
 - **Activity log:** assistant messages are ordered `parts` (text and tool calls).
   `message-list.tsx` groups consecutive tool calls into one `ActivityGroup`; labels come from
-  `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es).
+  `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es: past tense under
+  `activity.*` for the log, request form under `activity.eplanRequest.*` for approval cards).
 - **i18n:** strings live in `src/renderer/src/i18n/<lang>.json`; `en.json` is the reference and
   a test fails if another language has different keys. New language = new JSON + an entry in
   `supportedLanguages`.
