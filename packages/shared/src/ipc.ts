@@ -29,6 +29,8 @@ export const ipcChannels = {
   sessionsDelete: "sessions:delete",
   messagesDelete: "messages:delete",
   eplanStatus: "eplan:status",
+  foldersDefault: "folders:default",
+  foldersPick: "folders:pick",
   /** Main → renderer: the EPLAN connection changed. */
   eplanStatusChanged: "eplan:status-changed",
 } as const;
@@ -115,6 +117,11 @@ export const ChatSendRequest = z.object({
   provider: ProviderId,
   model: z.string().min(1),
   messages: z.array(ChatMessage).min(1),
+  /**
+   * The working folder for a new session. Ignored once the session has one: main keeps the
+   * folder it saved, so a session never moves.
+   */
+  folder: z.string().min(1).max(1_000).optional(),
 });
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>;
 
@@ -128,6 +135,22 @@ export const ChatErrorCode = z.enum([
   "unknown",
 ]);
 export type ChatErrorCode = z.infer<typeof ChatErrorCode>;
+
+/**
+ * How a tool call ended. "denied": the user said no. "blocked": Bochica refused it before
+ * asking anyone (guardrails layers 1, 2 and 4).
+ */
+export const ToolStatus = z.enum(["ok", "error", "denied", "blocked"]);
+export type ToolStatus = z.infer<typeof ToolStatus>;
+
+/** Lines a file write added and removed, with a short unified patch. */
+export const FileDiff = z.object({
+  path: z.string(),
+  added: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+  patch: z.string(),
+});
+export type FileDiff = z.infer<typeof FileDiff>;
 
 export const TurnEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text-delta"), text: z.string() }),
@@ -151,9 +174,13 @@ export const TurnEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("tool-result"),
     callId: z.string(),
-    status: z.enum(["ok", "error", "denied"]),
+    status: ToolStatus,
     /** Redacted and truncated for display. */
     output: z.string(),
+    /** Why Bochica refused the call (status "blocked"), e.g. "system-delete". */
+    blocked: z.string().optional(),
+    /** What a file write changed. */
+    diff: FileDiff.optional(),
   }),
 ]);
 export type TurnEvent = z.infer<typeof TurnEvent>;
@@ -212,6 +239,8 @@ export const ApprovalRequest = z.object({
   allowSession: z.boolean(),
   /** Present for destructive actions: the card asks the user to type this first. */
   confirm: Confirmation.optional(),
+  /** Why Bochica flagged this call, e.g. "recursive-delete"; the card explains each one. */
+  risks: z.array(z.string()).optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
@@ -300,6 +329,12 @@ export interface BochicaApi {
     rename(request: RenameSessionRequest): Promise<void>;
     remove(id: string): Promise<void>;
     removeMessages(request: DeleteMessagesRequest): Promise<void>;
+  };
+  folders: {
+    /** The working folder new sessions get unless the user picks another. */
+    default(): Promise<string>;
+    /** Opens the system folder picker; null if the user cancels. */
+    pick(current?: string): Promise<string | null>;
   };
   eplan: {
     status(): Promise<EplanStatus>;

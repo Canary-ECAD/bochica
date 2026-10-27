@@ -7,6 +7,7 @@ export const sessions = sqliteTable("sessions", {
   title: text("title").notNull(),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
+  folder: text("folder"),
 });
 
 export const messages = sqliteTable(

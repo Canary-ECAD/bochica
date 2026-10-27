@@ -13,7 +13,7 @@ import {
   SessionSummary,
 } from "@bochica/shared";
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { z } from "zod";
+import { z } from "zod";
 
 /** Listens to a main → renderer channel, passing on only payloads that match the schema. */
 function subscribe<T>(channel: string, schema: z.ZodType<T>, listener: (value: T) => void) {
@@ -77,6 +77,14 @@ const api: BochicaApi = {
     removeMessages: async (request) => {
       await ipcRenderer.invoke(ipcChannels.messagesDelete, request);
     },
+  },
+  folders: {
+    default: async () => z.string().parse(await ipcRenderer.invoke(ipcChannels.foldersDefault)),
+    pick: async (current) =>
+      z
+        .string()
+        .nullable()
+        .parse(await ipcRenderer.invoke(ipcChannels.foldersPick, current)),
   },
   eplan: {
     status: async () => EplanStatus.parse(await ipcRenderer.invoke(ipcChannels.eplanStatus)),

@@ -16,13 +16,13 @@ error and is told not to retry or rephrase.
 
 | #   | Layer                                       | Overridable?                                       | Sprint                 |
 | --- | ------------------------------------------- | -------------------------------------------------- | ---------------------- |
-| 1   | Input sanitization (paths, working dirs)    | No                                                 | S6                     |
-| 2   | Hardline blocklist                          | No, not even in YOLO mode                          | S6                     |
-| 3   | User deny rules                             | No (user edits the list in Settings)               | S6                     |
-| 4   | Protected paths for file tools              | No                                                 | S6                     |
-| 5   | Dangerous-action approval                   | Yes: once / session / always / deny; YOLO skips it | S3 (card) · S6 (rules) |
+| 1   | Input sanitization (paths, working dirs)    | No                                                 | S7                     |
+| 2   | Hardline blocklist                          | No, not even in YOLO mode                          | S7                     |
+| 3   | User deny rules                             | No (user edits the list in Settings)               | S10                    |
+| 4   | Protected paths for file tools              | No                                                 | S7                     |
+| 5   | Dangerous-action approval                   | Yes: once / session / always / deny; YOLO skips it | S3 (card) · S7 (rules) |
 | 6   | EPLAN project safety                        | Approval + automatic backup                        | S4                     |
-| 7   | Secret isolation (env filtering, redaction) | No                                                 | S1 (redaction) · S4/S6 |
+| 7   | Secret isolation (env filtering, redaction) | No                                                 | S1 (redaction) · S4/S7 |
 | 8   | Context-file injection scan                 | No (file is not loaded)                            | S7                     |
 | 9   | Network policy (SSRF guard for URL tools)   | Settings toggle for private URLs                   | when web tools land    |
 
@@ -76,6 +76,8 @@ The approval card:
 - **Allow once** · **Allow for this session** · **Always allow** · **Deny** (default).
 - Times out after 5 minutes → denied (fail closed). A timed-out request is not reopened; the
   user asks again.
+- Until S10 brings "Always allow", a flagged command asks every time: "Allow for this session"
+  only covers commands with no flag.
 - "Always allow" entries are listed and removable in Settings. Destructive classes (recursive
   delete, disk, registry, credential paths) can never be "always" allowed — only once/session.
 

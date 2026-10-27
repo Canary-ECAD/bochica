@@ -174,6 +174,69 @@ describe("tools in the loop", () => {
     expect(asked).toMatchObject([{ approval: "always", confirm: { type: "word" } }]);
   });
 
+  test("a blocked call is refused before anyone is asked, and the model is told why", async () => {
+    let ran = false;
+    const tool = searchTool({
+      approval: "ask",
+      assess: () => ({ block: "system-delete", reason: "deleting Windows is never allowed." }),
+      execute: async () => {
+        ran = true;
+        return { ok: true, text: "done" };
+      },
+    });
+    const asked: string[] = [];
+    const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });
+    const events = await collect(model, [tool], async (call) => {
+      asked.push(call.tool);
+      return "allow";
+    });
+    expect(ran).toBe(false);
+    expect(asked).toEqual([]);
+    expect(events[1]).toMatchObject({ status: "blocked", blocked: "system-delete" });
+    const prompt = JSON.stringify(model.doStreamCalls[1]?.prompt);
+    expect(prompt).toContain("deleting Windows is never allowed");
+    expect(prompt).toContain("Do not retry");
+  });
+
+  test("a risky call asks every time and carries its risks", async () => {
+    const tool = searchTool({
+      approval: "ask",
+      assess: (input) =>
+        (input as { query?: string }).query === "rm" ? { risks: ["delete"] } : { risks: [] },
+    });
+    const asked: Array<Parameters<Approver>[0]> = [];
+    const approve: Approver = async (call) => {
+      asked.push(call);
+      return "allow";
+    };
+    const step = (query: string) =>
+      new MockLanguageModelV4({ doStream: [callStep(tool.name, { query }), textStep("ok")] });
+    await collect(step("ls"), [tool], approve);
+    await collect(step("rm"), [tool], approve);
+    expect(asked[0]).toMatchObject({ approval: "ask" });
+    expect(asked[0]).not.toHaveProperty("risks");
+    expect(asked[1]).toMatchObject({ approval: "always", risks: ["delete"] });
+  });
+
+  test("a file diff reaches the event, redacted", async () => {
+    const tool = searchTool({
+      execute: async () => ({
+        ok: true,
+        text: "Edited a.txt.",
+        diff: {
+          path: "a.txt",
+          added: 1,
+          removed: 0,
+          patch: "+key sk-ant-api03-SECRETSECRETSECRET",
+        },
+      }),
+    });
+    const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });
+    const events = await collect(model, [tool]);
+    expect(events[1]).toMatchObject({ diff: { path: "a.txt", added: 1, removed: 0 } });
+    expect(JSON.stringify(events)).not.toContain("SECRETSECRET");
+  });
+
   test("without an approver, calls that need approval are denied", async () => {
     const tool = searchTool({ approval: "ask" });
     const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });

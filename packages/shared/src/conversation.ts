@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ChatErrorCode, type ChatMessage, type TurnEvent } from "./ipc";
+import { ChatErrorCode, type ChatMessage, FileDiff, ToolStatus, type TurnEvent } from "./ipc";
 
 // The conversation model shared by main (which saves it) and the renderer (which shows it).
 // Both build assistant messages from chat events with the same reducer, so what is saved is
@@ -11,8 +11,10 @@ export const ToolPart = z.object({
   server: z.string(),
   tool: z.string(),
   input: z.unknown(),
-  status: z.enum(["running", "ok", "error", "denied"]),
+  status: z.union([z.literal("running"), ToolStatus]),
   output: z.string().optional(),
+  blocked: z.string().optional(),
+  diff: FileDiff.optional(),
 });
 export type ToolPart = z.infer<typeof ToolPart>;
 
@@ -45,6 +47,8 @@ export type SessionSummary = z.infer<typeof SessionSummary>;
 export const SessionDetail = z.object({
   id: z.string(),
   title: z.string(),
+  /** Where the file tools and the terminal work. Sessions from before S7 have none. */
+  folder: z.string().optional(),
   messages: z.array(ConversationMessage),
 });
 export type SessionDetail = z.infer<typeof SessionDetail>;
@@ -104,7 +108,13 @@ export function applyTurnEvent(
         ...message,
         parts: message.parts.map((p) =>
           p.type === "tool" && p.callId === event.callId
-            ? { ...p, status: event.status, output: event.output }
+            ? {
+                ...p,
+                status: event.status,
+                output: event.output,
+                ...(event.blocked ? { blocked: event.blocked } : {}),
+                ...(event.diff ? { diff: event.diff } : {}),
+              }
             : p,
         ),
       };

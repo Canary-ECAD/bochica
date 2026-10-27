@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import type { AgentTool } from "@bochica/agent";
+import { type AgentTool, type InjectionFinding, scanContextFile } from "@bochica/agent";
 
 // eplan-scripting-skill for Consult mode. Downloaded once at the commit pinned in
 // components.lock.json and cached under userData, or read from a local checkout during
@@ -45,8 +45,15 @@ function listFiles(root: string, dir: string): string[] {
   });
 }
 
+/** A skill that was not loaded because it looks like prompt injection (guardrails layer 8). */
+export interface SkippedSkill {
+  dir: string;
+  findings: InjectionFinding[];
+}
+
 export class SkillStore {
   private skills: Skill[] = [];
+  private rejected: SkippedSkill[] = [];
 
   /**
    * @param skillsRoot the folder that contains the skill folders: a local checkout's
@@ -62,15 +69,28 @@ export class SkillStore {
     return this.skills;
   }
 
+  /** Skills left out by the injection scan, with why. */
+  skipped(): SkippedSkill[] {
+    return this.rejected;
+  }
+
   /** Downloads the skill if it isn't cached yet, then reads it. Never throws. */
   async load(): Promise<Skill[]> {
     try {
       if (this.source && !existsSync(join(this.skillsRoot, ".complete")))
         await this.download(this.source);
+      this.rejected = [];
       this.skills = SKILL_DIRS.flatMap((dir) => {
         const file = join(this.skillsRoot, dir, "SKILL.md");
         if (!existsSync(file)) return [];
-        const parsed = parseSkill(readFileSync(file, "utf8"));
+        const text = readFileSync(file, "utf8");
+        // It goes into the system prompt: anything that looks like injection keeps it out.
+        const findings = scanContextFile(text);
+        if (findings.length > 0) {
+          this.rejected.push({ dir, findings });
+          return [];
+        }
+        const parsed = parseSkill(text);
         const references = listFiles(this.skillsRoot, dir)
           .filter((path) => !path.endsWith("SKILL.md"))
           .map((path) => path.split(sep).join("/"));

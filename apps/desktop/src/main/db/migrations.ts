@@ -22,6 +22,8 @@ export const migrations: readonly string[] = [
      created_at INTEGER NOT NULL
    );
    CREATE INDEX messages_session ON messages(session_id, position);`,
+  // S7: each session's working folder.
+  `ALTER TABLE sessions ADD COLUMN folder TEXT;`,
 ];
 
 function userVersion(driver: SqlDriver): number {

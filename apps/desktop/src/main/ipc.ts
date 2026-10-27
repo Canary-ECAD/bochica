@@ -17,12 +17,13 @@ import {
   SetCredentialRequest,
   SetMcpEnabledRequest,
 } from "@bochica/shared";
-import { app, ipcMain, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, type WebContents } from "electron";
 import { z } from "zod";
 import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
 import type { CredentialStore } from "./credentials";
 import type { EplanStatusService } from "./eplan-status";
+import type { FolderService } from "./folders";
 import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
 import type { SessionRepository } from "./db/repository";
@@ -34,6 +35,7 @@ export interface Services {
   approvals: ApprovalService;
   eplan: EplanStatusService;
   sessions: SessionRepository;
+  folders: FolderService;
   logger: Logger;
 }
 
@@ -47,6 +49,7 @@ export function registerIpc({
   approvals,
   eplan,
   sessions,
+  folders,
   logger,
 }: Services): void {
   const handle = (
@@ -143,6 +146,28 @@ export function registerIpc({
   });
 
   handle(ipcChannels.eplanStatus, () => EplanStatus.parse(eplan.current()));
+
+  handle(ipcChannels.foldersDefault, () => folders.defaultFolder());
+
+  handle(ipcChannels.foldersPick, async (arg, sender) => {
+    const current = z.string().optional().parse(arg);
+    const window = BrowserWindow.fromWebContents(sender);
+    const options: Electron.OpenDialogOptions = {
+      properties: ["openDirectory", "createDirectory", "promptToCreate"],
+      defaultPath: current && folders.usable(current) ? current : folders.resolve(undefined),
+    };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    const [picked] = result.filePaths;
+    if (result.canceled || !picked) return null;
+    // Protected places (Windows, Program Files, credential folders) can't be working folders.
+    if (!folders.usable(picked)) {
+      logger.info("A protected folder was picked as working folder; ignored");
+      return null;
+    }
+    return picked;
+  });
 
   handle(ipcChannels.approvalRespond, (arg) => {
     const { requestId, decision, typed } = ApprovalResponse.parse(arg);

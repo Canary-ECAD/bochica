@@ -22,11 +22,24 @@ export class SessionRepository {
     );
   }
 
-  async createSession(id: string, title: string, now = Date.now()): Promise<void> {
+  async createSession(id: string, title: string, folder: string, now = Date.now()): Promise<void> {
     await this.db
       .insert(sessions)
-      .values({ id, title, createdAt: now, updatedAt: now })
+      .values({ id, title, folder, createdAt: now, updatedAt: now })
       .onConflictDoNothing();
+  }
+
+  /** The session's working folder, or null if it has none (sessions from before S7). */
+  async getFolder(id: string): Promise<string | null> {
+    const [row] = await this.db
+      .select({ folder: sessions.folder })
+      .from(sessions)
+      .where(eq(sessions.id, id));
+    return row?.folder ?? null;
+  }
+
+  async setFolder(id: string, folder: string): Promise<void> {
+    await this.db.update(sessions).set({ folder }).where(eq(sessions.id, id));
   }
 
   async listSessions(): Promise<SessionSummary[]> {
@@ -44,7 +57,12 @@ export class SessionRepository {
       .from(messages)
       .where(eq(messages.sessionId, id))
       .orderBy(asc(messages.position));
-    return { id: session.id, title: session.title, messages: rows.map(toMessage) };
+    return {
+      id: session.id,
+      title: session.title,
+      ...(session.folder ? { folder: session.folder } : {}),
+      messages: rows.map(toMessage),
+    };
   }
 
   /** Inserts a message at the end of its session, or updates it if it already exists. */

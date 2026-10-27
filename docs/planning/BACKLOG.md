@@ -18,7 +18,7 @@ move it there and leave a link here (`→ S4-03`).
   files, edited 2 files, read 1 file"), with a total diff badge (`+340 −2`). Expanding it lists
   each call with a short description, the file name and its own diff badge; each row expands
   again to show input/output or the diff, and long descriptions show a tooltip on hover. The
-  summary is written in the UI language. → S3 (tool rows), S7 (file diffs)
+  summary is written in the UI language. → S3 (tool rows), done in S7 (file diffs)
 - **Context usage panel** (like Claude Code's "Context" popover). A bar and a table showing
   how much of the model's context window is used, split by category: messages, system prompt,
   built-in tools, MCP tools, skills, MCP server instructions, compaction buffer, free space;
@@ -31,7 +31,7 @@ move it there and leave a link here (`→ S4-03`).
 
 ## Agent
 
-- Hermes-style guardrails: see [guardrails.md](../design/guardrails.md) (core → S7, advanced → S10).
+- Hermes-style guardrails: see [guardrails.md](../design/guardrails.md) (core → done in S7, advanced → S10).
 - **Typed confirmation for destructive actions.** Deleting EPLAN projects (one or many) and
   other bulk-destructive actions must not be one click away: the user has to type an explicit
   phrase in a text box (e.g. the project name or "DELETE") before the action can run, every

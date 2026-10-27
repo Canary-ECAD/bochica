@@ -40,7 +40,7 @@ function consult(skills: PromptSkill[]): string {
     )
     .join("\n\n");
   return `# Mode: Consult
-In this mode you answer questions and help write EPLAN scripts (C#, the EPLAN API, Remote Client). You cannot act on EPLAN: there are no EPLAN tools in this mode. If the user wants something changed in EPLAN, explain how to do it by hand or with a script, and mention that Tasks mode lets Bochica do it.
+In this mode you answer questions and help write EPLAN scripts (C#, the EPLAN API, Remote Client). You cannot act on EPLAN: there are no EPLAN tools in this mode. You can read the user's files and save the scripts you write in the working folder. If the user wants something changed in EPLAN, explain how to do it by hand or with a script, and mention that Tasks mode lets Bochica do it.
 
 When writing scripts, follow the scripting guide below: it lists the traps that break EPLAN scripts in practice. Give complete, compilable code, say which EPLAN version it targets, and explain how to run it.${guide ? `\n\n${guide}` : ""}`;
 }
@@ -58,7 +58,29 @@ In this mode you can draw in EPLAN: create pages, place symbols and connect them
 
 ${actingRules}`;
 
-export function systemPrompt(mode: ChatMode, skills: PromptSkill[] = []): string {
+/** The part about the built-in file tools and PowerShell, when the mode has them. */
+function workspace(folder: string, terminal: boolean): string {
+  return `# Working folder
+The user's working folder for this conversation is ${folder}. Relative paths start there. You can read, search, create and edit files${terminal ? " and run PowerShell commands" : ""} with the bochica__* tools. Keep your work inside this folder unless the user asks otherwise.
+- Read a file before editing it. Prefer small edits (edit_file) over rewriting whole files.
+- The user approves every change in an approval card${terminal ? ", and sees the description you give each command: write it in plain words, in the user's language" : ""}.
+- Some actions are refused outright by Bochica (for example deleting system folders, or reading credential and .env files). When that happens, do not try another way to do the same thing; tell the user.
+- Do not edit files inside an EPLAN project folder (*.edb); change projects through EPLAN.`;
+}
+
+export interface PromptOptions {
+  /** The session's working folder, when the mode has built-in tools. */
+  folder?: string;
+  /** Whether the mode has the PowerShell tool. */
+  terminal?: boolean;
+}
+
+export function systemPrompt(
+  mode: ChatMode,
+  skills: PromptSkill[] = [],
+  options: PromptOptions = {},
+): string {
   const section = mode === "consult" ? consult(skills) : mode === "tasks" ? tasks : draw;
-  return `${base}\n\n${section}`;
+  const files = options.folder ? `\n\n${workspace(options.folder, options.terminal ?? false)}` : "";
+  return `${base}\n\n${section}${files}`;
 }

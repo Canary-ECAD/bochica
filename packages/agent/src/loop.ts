@@ -76,6 +76,8 @@ export async function* runTurn({
             callId: part.toolCallId,
             status: outcome.status,
             output: truncate(outcome.text, DISPLAY_OUTPUT_LIMIT),
+            ...(outcome.blocked ? { blocked: outcome.blocked } : {}),
+            ...(outcome.diff ? { diff: outcome.diff } : {}),
           };
           break;
         }

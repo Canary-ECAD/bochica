@@ -156,7 +156,39 @@
       "reorganize": "Reorganize the project {{project}}: deleted data is purged for good",
       "projectManagement": "Project management ({{type}}) on {{project}}"
     },
-    "bochicaRead": "Read the scripting guide: {{path}}"
+    "bochicaRead": "Read the scripting guide: {{path}}",
+    "bochica": {
+      "read_file": "Read {{path}}",
+      "list_files": "Looked for files matching {{pattern}}",
+      "search_files": "Searched files for “{{pattern}}”",
+      "write_file": "Wrote {{path}}",
+      "edit_file": "Edited {{path}}",
+      "powershell": "Ran a command: {{description}}"
+    },
+    "bochicaRequest": {
+      "read_file": "Read {{path}}",
+      "list_files": "Look for files matching {{pattern}}",
+      "search_files": "Search files for “{{pattern}}”",
+      "write_file": "Write the file {{path}}",
+      "edit_file": "Edit the file {{path}}",
+      "powershell": "Run a command: {{description}}"
+    },
+    "files": {
+      "read_one": "read a file",
+      "read_other": "read {{count}} files",
+      "searched_one": "searched once",
+      "searched_other": "searched {{count}} times",
+      "wrote_one": "wrote a file",
+      "wrote_other": "wrote {{count}} files",
+      "edited_one": "edited a file",
+      "edited_other": "edited {{count}} files",
+      "ran_one": "ran a command",
+      "ran_other": "ran {{count}} commands",
+      "blocked_one": "blocked an action",
+      "blocked_other": "blocked {{count}} actions"
+    },
+    "blocked": "Blocked by Bochica: {{reason}}",
+    "changes": "Changes"
   },
   "approval": {
     "title": "Bochica wants to do this:",
@@ -168,7 +200,27 @@
     "cannotUndo": "This can't be undone. Bochica asks every time.",
     "typeToConfirm": "To confirm, type",
     "confirmWord": "DELETE",
-    "confirmDestructive": "Yes, do it"
+    "confirmDestructive": "Yes, do it",
+    "risksTitle": "Why Bochica asks every time:",
+    "command": "Command",
+    "newContent": "New content",
+    "risk": {
+      "delete": "It deletes files or folders.",
+      "recursive-delete": "It deletes a folder and everything inside it.",
+      "stop-process": "It closes running programs; unsaved work in them is lost.",
+      "registry": "It changes the Windows registry.",
+      "execution-policy": "It changes which scripts Windows allows to run.",
+      "service": "It stops or changes a Windows service.",
+      "scheduled-task": "It creates or changes a scheduled task that runs later on its own.",
+      "shutdown": "It shuts down, restarts or signs out of this computer.",
+      "accounts": "It creates or changes user accounts.",
+      "security-settings": "It changes antivirus or firewall settings.",
+      "elevation": "It asks to run as administrator.",
+      "obfuscation": "Part of the command is hidden or built at run time, so Bochica can't check it.",
+      "invisible-chars": "It contains invisible characters that can hide what it really does.",
+      "secret-upload": "It may send passwords or keys over the internet.",
+      "unknown-script": "It runs a script or program whose contents Bochica can't check."
+    }
   },
   "docs": {
     "title": "EPLAN documentation",
@@ -253,5 +305,21 @@
       "name": "Draw",
       "description": "Creates pages, places symbols and connects them. Experimental."
     }
+  },
+  "blocked": {
+    "malformed": "the command couldn't be read safely.",
+    "device-path": "it uses a special Windows device path.",
+    "disk": "it would format or wipe a disk.",
+    "system-delete": "it would delete Windows, Program Files, a whole drive or a user's folders.",
+    "boot": "it would change how Windows starts or delete backups.",
+    "download-exec": "it would download something and run it.",
+    "kill-bochica": "it would close Bochica.",
+    "invalid-path": "the path isn't a valid file path.",
+    "protected-path": "that folder is protected (passwords, browser data, Bochica's own data, or Windows).",
+    "secret-file": "files like .env hold passwords and keys."
+  },
+  "folder": {
+    "choose": "Working folder: {{folder}}. Click to choose another.",
+    "fixed": "Working folder: {{folder}}"
   }
 }

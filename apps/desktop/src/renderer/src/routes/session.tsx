@@ -46,6 +46,7 @@ export function SessionPage({ sessionId }: { sessionId: string }) {
       <div className="mx-auto w-full max-w-3xl px-6 pb-6">
         <Composer
           autoFocus
+          folder={session.folder}
           onSend={(text, picked) => sendMessage(sessionId, text, picked)}
           onStop={streaming ? () => stopTurn(streaming.id) : undefined}
         />

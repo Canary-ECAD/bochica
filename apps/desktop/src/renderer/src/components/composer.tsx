@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUp, LoaderCircle, Square } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FolderPicker } from "@/components/folder-picker";
 import { ModelPicker } from "@/components/model-picker";
 import { ModePicker } from "@/components/mode-picker";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,18 @@ interface ComposerProps {
   /** Present while a turn is streaming: the send button becomes a stop button. */
   onStop?: (() => void) | undefined;
   autoFocus?: boolean;
+  /** The session's working folder; with `onPickFolder` the user can still change it. */
+  folder?: string | undefined;
+  onPickFolder?: (() => void) | undefined;
 }
 
-export function Composer({ onSend, onStop, autoFocus = false }: ComposerProps) {
+export function Composer({
+  onSend,
+  onStop,
+  autoFocus = false,
+  folder,
+  onPickFolder,
+}: ComposerProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState("");
   const models = useModelChoice();
@@ -53,6 +63,9 @@ export function Composer({ onSend, onStop, autoFocus = false }: ComposerProps) {
       <div className="mt-1 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <ModePicker />
+          {folder && (
+            <FolderPicker folder={folder} {...(onPickFolder ? { onPick: onPickFolder } : {})} />
+          )}
           {models.groups.length > 0 ? (
             <ModelPicker state={models} />
           ) : models.loading ? (

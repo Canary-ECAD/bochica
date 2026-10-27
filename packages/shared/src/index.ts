@@ -28,6 +28,7 @@ export {
   CredentialList,
   DeleteMessagesRequest,
   EplanStatus,
+  FileDiff,
   ipcChannels,
   McpServerInfo,
   McpServerList,
@@ -37,5 +38,6 @@ export {
   RenameSessionRequest,
   SetCredentialRequest,
   SetMcpEnabledRequest,
+  ToolStatus,
   TurnEvent,
 } from "./ipc";

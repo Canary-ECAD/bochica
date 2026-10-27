@@ -29,6 +29,8 @@ interface Session {
   messages: Message[];
   /** False for a saved session listed in the sidebar whose messages aren't loaded yet. */
   loaded: boolean;
+  /** The working folder: picked before the first message, fixed afterwards. */
+  folder?: string;
 }
 
 export interface ModelChoice {
@@ -41,7 +43,7 @@ interface SessionsState {
   /** Most recently active first. */
   order: string[];
   turnToSession: Record<string, string>;
-  createSession(): string;
+  createSession(folder?: string): string;
   setSummaries(summaries: SessionSummary[]): void;
   loadSession(detail: SessionDetail): void;
   addExchange(sessionId: string, text: string, userMessageId: string, turnId: string): void;
@@ -60,10 +62,13 @@ export const useSessions = create<SessionsState>()((set) => ({
   order: [],
   turnToSession: {},
 
-  createSession: () => {
+  createSession: (folder) => {
     const id = crypto.randomUUID();
     set((state) => ({
-      sessions: { ...state.sessions, [id]: { id, title: "", messages: [], loaded: true } },
+      sessions: {
+        ...state.sessions,
+        [id]: { id, title: "", messages: [], loaded: true, ...(folder ? { folder } : {}) },
+      },
       order: [id, ...state.order],
     }));
     return id;
@@ -95,6 +100,7 @@ export const useSessions = create<SessionsState>()((set) => ({
           title: detail.title,
           messages: detail.messages.map(withApprovals),
           loaded: true,
+          ...(detail.folder ? { folder: detail.folder } : {}),
         },
       },
       order: state.order.includes(detail.id) ? state.order : [detail.id, ...state.order],
@@ -216,6 +222,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
       provider: choice.provider,
       model: choice.model,
       messages,
+      ...(session.folder ? { folder: session.folder } : {}),
     })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({

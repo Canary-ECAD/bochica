@@ -30,6 +30,16 @@ describe("systemPrompt", () => {
     expect(prompt).toContain("approval card");
   });
 
+  test("the working folder section appears only with built-in tools", () => {
+    expect(systemPrompt("draw")).not.toContain("# Working folder");
+    const consult = systemPrompt("consult", [], { folder: "C:/Work" });
+    expect(consult).toContain("working folder for this conversation is C:/Work");
+    expect(consult).not.toContain("PowerShell");
+    expect(systemPrompt("tasks", [], { folder: "C:/Work", terminal: true })).toContain(
+      "run PowerShell commands",
+    );
+  });
+
   test("every mode shares the base rules", () => {
     for (const mode of ["consult", "tasks", "draw"] as const) {
       expect(systemPrompt(mode)).toContain("Answer in the language the user writes in.");

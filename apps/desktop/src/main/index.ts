@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { defaultPathPolicy } from "@bochica/agent";
 import { componentsLock } from "@bochica/eplan";
 import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
@@ -9,6 +10,7 @@ import { CredentialStore } from "./credentials";
 import { nodeSqliteDriver } from "./db/driver";
 import { SessionRepository } from "./db/repository";
 import { EplanStatusService, isEplanRunning } from "./eplan-status";
+import { FolderService } from "./folders";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
@@ -95,9 +97,17 @@ void app.whenReady().then(() => {
     .markInterruptedTurns()
     .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
   const skills = new SkillStore(...skillLocation());
-  void skills
-    .load()
-    .then((loaded) => logger.info(`Scripting skill: ${loaded.length} skill(s) loaded`));
+  void skills.load().then((loaded) => {
+    logger.info(`Scripting skill: ${loaded.length} skill(s) loaded`);
+    for (const { dir, findings } of skills.skipped()) {
+      const where = findings.map((f) => `${f.kind} at line ${f.line}`).join(", ");
+      logger.error(`Skill ${dir} not loaded: it looks like prompt injection (${where})`);
+    }
+  });
+  const folders = new FolderService(
+    app.getPath("documents"),
+    defaultPathPolicy(process.env, app.getPath("userData")),
+  );
   const chat = new ChatService({
     credentials,
     mcp: mcp.manager,
@@ -105,6 +115,7 @@ void app.whenReady().then(() => {
     backups,
     sessions,
     skills,
+    folders,
     logger,
     extraTools: devTools,
   });
@@ -118,7 +129,7 @@ void app.whenReady().then(() => {
     },
     (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
   );
-  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, logger });
+  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, folders, logger });
 
   // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
   // EPLAN indicator re-checks as soon as its server comes up.

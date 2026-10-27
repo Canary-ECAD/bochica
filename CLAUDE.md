@@ -2,11 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S6 done.** Streaming chat with any provider in three modes (Consult: docs and the
-> scripting skill; Tasks: EPLAN over MCP; Draw: experimental drawing tools); visible activity
-> log; approval cards (never / ask / always) plus typed confirmation for destructive actions;
+> **Status: S7 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> scripting skill and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
+> experimental drawing tools); a working folder per session; guardrails core (hardline blocks,
+> risky commands that always ask, protected paths, filtered terminal environment, injection
+> scan); visible activity log with file diffs; approval cards plus typed confirmation;
 > automatic backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet:
-> built-in tools (S7), the bundled Python runtime and the updater.
+> skills beyond the default one (S8), the bundled Python runtime and the updater.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -174,6 +176,15 @@ How the pieces fit:
   mode's section. Consult also gets eplan-scripting-skill (`main/skills.ts`): downloaded at the
   commit pinned in `components.lock.json` into `userDataskills<commit>`, or read from
   `BOCHICA_SKILLS_DIR` (a checkout); `bochica__read_skill_file` only reads inside it.
+- **Built-in tools** (`packages/agent/src/builtin/`): `read_file`, `list_files`, `search_files`,
+  `write_file`, `edit_file` and `powershell`, server `bochica`. `AgentTool.assess(input)` runs
+  first in `toToolSet`: it can block a call (status `blocked`, the model is told not to retry) or
+  attach `risks`, which make it ask every time. Paths go through `checkPath` (layers 1 and 4,
+  policy from `defaultPathPolicy`); commands through `assessCommand` (layers 1, 2 and 5). Add a
+  new hardline or risk pattern there with a row in its table test, and its sentence in en/es
+  (`blocked.*` / `approval.risk.*`). PowerShell gets only `safeEnv` (layer 7). Each session has
+  a working folder (`FolderService`, saved in `sessions.folder`); `builtinTools(mode, …)` picks
+  the tools per mode.
 - **Typed confirmation** (guardrails layer 6): `eplanConfirmation` (`packages/eplan/src/confirmation.ts`)
   decides which calls are destructive and what to type (project name, or DELETE / ELIMINAR).
   Such calls always ask; main re-checks the text with `confirmationMatches`, so the renderer's

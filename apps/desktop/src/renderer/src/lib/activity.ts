@@ -35,6 +35,26 @@ const eplanSentences = new Set([
   "eplan_app_restart",
 ]);
 
+/** Built-in tools with their own sentence (`activity.bochica.<tool>`). */
+const builtinSentences = new Set([
+  "read_file",
+  "list_files",
+  "search_files",
+  "write_file",
+  "edit_file",
+  "powershell",
+]);
+
+/** How the built-in tools count in a group's summary ("Read 2 files, ran a command"). */
+const builtinKinds: Record<string, string> = {
+  read_file: "read",
+  list_files: "searched",
+  search_files: "searched",
+  write_file: "wrote",
+  edit_file: "edited",
+  powershell: "ran",
+};
+
 function field(input: unknown, name: string): string {
   if (typeof input !== "object" || input === null) return "";
   const value = (input as Record<string, unknown>)[name];
@@ -84,6 +104,14 @@ export function describeCall(
       action: tool.replace(/^(eplan|aas)_/, "").replaceAll("_", " "),
     });
   }
+  if (server === "bochica" && builtinSentences.has(tool)) {
+    const group = mode === "request" ? "bochicaRequest" : "bochica";
+    return t(`activity.${group}.${tool}`, {
+      path: field(input, "path"),
+      pattern: field(input, "pattern"),
+      description: field(input, "description") || field(input, "command"),
+    });
+  }
   if (server === "bochica" && tool === "backup_project") {
     return t("activity.backup", { project: field(input, "project") });
   }
@@ -103,8 +131,27 @@ export function describeCall(
   return t("activity.used", { tool });
 }
 
-/** The collapsed line for a run of calls, e.g. "Consulted the EPLAN 2027 docs 3 times". */
-export function describeGroup(t: TFunction, servers: string[]): string {
+/**
+ * The collapsed line for a run of calls, e.g. "Consulted the EPLAN 2027 docs 3 times" or
+ * "Read 2 files, edited a file".
+ */
+export function describeGroup(
+  t: TFunction,
+  calls: ReadonlyArray<{ server: string; tool: string; status?: string }>,
+): string {
+  if (calls.length > 0 && calls.every((c) => c.server === "bochica" && builtinKinds[c.tool])) {
+    const counts = new Map<string, number>();
+    for (const call of calls) {
+      // A refused call did nothing: it must not read as "ran a command".
+      const kind = call.status === "blocked" ? "blocked" : (builtinKinds[call.tool] ?? "");
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    }
+    const text = [...counts]
+      .map(([kind, count]) => t(`activity.files.${kind}`, { count }))
+      .join(", ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  const servers = calls.map((c) => c.server);
   const [first] = servers;
   const source = first ? sources[first] : undefined;
   if (source && servers.every((s) => s === first)) {

@@ -35,7 +35,7 @@ export class ApprovalService {
     turnId: string,
     send: (request: ApprovalRequest) => void,
   ): Approver {
-    return async ({ server, tool, input, approval, confirm }) => {
+    return async ({ server, tool, input, approval, confirm, risks }) => {
       const allowSession = approval === "ask";
       const sessionKey = `${sessionId}\u0000${server}\u0000${tool}`;
       if (allowSession && this.allowedForSession.has(sessionKey)) return "allow";
@@ -58,6 +58,7 @@ export class ApprovalService {
           input,
           allowSession,
           ...(confirm ? { confirm } : {}),
+          ...(risks ? { risks } : {}),
         });
       });
     };

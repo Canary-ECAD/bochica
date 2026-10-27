@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S7 — Built-in tools and guardrails core (to be planned)**
+**Active sprint: S8 — Skills, slash commands and `@file` mentions (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -19,20 +19,20 @@ documentation.
 
 The agent drives a running EPLAN safely, and conversations survive a restart.
 
-| Sprint                            | Goal                                                                                                                                                                                                                                              | Status  |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change                                                                        | Done    |
-| [S5](sprints/S5-sessions.md)      | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                                                                                            | Done    |
-| [S6](sprints/S6-modes.md)         | Modes: **Consulta** (docs RAG + script assistance with eplan-scripting-skill, no EPLAN actions), **Tareas** (EPLAN actions over MCP), **Draw** (experimental drawing tools); typed confirmation for destructive actions such as deleting projects | Active  |
-| S7                                | Built-in tools (files, search, PowerShell) shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                                                                                                | Outline |
+| Sprint                            | Goal                                                                                                                                                                                                                                              | Status |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| [S4](sprints/S4-eplan-actions.md) | Local EPLAN MCP over stdio (dev Python); connection status; Remote Client check with guided fix; EPLAN write tools behind approval; project backup before the first change                                                                        | Done   |
+| [S5](sprints/S5-sessions.md)      | SQLite + Drizzle: sessions and messages persisted; Recent list; resume, rename, delete                                                                                                                                                            | Done   |
+| [S6](sprints/S6-modes.md)         | Modes: **Consulta** (docs RAG + script assistance with eplan-scripting-skill, no EPLAN actions), **Tareas** (EPLAN actions over MCP), **Draw** (experimental drawing tools); typed confirmation for destructive actions such as deleting projects | Done   |
+| [S7](sprints/S7-builtin-tools.md) | Built-in tools (files, search, PowerShell) in a per-session working folder, shipped together with the guardrails core from [guardrails.md](../design/guardrails.md)                                                                               | Done   |
 
 ## M2 — Claude Code parity
 
-| Sprint | Goal                                                                                       | Status  |
-| ------ | ------------------------------------------------------------------------------------------ | ------- |
-| S8     | Skills beyond the default one, slash commands, `@file` mentions                            | Outline |
-| S9     | Context compaction, subagents, todo list in the UI                                         | Outline |
-| S10    | Checkpoints and rewind; plan mode; guardrails advanced (smart approvals, approval history) | Outline |
+| Sprint | Goal                                                                                                                       | Status  |
+| ------ | -------------------------------------------------------------------------------------------------------------------------- | ------- |
+| S8     | Skills beyond the default one, slash commands, `@file` mentions                                                            | Outline |
+| S9     | Context compaction, subagents, todo list in the UI                                                                         | Outline |
+| S10    | Checkpoints and rewind; plan mode; guardrails advanced (deny rules, always allow, YOLO, smart approvals, approval history) | Outline |
 
 ## M3 — Ship it
 

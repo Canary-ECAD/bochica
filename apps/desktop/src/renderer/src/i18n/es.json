@@ -156,7 +156,39 @@
       "reorganize": "Reorganizar el proyecto {{project}}: los datos borrados se eliminan para siempre",
       "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
     },
-    "bochicaRead": "Leyó la guía de scripting: {{path}}"
+    "bochicaRead": "Leyó la guía de scripting: {{path}}",
+    "bochica": {
+      "read_file": "Leyó {{path}}",
+      "list_files": "Buscó archivos que coinciden con {{pattern}}",
+      "search_files": "Buscó «{{pattern}}» en los archivos",
+      "write_file": "Escribió {{path}}",
+      "edit_file": "Editó {{path}}",
+      "powershell": "Ejecutó un comando: {{description}}"
+    },
+    "bochicaRequest": {
+      "read_file": "Leer {{path}}",
+      "list_files": "Buscar archivos que coinciden con {{pattern}}",
+      "search_files": "Buscar «{{pattern}}» en los archivos",
+      "write_file": "Escribir el archivo {{path}}",
+      "edit_file": "Editar el archivo {{path}}",
+      "powershell": "Ejecutar un comando: {{description}}"
+    },
+    "files": {
+      "read_one": "leyó un archivo",
+      "read_other": "leyó {{count}} archivos",
+      "searched_one": "buscó una vez",
+      "searched_other": "buscó {{count}} veces",
+      "wrote_one": "escribió un archivo",
+      "wrote_other": "escribió {{count}} archivos",
+      "edited_one": "editó un archivo",
+      "edited_other": "editó {{count}} archivos",
+      "ran_one": "ejecutó un comando",
+      "ran_other": "ejecutó {{count}} comandos",
+      "blocked_one": "bloqueó una acción",
+      "blocked_other": "bloqueó {{count}} acciones"
+    },
+    "blocked": "Bloqueado por Bochica: {{reason}}",
+    "changes": "Cambios"
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
@@ -168,7 +200,27 @@
     "cannotUndo": "No se puede deshacer. Bochica pregunta cada vez.",
     "typeToConfirm": "Para confirmar, escribe",
     "confirmWord": "ELIMINAR",
-    "confirmDestructive": "Sí, hacerlo"
+    "confirmDestructive": "Sí, hacerlo",
+    "risksTitle": "Por qué Bochica pregunta cada vez:",
+    "command": "Comando",
+    "newContent": "Contenido nuevo",
+    "risk": {
+      "delete": "Borra archivos o carpetas.",
+      "recursive-delete": "Borra una carpeta y todo lo que contiene.",
+      "stop-process": "Cierra programas abiertos; se pierde lo que no esté guardado en ellos.",
+      "registry": "Cambia el registro de Windows.",
+      "execution-policy": "Cambia qué scripts permite ejecutar Windows.",
+      "service": "Detiene o cambia un servicio de Windows.",
+      "scheduled-task": "Crea o cambia una tarea programada que se ejecuta sola más tarde.",
+      "shutdown": "Apaga, reinicia o cierra la sesión de este equipo.",
+      "accounts": "Crea o cambia cuentas de usuario.",
+      "security-settings": "Cambia la configuración del antivirus o del firewall.",
+      "elevation": "Pide ejecutarse como administrador.",
+      "obfuscation": "Parte del comando está oculta o se construye al ejecutarlo, así que Bochica no puede revisarla.",
+      "invisible-chars": "Contiene caracteres invisibles que pueden ocultar lo que hace en realidad.",
+      "secret-upload": "Puede enviar contraseñas o claves por internet.",
+      "unknown-script": "Ejecuta un script o programa cuyo contenido Bochica no puede revisar."
+    }
   },
   "docs": {
     "title": "Documentación de EPLAN",
@@ -253,5 +305,21 @@
       "name": "Draw",
       "description": "Crea páginas, coloca símbolos y los conecta. Experimental."
     }
+  },
+  "blocked": {
+    "malformed": "no se pudo leer el comando de forma segura.",
+    "device-path": "usa una ruta especial de dispositivo de Windows.",
+    "disk": "formatearía o borraría un disco.",
+    "system-delete": "borraría Windows, Archivos de programa, una unidad entera o las carpetas de un usuario.",
+    "boot": "cambiaría cómo arranca Windows o borraría copias de seguridad.",
+    "download-exec": "descargaría algo y lo ejecutaría.",
+    "kill-bochica": "cerraría Bochica.",
+    "invalid-path": "la ruta no es una ruta de archivo válida.",
+    "protected-path": "esa carpeta está protegida (contraseñas, datos del navegador, datos de Bochica o Windows).",
+    "secret-file": "los archivos como .env guardan contraseñas y claves."
+  },
+  "folder": {
+    "choose": "Carpeta de trabajo: {{folder}}. Haz clic para elegir otra.",
+    "fixed": "Carpeta de trabajo: {{folder}}"
   }
 }

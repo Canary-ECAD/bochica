@@ -26,6 +26,7 @@ import type { ApprovalService } from "./approvals";
 import type { BackupGuard } from "./backup";
 import type { CredentialStore } from "./credentials";
 import type { SessionRepository } from "./db/repository";
+import { builtinTools, type FolderService } from "./folders";
 import type { Logger } from "./logger";
 import { EPLAN_SERVER_ID } from "./mcp-service";
 import type { SkillStore } from "./skills";
@@ -39,6 +40,7 @@ export interface ChatDeps {
   backups: BackupGuard;
   sessions: SessionRepository;
   skills: SkillStore;
+  folders: FolderService;
   logger: Logger;
   /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
   extraTools?: AgentTool[];
@@ -54,6 +56,7 @@ export class ChatService {
   private readonly backups: BackupGuard;
   private readonly sessions: SessionRepository;
   private readonly skills: SkillStore;
+  private readonly folders: FolderService;
   private readonly logger: Logger;
   private readonly extraTools: AgentTool[];
 
@@ -64,21 +67,33 @@ export class ChatService {
     this.backups = deps.backups;
     this.sessions = deps.sessions;
     this.skills = deps.skills;
+    this.folders = deps.folders;
     this.logger = deps.logger;
     this.extraTools = deps.extraTools ?? [];
   }
 
   /**
-   * The tools a mode allows. Consult: the docs and the scripting guide. Tasks and Draw: the
-   * docs plus the EPLAN tools of that mode.
+   * The tools a mode allows. Consult: the docs, the scripting guide and the file tools. Tasks:
+   * the docs, the EPLAN tools, the file tools and PowerShell. Draw: the docs and the drawing
+   * tools.
    */
-  private toolsFor(mode: ChatMode): AgentTool[] {
+  private toolsFor(mode: ChatMode, folder: string): AgentTool[] {
     const mcpTools = this.mcp
       .tools()
       .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
     const skillTools =
       mode === "consult" && this.skills.loaded().length > 0 ? [this.skills.readTool()] : [];
-    return [...mcpTools, ...skillTools, ...this.extraTools];
+    const builtin = builtinTools(mode, folder, this.folders.policy, process.env);
+    return [...mcpTools, ...skillTools, ...builtin, ...this.extraTools];
+  }
+
+  /** The session's folder; sessions from before S7 get the default one now. */
+  private async folderOf(sessionId: string): Promise<string> {
+    const saved = await this.sessions.getFolder(sessionId);
+    if (saved) return saved;
+    const folder = this.folders.resolve(undefined);
+    await this.sessions.setFolder(sessionId, folder);
+    return folder;
   }
 
   /** Starts the turn and returns at once; events follow on `chat:event`. */
@@ -111,7 +126,7 @@ export class ChatService {
 
     const question = request.messages.at(-1)?.content ?? "";
     saving = this.sessions
-      .createSession(request.sessionId, titleFrom(question))
+      .createSession(request.sessionId, titleFrom(question), this.folders.resolve(request.folder))
       .catch((error: unknown) => this.logger.error("Saving the session failed", error));
     void save(userMessage(request.userMessageId, question));
     const started = save(answer);
@@ -140,15 +155,19 @@ export class ChatService {
       await started;
       try {
         const model = createModel(request.provider, key, request.model);
+        const folder = await this.folderOf(request.sessionId);
+        const tools = this.toolsFor(request.mode, folder);
+        const has = (name: string) => tools.some((t) => t.server === "bochica" && t.tool === name);
         for await (const event of runTurn({
           model,
           messages: request.messages,
           system: systemPrompt(
             request.mode,
             request.mode === "consult" ? this.skills.loaded() : [],
+            has("read_file") ? { folder, terminal: has("powershell") } : {},
           ),
           abortSignal: controller.signal,
-          tools: this.toolsFor(request.mode).map((tool) =>
+          tools: tools.map((tool) =>
             tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
           ),
           approve,

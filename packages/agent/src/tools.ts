@@ -1,4 +1,4 @@
-import type { Confirmation } from "@bochica/shared";
+import type { Confirmation, FileDiff, ToolStatus } from "@bochica/shared";
 import { dynamicTool, jsonSchema, type ToolSet } from "ai";
 import { redactSecrets } from "./redact";
 
@@ -24,10 +24,27 @@ export interface AgentTool {
    * this returns something, the call asks every time, whatever `approval` says.
    */
   confirmation?: (input: unknown) => Confirmation | null;
-  execute(input: unknown, signal: AbortSignal): Promise<{ ok: boolean; text: string }>;
+  /**
+   * Guardrails layers 1, 2, 4 and 5 for this one call, before anyone is asked: refuse it, or
+   * make it ask every time and say why.
+   */
+  assess?: (input: unknown) => Assessment;
+  execute(input: unknown, signal: AbortSignal): Promise<ToolRunResult>;
+}
+
+export interface ToolRunResult {
+  ok: boolean;
+  text: string;
+  diff?: FileDiff;
 }
 
 export type ToolApproval = "never" | "ask" | "always";
+
+export type Assessment =
+  /** Refused. `code` is for the UI ("system-delete"); `reason` tells the model why. */
+  | { block: string; reason: string }
+  /** Allowed to ask; `risks` make it ask every time and are listed on the card. */
+  | { risks: string[] };
 
 export type ApprovalAnswer = "allow" | "deny";
 
@@ -38,12 +55,15 @@ export type Approver = (call: {
   input: unknown;
   approval: Exclude<ToolApproval, "never">;
   confirm?: Confirmation;
+  risks?: string[];
 }) => Promise<ApprovalAnswer>;
 
 /** What a tool call produced, as the loop and the UI see it. */
 export interface ToolOutcome {
-  status: "ok" | "error" | "denied";
+  status: ToolStatus;
   text: string;
+  blocked?: string;
+  diff?: FileDiff;
 }
 
 /** Longest tool output sent to the model; longer output is cut with a note. */
@@ -69,17 +89,29 @@ export function toToolSet(tools: AgentTool[], approve: Approver | undefined): To
         description: tool.description,
         inputSchema: jsonSchema(tool.inputSchema),
         execute: async (input, { abortSignal, toolCallId }): Promise<ToolOutcome> => {
+          const assessment = tool.assess?.(input) ?? { risks: [] };
+          if ("block" in assessment) {
+            return {
+              status: "blocked",
+              blocked: assessment.block,
+              text: `Bochica blocked this action: ${assessment.reason} Do not retry it, and do not try to get the same result another way. Tell the user it was blocked and why.`,
+            };
+          }
+          const { risks } = assessment;
           const confirm = tool.confirmation?.(input) ?? undefined;
-          if (confirm || tool.approval !== "never") {
+          if (confirm || risks.length > 0 || tool.approval !== "never") {
+            // Destructive and risky calls ask every time, even on an otherwise read-only tool.
+            const approval =
+              confirm || risks.length > 0 || tool.approval === "never" ? "always" : tool.approval;
             const answer = approve
               ? await approve({
                   callId: toolCallId,
                   server: tool.server,
                   tool: tool.tool,
                   input,
-                  // Destructive calls ask every time, even on an otherwise read-only tool.
-                  approval: confirm || tool.approval === "never" ? "always" : tool.approval,
+                  approval,
                   ...(confirm ? { confirm } : {}),
+                  ...(risks.length > 0 ? { risks } : {}),
                 })
               : "deny";
             if (answer === "deny") {
@@ -94,6 +126,9 @@ export function toToolSet(tools: AgentTool[], approve: Approver | undefined): To
             return {
               status: result.ok ? "ok" : "error",
               text: truncate(redactSecrets(result.text), MODEL_OUTPUT_LIMIT),
+              ...(result.diff
+                ? { diff: { ...result.diff, patch: redactSecrets(result.diff.patch) } }
+                : {}),
             };
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
