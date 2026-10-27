@@ -40,12 +40,26 @@ move it there and leave a link here (`→ S4-03`).
 - **Answered:** eplan-mcp's scratch tools work on clones in `%TEMP%eplan_mcp_scratch` (AppData), but only
   when those tools are used; other tools change the real project, so Bochica's backup stays
   (see S6-modes.md).
-
 - **Skills, more sources** (left out of S8): skills inside the working folder
   (`.bochica\skills`), installing a skill from a URL or a catalog, and honouring the
   `allowed-tools` field of a skill's header.
 - **`@` for folders** (left out of S8): mentioning a folder could attach its file list.
+- **Learned skills, with approval** (like Hermes Agent's `skill_manage`; check its current
+  code first). The agent proposes a new skill, or a fix to one it learned, after a multi-step
+  workflow worth repeating, after finding the way out of an error, or when the user corrected
+  its approach ("lessons, not logs"). Unlike Hermes, approval is on by default: a card shows
+  the proposed skill or the change in plain language, with Save / Discard, and the injection
+  scan runs before saving. Saved under `userData\skills\learned`, labelled "Learned" in
+  Settings, where it can be read, edited, deleted, and its last change undone. A skill never
+  grants tools the mode doesn't have. Later, optional: short durable memory facts and a
+  background review after turns (costs tokens, so not on by default). Own sprint, or with S10
+  (approvals).
 
 ## Infrastructure
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
+- **Built-in skills inside the installer** → S11. Today eplan-scripting-skill is downloaded
+  from GitHub on the first start; offline or behind a proxy that blocks GitHub, the app starts
+  without its skills and only the log says why. The installer should carry the pinned commit
+  (like Python and `uv`), the download stays only for updates, and a missing skill shows a
+  plain message in the app.
