@@ -132,8 +132,10 @@ Closed 2026-10-28.
   The demo install was removed afterwards.
 - Also seen: an installed app checking GitHub with no published release logs "No published
   versions on GitHub" and stays quiet, as intended.
-- Not verified: the release workflow itself (it runs on the first `v0.2.0` tag) and an update
-  between two releases published on GitHub.
+- Release: the `v0.2.0` tag ran the workflow (check, runtime, installer) and uploaded the files,
+  but electron-builder's parallel uploads each created a draft, splitting them across two. The
+  blockmap was moved into the draft with the installer by hand, and the workflow now creates the
+  draft before the uploads. Not verified: an update between two releases published on GitHub.
 - Found in passing and fixed: eplan-mcp's port discovery parsed `tasklist` / `netstat` text,
   which is localized, so on a Spanish Windows it failed with `UnicodeDecodeError` (Bochica runs
   Python in UTF-8 mode) and fell back to port 49152; German prints `ABHÖREN` for LISTENING.
