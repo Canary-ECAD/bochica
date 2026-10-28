@@ -116,7 +116,7 @@ export class McpManager {
         void this.connect(entry);
       } else if (!shouldRun && entry.enabled) {
         entry.enabled = false;
-        this.disconnect(entry);
+        void this.disconnect(entry);
       }
     }
     this.notify();
@@ -158,9 +158,23 @@ export class McpManager {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * Disconnects every server and waits until their processes have exited; `configure` connects
+   * them again. Used before an update replaces the files a stdio server runs from.
+   */
+  async stop(): Promise<void> {
+    const closing = [...this.entries.values()].map((entry) => {
+      entry.enabled = false;
+      return this.disconnect(entry);
+    });
+    this.notify();
+    await Promise.all(closing);
+  }
+
+  /** Stops every server for good: listeners are dropped too. */
   async close(): Promise<void> {
-    for (const entry of this.entries.values()) this.disconnect(entry);
     this.listeners.clear();
+    await this.stop();
   }
 
   private async connect(entry: Entry): Promise<void> {
@@ -195,15 +209,17 @@ export class McpManager {
     this.notify();
   }
 
-  private disconnect(entry: Entry): void {
+  /** Resolves once the connection is closed (for stdio, once the process has exited). */
+  private disconnect(entry: Entry): Promise<void> {
     entry.generation++;
     if (entry.retryTimer) clearTimeout(entry.retryTimer);
-    void entry.connection?.close().catch(() => {});
+    const closing = entry.connection?.close().catch(() => {}) ?? Promise.resolve();
     delete entry.connection;
     delete entry.error;
     entry.tools = [];
     entry.attempt = 0;
     entry.state = "disabled";
+    return closing;
   }
 
   private toAgentTool(entry: Entry, tool: RemoteTool): AgentTool {

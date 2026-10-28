@@ -27,6 +27,7 @@ import {
   SetSkillEnabledRequest,
   SkillInstallReport,
   SkillList,
+  UpdateStatus,
 } from "@bochica/shared";
 import { app, BrowserWindow, dialog, ipcMain, type WebContents } from "electron";
 import { z } from "zod";
@@ -42,6 +43,7 @@ import type { PermissionStore } from "./permissions";
 import type { SessionRepository } from "./db/repository";
 import type { SettingsStore } from "./settings";
 import type { SkillService } from "./skills";
+import type { UpdateService } from "./updates";
 
 export interface Services {
   credentials: CredentialStore;
@@ -55,6 +57,7 @@ export interface Services {
   permissions: PermissionStore;
   checkpoints: CheckpointService;
   settings: SettingsStore;
+  updates: UpdateService;
   logger: Logger;
 }
 
@@ -73,6 +76,7 @@ export function registerIpc({
   permissions,
   checkpoints,
   settings,
+  updates,
   logger,
 }: Services): void {
   const handle = (
@@ -178,6 +182,11 @@ export function registerIpc({
   });
 
   handle(ipcChannels.eplanStatus, () => EplanStatus.parse(eplan.current()));
+
+  handle(ipcChannels.updatesGet, () => UpdateStatus.parse(updates.current()));
+  handle(ipcChannels.updatesCheck, async () => UpdateStatus.parse(await updates.check(true)));
+  handle(ipcChannels.updatesInstall, () => UpdateStatus.parse(updates.install()));
+  handle(ipcChannels.updatesLater, () => UpdateStatus.parse(updates.later()));
 
   handle(ipcChannels.foldersDefault, () => folders.defaultFolder());
 

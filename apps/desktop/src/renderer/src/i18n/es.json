@@ -18,6 +18,35 @@
     "welcomeGuide": "Guía de bienvenida",
     "showWelcome": "Volver a mostrar"
   },
+  "updates": {
+    "available": "La versión {{version}} está disponible",
+    "updateNow": "Actualizar ahora",
+    "later": "Más tarde",
+    "whatsNew": "Novedades",
+    "downloading": "Descargando… {{percent}} %",
+    "restarting": "Reiniciando para actualizar…",
+    "waiting": "Bochica se reiniciará para actualizar cuando termine la tarea en curso.",
+    "tryAgain": "Reintentar",
+    "dismiss": "Cerrar",
+    "errors": {
+      "check": "Bochica no pudo buscar actualizaciones.",
+      "download": "No se pudo descargar la actualización.",
+      "install": "No se pudo instalar la actualización.",
+      "offline": "Revisa la conexión a internet o el proxy y vuelve a intentarlo.",
+      "keeps": "Esta versión sigue funcionando."
+    },
+    "settings": {
+      "version": "Bochica {{version}}",
+      "off": "Las actualizaciones están desactivadas en las versiones de desarrollo.",
+      "idle": "Bochica busca actualizaciones por su cuenta.",
+      "upToDate": "Bochica está al día.",
+      "checking": "Buscando actualizaciones…",
+      "deferred": "La versión {{version}} se instalará la próxima vez que cierres Bochica.",
+      "check": "Buscar actualizaciones",
+      "restartNow": "Reiniciar ahora",
+      "title": "Actualizaciones"
+    }
+  },
   "providers": {
     "title": "Proveedores de IA",
     "description": "Bochica necesita al menos un proveedor de IA. Pega una API key o usa un modelo que se ejecute en este equipo. Las keys se guardan cifradas en este equipo y no se vuelven a mostrar.",

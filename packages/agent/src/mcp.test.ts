@@ -152,6 +152,27 @@ describe("McpManager", () => {
     expect(manager.states()[0]?.state).toBe("disabled");
   });
 
+  test("stop waits for every connection to close, and configure brings them back", async () => {
+    let release: (() => void) | undefined;
+    const slow = fakeConnection(["search"]);
+    slow.close = () => new Promise<void>((resolve) => (release = resolve));
+    let connects = 0;
+    manager = new McpManager(async () => (++connects === 1 ? slow : fakeConnection(["search"])));
+    manager.configure([{ config: docs, enabled: true }]);
+    await settle();
+    let stopped = false;
+    const stopping = manager.stop().then(() => (stopped = true));
+    await settle();
+    expect(stopped).toBe(false);
+    expect(manager.states()[0]?.state).toBe("disabled");
+    release?.();
+    await stopping;
+    manager.configure([{ config: docs, enabled: true }]);
+    await settle();
+    expect(connects).toBe(2);
+    expect(manager.states()[0]?.state).toBe("ready");
+  });
+
   test("required servers stay on even if disabled", async () => {
     manager = new McpManager(async () => fakeConnection(["search"]));
     manager.configure([{ config: docs, enabled: false }]);

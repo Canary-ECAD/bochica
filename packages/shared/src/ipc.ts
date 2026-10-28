@@ -46,6 +46,14 @@ export const ipcChannels = {
   skillsSetEnabled: "skills:set-enabled",
   /** Main → renderer: the EPLAN connection changed. */
   eplanStatusChanged: "eplan:status-changed",
+  updatesGet: "updates:get",
+  updatesCheck: "updates:check",
+  /** "Update now": download if needed, then restart into the new version. */
+  updatesInstall: "updates:install",
+  /** "Later": hide the notice, download quietly, install when the app closes. */
+  updatesLater: "updates:later",
+  /** Main → renderer: the update state changed. */
+  updatesChanged: "updates:changed",
 } as const;
 
 export const AppInfo = z.object({
@@ -417,6 +425,41 @@ export const Onboarding = z.object({
 });
 export type Onboarding = z.infer<typeof Onboarding>;
 
+// App updates.
+
+export const UpdateStatus = z.object({
+  state: z.enum([
+    /** A development build: no updates. */
+    "off",
+    /** No update known (yet). */
+    "idle",
+    "checking",
+    "available",
+    "downloading",
+    /** Downloaded: it installs on restart. */
+    "ready",
+    "error",
+  ]),
+  /** The installed version. */
+  current: z.string(),
+  /** The new version, from "available" on. */
+  version: z.string().optional(),
+  /** The release page of the new version. */
+  notesUrl: z.string().optional(),
+  /** Download progress, 0–100. */
+  percent: z.number().optional(),
+  /** "Later" was chosen for this version: no notice; it installs when the app closes. */
+  deferred: z.boolean(),
+  /** "Update now" was pressed, but a task runs: the restart waits for it to end. */
+  waiting: z.boolean(),
+  /** When the last check found nothing new (ms since epoch). */
+  upToDateAt: z.number().optional(),
+  /** What failed, and while doing what (for "Try again"). */
+  error: z.enum(["offline", "failed"]).optional(),
+  failedDuring: z.enum(["check", "download", "install"]).optional(),
+});
+export type UpdateStatus = z.infer<typeof UpdateStatus>;
+
 // Saved sessions.
 
 export const RenameSessionRequest = z.object({
@@ -574,5 +617,13 @@ export interface BochicaApi {
   eplan: {
     status(): Promise<EplanStatus>;
     onStatus(listener: (status: EplanStatus) => void): () => void;
+  };
+  updates: {
+    status(): Promise<UpdateStatus>;
+    /** Looks for a new version now; a failure shows in the status. */
+    check(): Promise<UpdateStatus>;
+    install(): Promise<UpdateStatus>;
+    later(): Promise<UpdateStatus>;
+    onStatus(listener: (status: UpdateStatus) => void): () => void;
   };
 }

@@ -4,6 +4,7 @@ import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EplanIndicator } from "@/components/eplan-indicator";
 import { SessionRow } from "@/components/session-row";
+import { UpdateNotice } from "@/components/update-notice";
 import { onboardingKey, Welcome } from "@/components/welcome";
 import logo from "@/assets/logo.png";
 import { useSessions } from "@/state/sessions";
@@ -56,6 +57,7 @@ export function AppShell() {
         </nav>
 
         <div className="mt-3 flex flex-col gap-1">
+          <UpdateNotice />
           <EplanIndicator />
           <Link to="/settings" className={navItem}>
             <Settings />

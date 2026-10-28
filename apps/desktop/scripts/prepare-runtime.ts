@@ -1,10 +1,13 @@
 // Puts together apps/desktop/runtime, which the installer ships as resources\runtime: the
-// standalone Python with eplan-mcp's dependencies, uv, eplan-mcp and the built-in skills, each at
-// its pinned version. Run by `bun run package`; does nothing when the runtime is up to date.
+// standalone Python with eplan-mcp's dependencies, eplan-mcp and the built-in skills, each at its
+// pinned version. uv installs the dependencies from the download cache and doesn't ship. Run by
+// `bun run package` and `bun run release`; does nothing when the runtime is up to date.
 //
 //   bun scripts/prepare-runtime.ts          build (or check) the runtime
-//   bun scripts/prepare-runtime.ts --lock   regenerate packages/eplan/requirements.lock.txt
-//                                           from the pinned eplan-mcp first
+//   bun scripts/prepare-runtime.ts --lock   after bumping eplan-mcp: regenerate
+//                                           packages/eplan/requirements.lock.txt first, and
+//                                           packages/eplan/src/fixtures/eplan-mcp-tools.txt from
+//                                           the tools the new server lists
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -40,6 +43,9 @@ const repoRoot = resolve(desktop, "..", "..");
 const eplanPackage = join(repoRoot, "packages", "eplan");
 const lockFile = join(eplanPackage, "requirements.lock.txt");
 const constraintsFile = join(eplanPackage, "requirements.constraints.txt");
+const toolsFixture = join(eplanPackage, "src", "fixtures", "eplan-mcp-tools.txt");
+/** The build's own uv, kept in the cache next to its download. */
+const uv = join(cache, "uv", uvPin.version, "uv.exe");
 /** Windows' own bsdtar: unlike Git's tar it also reads zip files and drive-letter paths. */
 const tar = join(process.env["SystemRoot"] || "C:\\Windows", "System32", "tar.exe");
 /** Fewer tools than this means the server didn't load its actions. */
@@ -104,9 +110,10 @@ async function checkout(name: keyof typeof componentsLock): Promise<string> {
 }
 
 async function prepareUv(): Promise<void> {
+  if (existsSync(uv)) return;
   const folder = extract(await download(uvPin.url, `uv-${uvPin.version}.zip`, uvPin.sha256));
-  mkdirSync(join(root, "uv"), { recursive: true });
-  cpSync(join(folder, "uv.exe"), paths.uv);
+  mkdirSync(join(uv, ".."), { recursive: true });
+  cpSync(join(folder, "uv.exe"), uv);
   rmSync(folder, { recursive: true, force: true });
 }
 
@@ -147,7 +154,7 @@ function writeLock(): void {
   log("regenerating requirements.lock.txt");
   const fromRoot = (path: string) => relative(repoRoot, path).replaceAll("\\", "/");
   run(
-    paths.uv,
+    uv,
     [
       "pip",
       "compile",
@@ -180,7 +187,7 @@ async function preparePython(): Promise<void> {
   run(tar, ["-xf", archive, "-C", root]);
   log("installing eplan-mcp's dependencies");
   run(
-    paths.uv,
+    uv,
     [
       "pip",
       "install",
@@ -195,7 +202,7 @@ async function preparePython(): Promise<void> {
     ],
     { UV_CACHE_DIR: join(cache, "uv"), UV_PYTHON_DOWNLOADS: "never", UV_NO_CONFIG: "1" },
   );
-  run(paths.uv, ["pip", "uninstall", "--python", paths.python, "--break-system-packages", "pip"], {
+  run(uv, ["pip", "uninstall", "--python", paths.python, "--break-system-packages", "pip"], {
     UV_NO_CONFIG: "1",
   });
   // What the server never uses: Tk, the standard library's tests, pip (uv installs), C headers,
@@ -231,8 +238,11 @@ async function preparePython(): Promise<void> {
   ]);
 }
 
-/** Starts the bundled server as the app does and checks that it lists its tools. */
-async function smokeTest(): Promise<void> {
+/**
+ * Starts the bundled server as the app does and checks that it lists its tools. Returns their
+ * names, sorted.
+ */
+async function smokeTest(): Promise<string[]> {
   const logDir = mkdtempSync(join(tmpdir(), "bochica-runtime-logs-"));
   // Only the bundled server: a developer's checkout in the environment must not stand in for it.
   const { BOCHICA_EPLAN_MCP_DIR: _dir, ...env } = process.env;
@@ -263,6 +273,10 @@ async function smokeTest(): Promise<void> {
     });
     if (tools < MIN_TOOLS) throw new Error(`The server listed only ${tools} tools.`);
     log(`the bundled server lists ${tools} tools`);
+    return manager
+      .tools()
+      .map((tool) => tool.tool)
+      .toSorted();
   } finally {
     await manager.close();
     rmSync(logDir, { recursive: true, force: true });
@@ -293,7 +307,11 @@ async function main(): Promise<void> {
   if (relock) writeLock();
   await preparePython();
   await prepareSkills();
-  await smokeTest();
+  const tools = await smokeTest();
+  if (relock) {
+    writeFileSync(toolsFixture, `${tools.join("\n")}\n`);
+    log(`wrote ${relative(repoRoot, toolsFixture)}`);
+  }
   // Written last: a build cut short is redone from scratch next time.
   writeFileSync(paths.manifest, JSON.stringify(want(), null, 2));
   log(`ready in ${root}`);

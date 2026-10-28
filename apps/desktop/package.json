@@ -1,6 +1,6 @@
 {
   "name": "@bochica/desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Bochica by Canary-ECAD",
   "license": "MIT",
@@ -9,9 +9,11 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "package": "bun scripts/prepare-runtime.ts && electron-vite build && electron-builder --win",
+    "package": "bun scripts/prepare-runtime.ts && electron-vite build && electron-builder --win --publish never",
+    "release": "bun scripts/prepare-runtime.ts && electron-vite build && electron-builder --win --publish always",
     "runtime": "bun scripts/prepare-runtime.ts",
     "runtime:lock": "bun scripts/prepare-runtime.ts --lock",
+    "components:bump": "bun scripts/bump-component.ts",
     "typecheck": "tsc --noEmit --composite false -p tsconfig.node.json && tsc --noEmit --composite false -p tsconfig.web.json"
   },
   "devDependencies": {
@@ -32,6 +34,7 @@
     "drizzle-orm": "0.45.4",
     "electron": "45.0.0",
     "electron-builder": "26.18.0",
+    "electron-updater": "6.8.11",
     "electron-vite": "6.0.0",
     "i18next": "26.5.11",
     "lucide-react": "1.62.0",

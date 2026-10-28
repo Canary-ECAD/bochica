@@ -5,6 +5,7 @@ import { PermissionsSettings } from "@/components/permissions-settings";
 import { ProviderSettings } from "@/components/provider-settings";
 import { SkillsSettings } from "@/components/skills-settings";
 import { Button } from "@/components/ui/button";
+import { UpdateSettings } from "@/components/update-notice";
 import { onboardingKey } from "@/components/welcome";
 import { supportedLanguages } from "@/i18n";
 
@@ -71,6 +72,11 @@ export function SettingsPage() {
               {t("settings.showWelcome")}
             </Button>
           </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mb-4 text-sm font-medium">{t("updates.settings.title")}</h2>
+          <UpdateSettings />
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">{t("settings.disclaimer")}</p>

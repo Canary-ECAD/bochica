@@ -5,8 +5,9 @@ import type { ComponentsLock } from "./components";
 import { defaultMcpServers } from "./mcp-servers";
 
 // The runtime the installer carries: a standalone 64-bit Python with eplan-mcp's dependencies,
-// the uv that installed them, eplan-mcp itself and the built-in skills. It is put together by
-// apps/desktop/scripts/prepare-runtime.ts and shipped as resources\runtime.
+// eplan-mcp itself and the built-in skills. It is put together by
+// apps/desktop/scripts/prepare-runtime.ts and shipped as resources\runtime. uv installs the
+// dependencies at build time but doesn't ship: an update always replaces the whole runtime.
 
 interface PinnedDownload {
   version: string;
@@ -21,7 +22,7 @@ export const pythonPin: PinnedDownload = {
   sha256: "7a2aef48e5ee569e310b29b32681debbc5d888e92790d85331a47736c6b06aad",
 };
 
-/** uv for Windows x64. */
+/** uv for Windows x64, used by the build only. */
 export const uvPin: PinnedDownload = {
   version: "0.13.1",
   url: "https://github.com/astral-sh/uv/releases/download/0.13.1/uv-x86_64-pc-windows-msvc.zip",
@@ -35,7 +36,6 @@ export const skillRepositories = ["eplan-scripting-skill", "eec-pro-skill"] as c
 export function runtimePaths(root: string) {
   return {
     python: join(root, "python", "python.exe"),
-    uv: join(root, "uv", "uv.exe"),
     /** Laid out like an eplan-mcp checkout, so the server's script path is the same. */
     eplanMcp: join(root, "eplan-mcp"),
     /** One folder per repository, each with its `skills\` folder, like BOCHICA_SKILLS_DIR. */
@@ -44,8 +44,14 @@ export function runtimePaths(root: string) {
   };
 }
 
+/** Raise it when what goes into the runtime folder changes, so old builds are redone. */
+const RUNTIME_LAYOUT = 2;
+
 export const RuntimeManifest = z.object({
+  /** 2: uv no longer ships. */
+  layout: z.number(),
   python: z.string(),
+  /** The uv that installed the dependencies. */
   uv: z.string(),
   eplanMcp: z.string(),
   skills: z.record(z.string(), z.string()),
@@ -126,6 +132,7 @@ export function eplanInstalled(env: NodeJS.ProcessEnv): boolean {
 /** What a runtime built from these pins records in its manifest. */
 export function expectedManifest(lock: ComponentsLock, requirements: string): RuntimeManifest {
   return {
+    layout: RUNTIME_LAYOUT,
     python: pythonPin.version,
     uv: uvPin.version,
     eplanMcp: lock["eplan-mcp"].commit,

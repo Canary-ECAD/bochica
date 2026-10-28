@@ -60,6 +60,7 @@ export {
   SkillProblem,
   ToolStatus,
   TurnEvent,
+  UpdateStatus,
 } from "./ipc";
 export {
   COMMAND_NAME,

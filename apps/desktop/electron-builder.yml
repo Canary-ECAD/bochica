@@ -1,12 +1,16 @@
 appId: com.canary-ecad.bochica
 productName: Bochica
 copyright: Copyright © 2026 Canary-ECAD
+# The install folder (%LOCALAPPDATA%\Programs\bochica) and the updater's cache take the package
+# name; without this they would be "@bochicadesktop". User data follows productName (Bochica).
+extraMetadata:
+  name: bochica
 directories:
   output: release
   buildResources: build
 files:
   - out/**
-# Python, uv, eplan-mcp and the built-in skills, put together by scripts/prepare-runtime.ts.
+# Python, eplan-mcp and the built-in skills, put together by scripts/prepare-runtime.ts.
 extraResources:
   - from: runtime
     to: runtime
@@ -15,7 +19,10 @@ win:
 nsis:
   oneClick: true
   perMachine: false
+# `bun run release` uploads to a draft release (docs/releasing.md); the packaged app reads this
+# feed back from resources\app-update.yml to find updates.
 publish:
   provider: github
   owner: Canary-ECAD
   repo: bochica
+  releaseType: draft

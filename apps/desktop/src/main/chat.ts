@@ -77,6 +77,7 @@ export interface ChatDeps {
 export class ChatService {
   /** Turns in progress: turn id → its controller and session. */
   private readonly running = new Map<string, { controller: AbortController; sessionId: string }>();
+  private readonly idleListeners = new Set<() => void>();
 
   private readonly credentials: CredentialStore;
   private readonly mcp: McpManager;
@@ -134,9 +135,18 @@ export class ChatService {
     return plan ? planModeTools(all) : all;
   }
 
-  /** Whether a turn of this session is running; rewinding waits until it isn't. */
-  busy(sessionId: string): boolean {
+  /**
+   * Whether a turn of this session is running (rewinding waits until it isn't), or, without a
+   * session, whether any turn is (an update waits).
+   */
+  busy(sessionId?: string): boolean {
+    if (sessionId === undefined) return this.running.size > 0;
     return [...this.running.values()].some((turn) => turn.sessionId === sessionId);
+  }
+
+  /** Calls `listener` each time the last running turn ends. */
+  onIdle(listener: () => void): void {
+    this.idleListeners.add(listener);
   }
 
   /**
@@ -328,6 +338,7 @@ export class ChatService {
         }
       } finally {
         this.running.delete(request.turnId);
+        if (this.running.size === 0) for (const listener of this.idleListeners) listener();
       }
     })();
   }

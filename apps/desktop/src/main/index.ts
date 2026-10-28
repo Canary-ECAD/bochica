@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { defaultPathPolicy } from "@bochica/agent";
 import { componentsLock, eplanInstalled, eplanToolPolicy, runtimePaths } from "@bochica/eplan";
-import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
+import { EplanStatus, ipcChannels, McpServerList, UpdateStatus } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
 import { BackupGuard } from "./backup";
@@ -19,8 +19,14 @@ import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { PermissionStore } from "./permissions";
 import { SettingsStore } from "./settings";
 import { BUILTIN_SKILLS, BuiltinSkills, removeStaleCaches, SkillService } from "./skills";
+import { electronUpdater } from "./updater";
+import { localFeed, UpdateService } from "./updates";
 
 const logger = createLogger(app.getPath("logs"));
+
+const RELEASES_URL = "https://github.com/Canary-ECAD/bochica/releases";
+/** The longest a quit waits for the MCP servers' processes to exit. */
+const STOP_CHILDREN_MS = 6_000;
 
 process.on("uncaughtException", (error) => logger.error("Uncaught exception", error));
 process.on("unhandledRejection", (reason) => logger.error("Unhandled rejection", reason));
@@ -165,6 +171,36 @@ void app.whenReady().then(() => {
     },
     (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
   );
+  /**
+   * Stops the turns and waits for the MCP servers' processes to exit: an update replaces the
+   * files the bundled Python runs from, and Windows can't replace a file that is in use.
+   */
+  const stopChildren = async (): Promise<void> => {
+    chat.stopAll();
+    eplan.stop();
+    await Promise.race([
+      mcp.manager.stop(),
+      new Promise((resolve) => setTimeout(resolve, STOP_CHILDREN_MS)),
+    ]);
+  };
+
+  const feed = localFeed(process.env);
+  if (feed) logger.info(`Updates come from the local test feed ${feed}`);
+  const updates = new UpdateService({
+    updater: app.isPackaged || feed ? electronUpdater(logger, feed) : null,
+    current: app.getVersion(),
+    busy: () => chat.busy(),
+    prepareInstall: stopChildren,
+    cancelInstall: () => {
+      mcp.start();
+      eplan.start();
+    },
+    notesUrl: (version) => `${RELEASES_URL}/tag/v${version}`,
+    logger,
+    onChange: (status) => broadcast(ipcChannels.updatesChanged, UpdateStatus.parse(status)),
+  });
+  chat.onIdle(() => updates.idle());
+
   registerIpc({
     credentials,
     chat,
@@ -177,6 +213,7 @@ void app.whenReady().then(() => {
     permissions,
     checkpoints,
     settings,
+    updates,
     logger,
   });
 
@@ -188,12 +225,20 @@ void app.whenReady().then(() => {
   });
   mcp.start();
   eplan.start();
+  updates.start();
 
-  app.on("before-quit", () => {
-    chat.stopAll();
-    eplan.stop();
-    void mcp.manager.close();
-    sessions.close();
+  // The first quit waits for the children to stop, then quits again for real.
+  let stopped = false;
+  let stopping: Promise<void> | null = null;
+  app.on("before-quit", (event) => {
+    if (stopped) return;
+    event.preventDefault();
+    stopping ??= stopChildren().finally(() => {
+      updates.stop();
+      sessions.close();
+      stopped = true;
+      app.quit();
+    });
   });
   // A reloaded renderer shows every session in Ask mode: main must not stay in Auto behind it.
   createWindow(() => approvals.clearAuto());

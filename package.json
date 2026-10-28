@@ -10,6 +10,8 @@
     "dev": "bun run --filter @bochica/desktop dev",
     "build": "bun run --filter @bochica/desktop build",
     "package": "bun run --filter @bochica/desktop package",
+    "release": "bun run --filter @bochica/desktop release",
+    "components:bump": "bun run --filter @bochica/desktop components:bump",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "oxlint",
     "format": "oxfmt",

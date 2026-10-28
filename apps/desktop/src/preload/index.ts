@@ -17,6 +17,7 @@ import {
   SessionSummary,
   SkillInstallReport,
   SkillList,
+  UpdateStatus,
 } from "@bochica/shared";
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { z } from "zod";
@@ -127,6 +128,13 @@ const api: BochicaApi = {
   eplan: {
     status: async () => EplanStatus.parse(await ipcRenderer.invoke(ipcChannels.eplanStatus)),
     onStatus: (listener) => subscribe(ipcChannels.eplanStatusChanged, EplanStatus, listener),
+  },
+  updates: {
+    status: async () => UpdateStatus.parse(await ipcRenderer.invoke(ipcChannels.updatesGet)),
+    check: async () => UpdateStatus.parse(await ipcRenderer.invoke(ipcChannels.updatesCheck)),
+    install: async () => UpdateStatus.parse(await ipcRenderer.invoke(ipcChannels.updatesInstall)),
+    later: async () => UpdateStatus.parse(await ipcRenderer.invoke(ipcChannels.updatesLater)),
+    onStatus: (listener) => subscribe(ipcChannels.updatesChanged, UpdateStatus, listener),
   },
 };
 

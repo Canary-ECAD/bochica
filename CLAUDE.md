@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S11 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S12 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -13,7 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > rewind for the file tools; visible activity log with file diffs; approval cards plus typed
 > confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite; an
 > installer that carries its own Python, eplan-mcp and built-in skills; a first-run welcome
-> guide. Not built yet: the updater (S12).
+> guide; one-click updates from GitHub Releases, built by a tag-driven release workflow. Next:
+> OAuth and several keys per provider (S13).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -285,37 +286,58 @@ Provider-agnostic, following Hermes's design:
 ### Python runtime
 
 Users never install Python, Node or MCP servers by hand. The installer bundles a **standalone
-64-bit Python 3** (python-build-standalone) and **`uv`**, with the MCP server's dependencies
-preinstalled, so it works offline and behind corporate proxies.
+64-bit Python 3** (python-build-standalone) with the MCP server's dependencies preinstalled, so
+it works offline and behind corporate proxies.
 
-- `apps/desktop/scripts/prepare-runtime.ts` (first step of `bun run package`) fills
-  `apps/desktop/runtime` (not in Git): `python\`, `uv\uv.exe`, `eplan-mcp\` (only
-  `eplan-p8-mcp-server`), `skills\<repo>\skills\…` and `manifest.json`, written last. It skips
-  the work when the manifest matches the pins, and ends by starting the bundled server and
-  checking that it lists its tools. electron-builder ships the folder as `resources\runtime`.
-- Python and `uv` are pinned by URL and SHA-256 in `packages/eplan/src/runtime.ts`. eplan-mcp's
-  dependencies come from `packages/eplan/requirements.lock.txt` (hashes, wheels only), made from
-  its `requirements.txt` plus `requirements.constraints.txt` (`mcp<2`: 2.x dropped FastMCP).
-  **Bumping eplan-mcp** in `components.lock.json` means running
-  `bun run --filter @bochica/desktop runtime:lock` and committing the new lock with it.
+- `apps/desktop/scripts/prepare-runtime.ts` (first step of `bun run package` and `release`) fills
+  `apps/desktop/runtime` (not in Git): `python\`, `eplan-mcp\` (only `eplan-p8-mcp-server`),
+  `skills\<repo>\skills\…` and `manifest.json`, written last. It skips the work when the
+  manifest matches the pins (and `RUNTIME_LAYOUT`, raised when the folder's contents change), and
+  ends by starting the bundled server and checking that it lists its tools. electron-builder
+  ships the folder as `resources\runtime`.
+- Python and `uv` are pinned by URL and SHA-256 in `packages/eplan/src/runtime.ts`. `uv` only
+  builds the runtime (from `apps/desktop/.cache`) and doesn't ship. eplan-mcp's dependencies come
+  from `packages/eplan/requirements.lock.txt` (hashes, wheels only), made from its
+  `requirements.txt` plus `requirements.constraints.txt` (`mcp<2`: 2.x dropped FastMCP).
+- **Bumping a component:** `bun run components:bump <name> [commit]` pins it in
+  `components.lock.json`; for eplan-mcp it runs `prepare-runtime --lock`, which regenerates the
+  requirements lock and `fixtures/eplan-mcp-tools.txt`. Then classify new tools in
+  `tool-policy.ts` and commit everything together. Full procedure: `docs/releasing.md`.
 - Dependencies are installed into the bundled Python itself (a venv stores absolute paths) and
   bytecode is compiled with unchecked hashes, so nothing is written next to the app. The server
   gets `PYTHONNOUSERSITE=1`, `PYTHONUTF8=1` and `EPLAN_MCP_LOG_DIR` (logs\eplan-mcp).
-- `uv` is not run by the app yet; it is there for S12's dependency sync. When the pinned MCP version
-  changes, Bochica syncs its dependencies with `uv` into its own environment under
-  `%LOCALAPPDATA%`; it never uses or modifies a system Python. Failures (EPLAN not installed,
-  Remote Client disabled, proxy blocking a download…) are turned into messages that tell the user
-  exactly what to do.
+- A new version of any component reaches users only as a full app update, which replaces the
+  whole runtime; the app never installs Python packages and never uses or modifies a system
+  Python. Failures (EPLAN not installed, Remote Client disabled, proxy blocking a download…) are
+  turned into messages that tell the user exactly what to do.
 
 ### Updates
 
 Unlike Hermes, where backend and frontend are updated separately, the user sees **a single
 update** covering everything:
 
-- On startup (and periodically) the app checks GitHub releases (`electron-updater`). If there
-  is a new version it shows a non-blocking notice — "A new version is available" — with
-  **Update now** and **Later**. Nothing updates silently, and never while the agent is running a
-  task; "Later" applies it on the next restart.
+- 30 s after start and every 4 h the app checks GitHub Releases (`electron-updater`, published
+  releases only). A new version shows a notice at the bottom of the sidebar (`UpdateNotice`,
+  `components/update-notice.tsx`) with **Update now** and **Later**; Settings → General →
+  Updates (`UpdateSettings`) shows the state and can check by hand. Nothing downloads or
+  installs without one of those clicks. Update now downloads and restarts, waiting for a running
+  task (`ChatService.busy()` / `onIdle`); Later downloads quietly and installs on quit
+  (`autoInstallOnAppQuit`).
+- `UpdateService` (`main/updates.ts`) holds the state machine (`off` in development builds,
+  `idle`, `checking`, `available`, `downloading`, `ready`, `error`) behind an `Updater`
+  interface; `main/updater.ts` adapts electron-updater. IPC: `updates:get|check|install|later`
+  and the push `updates:changed`. A background check that fails is only logged.
+- Before installing, and on every quit, main stops the turns and waits for the MCP servers'
+  processes to exit (`McpManager.stop()`, at most 6 s): the installer can't replace
+  `resources\runtime` while the bundled `python.exe` runs. If the installer can't start, the
+  servers come back.
+- `BOCHICA_UPDATE_URL` (only `http://127.0.0.1` or `http://localhost`) points the updater at a
+  local generic feed (a folder with `latest.yml` and the installer), for testing an update.
+- **Releases:** `bun run package` never publishes. A tag `vX.Y.Z` matching
+  `apps/desktop/package.json` runs `.github/workflows/release.yml`, which runs `bun run check`
+  and `bun run release` and uploads the installer, its blockmap and `latest.yml` to a draft
+  release; a maintainer writes the notes and publishes it. Steps in `docs/releasing.md`. The
+  installer isn't code-signed yet, so the updater checks only the SHA-512 in `latest.yml`.
 - One click updates the UI, the agent and the EPLAN components together. The user never has to
   know there are separate parts.
 - **The EPLAN components** (MCP server and skills) are **pinned** to exact commits in
@@ -336,6 +358,8 @@ bun run check               # every check below, in order; must pass before a ch
 bun run dev                 # Electron + Vite with hot reload
 bun run build               # production build into apps/desktop/out
 bun run package             # bundled runtime, then the Windows installer into apps/desktop/release
+bun run release             # the same, uploaded to a draft GitHub release (CI does this on a tag)
+bun run components:bump eplan-mcp   # pin a component to its latest commit (docs/releasing.md)
 bun run typecheck           # tsc --noEmit in every workspace (desktop: node + web configs)
 bun run lint                # oxlint (.oxlintrc.json)
 bun run format              # oxfmt, also formats Markdown and JSON

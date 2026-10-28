@@ -18,6 +18,35 @@
     "welcomeGuide": "Welcome guide",
     "showWelcome": "Show again"
   },
+  "updates": {
+    "available": "Version {{version}} is available",
+    "updateNow": "Update now",
+    "later": "Later",
+    "whatsNew": "What's new",
+    "downloading": "Downloading… {{percent}}%",
+    "restarting": "Restarting to update…",
+    "waiting": "Bochica will restart to update when the current task finishes.",
+    "tryAgain": "Try again",
+    "dismiss": "Dismiss",
+    "errors": {
+      "check": "Bochica couldn't check for updates.",
+      "download": "The update couldn't be downloaded.",
+      "install": "The update couldn't be installed.",
+      "offline": "Check your internet connection or proxy, then try again.",
+      "keeps": "This version keeps working."
+    },
+    "settings": {
+      "version": "Bochica {{version}}",
+      "off": "Updates are off in development builds.",
+      "idle": "Bochica looks for updates on its own.",
+      "upToDate": "Bochica is up to date.",
+      "checking": "Checking for updates…",
+      "deferred": "Version {{version}} will be installed the next time Bochica closes.",
+      "check": "Check for updates",
+      "restartNow": "Restart now",
+      "title": "Updates"
+    }
+  },
   "providers": {
     "title": "AI providers",
     "description": "Bochica needs at least one AI provider. Paste an API key, or use a model running on this computer. Keys are stored encrypted on this computer and never shown again.",

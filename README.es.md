@@ -46,6 +46,15 @@ así que no descarga nada para empezar (un proxy corporativo no es problema) y n
 tengas instalado. Al abrirla por primera vez, una guía corta conecta un modelo, comprueba EPLAN y
 hace una primera pregunta.
 
+## Actualizaciones
+
+Bochica busca versiones nuevas por su cuenta. Cuando hay una, un aviso al pie de la barra lateral
+ofrece **Actualizar ahora** (descarga, reinicia y listo; espera a que termine la tarea en curso)
+o **Más tarde** (se instala la próxima vez que cierres Bochica). Una sola actualización lo cubre
+todo: la aplicación y los componentes de EPLAN que lleva. Nada se actualiza sin uno de esos
+clics, y si una actualización falla, la versión instalada sigue funcionando. Ajustes → General →
+Actualizaciones muestra la versión y permite buscar en el momento.
+
 ## Desarrollo
 
 Requiere [Bun](https://bun.sh).
@@ -59,9 +68,11 @@ Comprobaciones: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bu
 `bun test`. La arquitectura está descrita en [CLAUDE.md](CLAUDE.md).
 
 `bun run package` genera el instalador en `apps/desktop/release`. Su primer paso,
-`bun run --filter @bochica/desktop runtime`, descarga el Python, `uv`, eplan-mcp y las skills
-fijados en `apps/desktop/runtime` y comprueba que el servidor de EPLAN arranca; `bun run dev`
-también usa esa carpeta cuando existe.
+`bun run --filter @bochica/desktop runtime`, descarga el Python, eplan-mcp y las skills fijados
+en `apps/desktop/runtime` y comprueba que el servidor de EPLAN arranca; `bun run dev` también
+usa esa carpeta cuando existe. Las versiones las genera CI a partir de una etiqueta de versión;
+los pasos, y cómo actualizar un componente de EPLAN, están en
+[docs/releasing.md](docs/releasing.md) (en inglés).
 
 ## Licencia
 
