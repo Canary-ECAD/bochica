@@ -38,6 +38,18 @@ jobs:
         with:
           path: apps/desktop/.cache
           key: runtime-${{ hashFiles('packages/eplan/src/runtime.ts', 'components.lock.json', 'packages/eplan/requirements.lock.txt') }}
+      # electron-builder uploads the installer, its blockmap and latest.yml in parallel, and when
+      # no release exists yet each upload may create its own draft. Create the draft first; the
+      # uploads all find it. A re-run reuses the draft left by the failed run.
+      - name: Draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing=$(gh release list --limit 100 --json tagName --jq ".[] | select(.tagName == \"$GITHUB_REF_NAME\") | .tagName")
+          if [ -z "$existing" ]; then
+            gh release create "$GITHUB_REF_NAME" --draft --title "${GITHUB_REF_NAME#v}" --notes ""
+          fi
       - run: bun run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
