@@ -16,11 +16,12 @@ import { answerApproval } from "@/state/sessions";
 export function ApprovalCard({ request }: { request: ApprovalRequest }) {
   const { t } = useTranslation();
   const [typed, setTyped] = useState("");
-  const answer = (decision: "once" | "session" | "deny") => () =>
+  const answer = (decision: "once" | "session" | "always" | "deny") => () =>
     answerApproval(request.requestId, decision, request.confirm ? typed : undefined);
   const destructive = request.confirm !== undefined;
   const risks = request.risks ?? [];
   const confirmed = request.confirm ? confirmationMatches(request.confirm, typed) : true;
+  const allowedBefore = request.allowedBefore ?? 0;
 
   return (
     <div
@@ -74,6 +75,11 @@ export function ApprovalCard({ request }: { request: ApprovalRequest }) {
           {JSON.stringify(request.input, null, 2)}
         </pre>
       </details>
+      {request.allowAlways && allowedBefore >= 2 && (
+        <p className="text-xs text-muted-foreground">
+          {t("approval.suggestAlways", { count: allowedBefore })}
+        </p>
+      )}
       {request.confirm && (
         <ConfirmField
           confirm={request.confirm}
@@ -102,6 +108,20 @@ export function ApprovalCard({ request }: { request: ApprovalRequest }) {
         {request.allowSession && !destructive && (
           <Button size="sm" variant="outline" onClick={answer("session")}>
             {t("approval.session")}
+          </Button>
+        )}
+        {request.allowAlways && !destructive && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(allowedBefore >= 2 && "border-primary text-primary")}
+            onClick={answer("always")}
+          >
+            {t(
+              request.server === "bochica" && request.tool === "powershell"
+                ? "approval.alwaysCommand"
+                : "approval.always",
+            )}
           </Button>
         )}
         <Button size="sm" variant={destructive ? "outline" : "ghost"} onClick={answer("deny")}>

@@ -133,6 +133,39 @@ describe("SessionRepository", () => {
   });
 });
 
+describe("checkpoints", () => {
+  test("keeps the first snapshot of a file per turn, oldest first, bytes intact", async () => {
+    await repo.createSession("s1", "t", "C:/Work");
+    const bytes = Buffer.from([0xef, 0xbb, 0xbf, 0x41, 0x0d, 0x0a, 0x00]);
+    await repo.saveCheckpoint("s1", "t1", "C:/Work/a.txt", { state: "file", content: bytes }, 1);
+    await repo.saveCheckpoint("s1", "t1", "C:/Work/a.txt", { state: "missing" }, 2);
+    await repo.saveCheckpoint("s1", "t1", "C:/Work/b.txt", { state: "missing" }, 3);
+    await repo.saveCheckpoint("s1", "t2", "C:/Work/big.bin", { state: "too-large" }, 4);
+    const saved = await repo.checkpointsOf("s1", ["t1", "t2"]);
+    expect(saved).toEqual([
+      { turnId: "t1", path: "C:/Work/a.txt", snapshot: { state: "file", content: bytes } },
+      { turnId: "t1", path: "C:/Work/b.txt", snapshot: { state: "missing" } },
+      { turnId: "t2", path: "C:/Work/big.bin", snapshot: { state: "too-large" } },
+    ]);
+    expect(await repo.checkpointsOf("s1", ["t2"])).toHaveLength(1);
+    expect(await repo.checkpointsOf("s1", [])).toEqual([]);
+  });
+
+  test("deleting from a message removes it, what follows, and their checkpoints", async () => {
+    await repo.createSession("s1", "t", "C:/Work");
+    await repo.saveMessage("s1", userMessage("u1", "one"));
+    await repo.saveMessage("s1", { ...answer, id: "t1" });
+    await repo.saveMessage("s1", userMessage("u2", "two"));
+    await repo.saveMessage("s1", { ...answer, id: "t2" });
+    await repo.saveCheckpoint("s1", "t1", "C:/Work/a.txt", { state: "missing" });
+    await repo.saveCheckpoint("s1", "t2", "C:/Work/a.txt", { state: "missing" });
+    expect((await repo.deleteMessagesFrom("s1", "u2")).toSorted()).toEqual(["t2", "u2"]);
+    expect((await repo.getSession("s1"))?.messages.map((m) => m.id)).toEqual(["u1", "t1"]);
+    expect(await repo.checkpointsOf("s1", ["t1", "t2"])).toHaveLength(1);
+    expect(await repo.deleteMessagesFrom("s1", "nope")).toEqual([]);
+  });
+});
+
 describe("migrations", () => {
   test("a fresh database ends at the latest version with every column", () => {
     const fresh = bunSqliteDriver();
@@ -151,6 +184,15 @@ describe("migrations", () => {
       "error",
       "created_at",
       "meta",
+    ]);
+    expect(columns("checkpoints")).toEqual([
+      "id",
+      "session_id",
+      "turn_id",
+      "path",
+      "state",
+      "content",
+      "created_at",
     ]);
     fresh.close();
   });

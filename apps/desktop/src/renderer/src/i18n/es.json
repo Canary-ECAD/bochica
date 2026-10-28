@@ -200,7 +200,12 @@
     "useSkill": "Usó la skill {{name}}",
     "todoWrite": "Actualizó la lista de tareas",
     "compact": "Resumió la conversación anterior",
-    "task": "Pidió ayuda a un ayudante: {{description}}"
+    "task": "Pidió ayuda a un ayudante: {{description}}",
+    "auto": {
+      "rule": "Permitido por tu regla «Permitir siempre»",
+      "smart": "Permitido por la aprobación inteligente: solo lee",
+      "auto": "Permitido por el modo Auto"
+    }
   },
   "approval": {
     "title": "Bochica quiere hacer esto:",
@@ -232,7 +237,11 @@
       "invisible-chars": "Contiene caracteres invisibles que pueden ocultar lo que hace en realidad.",
       "secret-upload": "Puede enviar contraseñas o claves por internet.",
       "unknown-script": "Ejecuta un script o programa cuyo contenido Bochica no puede revisar."
-    }
+    },
+    "always": "Permitir siempre",
+    "alwaysCommand": "Permitir siempre este comando",
+    "suggestAlways_one": "Ya lo permitiste una vez. ¿Permitirlo siempre?",
+    "suggestAlways_other": "Ya lo permitiste {{count}} veces. ¿Permitirlo siempre?"
   },
   "docs": {
     "title": "Documentación de EPLAN",
@@ -328,7 +337,8 @@
     "kill-bochica": "cerraría Bochica.",
     "invalid-path": "la ruta no es una ruta de archivo válida.",
     "protected-path": "esa carpeta está protegida (contraseñas, datos del navegador, datos de Bochica o Windows).",
-    "secret-file": "los archivos como .env guardan contraseñas y claves."
+    "secret-file": "los archivos como .env guardan contraseñas y claves.",
+    "user-rule": "lo prohíbe una de tus reglas «No permitir nunca» de Ajustes."
   },
   "folder": {
     "choose": "Carpeta de trabajo: {{folder}}. Haz clic para elegir otra.",
@@ -397,5 +407,66 @@
       "free": "Libre"
     },
     "note": "Al {{percent}}% Bochica resume la conversación anterior por su cuenta. También puedes escribir /compact. El reparto es una estimación."
+  },
+  "permission": {
+    "label": "Permisos",
+    "ask": {
+      "name": "Preguntar",
+      "description": "Pregunta antes de cada cambio, como siempre."
+    },
+    "plan": {
+      "name": "Plan",
+      "description": "Solo mira, y luego propone un plan para que lo apruebes. No cambia nada."
+    },
+    "auto": {
+      "name": "Auto",
+      "description": "Hace las acciones sin preguntar. Las confirmaciones escritas, cerrar EPLAN y borrar páginas siguen preguntando."
+    },
+    "autoBar": "El modo Auto está activado: Bochica hace las acciones de esta sesión sin preguntar. Las confirmaciones escritas, cerrar EPLAN y borrar páginas siguen preguntando, y los proyectos se siguen copiando antes de cambiarlos.",
+    "turnOff": "Desactivar"
+  },
+  "plan": {
+    "title": "Plan",
+    "goAhead": "Adelante",
+    "hint": "O escribe qué cambiar, y Bochica propondrá otro plan.",
+    "goMessage": "Adelante con el plan."
+  },
+  "permissions": {
+    "title": "Permisos",
+    "description": "Lo que Bochica puede hacer sin preguntarte. Los comandos que podrían estropear el ordenador se bloquean siempre, pongas lo que pongas aquí.",
+    "smart": "Aprobaciones inteligentes",
+    "smartDescription": "Antes de preguntarte por un comando, el modelo de IA comprueba si solo lee información. Si es claramente inofensivo, se ejecuta sin tarjeta. Cuesta una pequeña llamada extra al modelo por comando.",
+    "deny": "No permitir nunca",
+    "denyDescription": "Los comandos que coinciden con alguno de estos patrones se bloquean, también en modo Auto. * vale por cualquier texto, ? por un carácter.",
+    "denyPlaceholder": "Patrón, p. ej. git push*",
+    "add": "Añadir",
+    "denyEmpty": "Aún no hay reglas.",
+    "always": "Permitido siempre",
+    "alwaysDescription": "Añadido con «Permitir siempre» en una tarjeta de aprobación.",
+    "alwaysEmpty": "Nada todavía.",
+    "remove": "Quitar",
+    "tool": "Todas las llamadas a {{tool}} ({{server}})"
+  },
+  "rewind": {
+    "button": "Volver aquí",
+    "title": "Volver a este mensaje",
+    "description": "Deshace lo que pasó desde este mensaje.",
+    "files_one": "{{count}} archivo vuelve a como estaba:",
+    "files_other": "{{count}} archivos vuelven a como estaban:",
+    "noFiles": "Las herramientas de archivos de Bochica no cambiaron ningún archivo desde entonces.",
+    "change": {
+      "restore": "se restaura",
+      "delete": "se borra, no existía",
+      "too-large": "no se puede restaurar, es demasiado grande"
+    },
+    "eplan": "Los cambios hechos en EPLAN no se deshacen.",
+    "backup": "Copia del proyecto hecha por Bochica: {{path}}",
+    "commands": "Lo que cambiaron los comandos de PowerShell no se deshace.",
+    "all": "Volver: conversación y archivos",
+    "conversation": "Solo la conversación",
+    "filesOnly": "Solo los archivos",
+    "cancel": "Cancelar",
+    "failed": "Estos archivos no se pudieron restaurar:",
+    "error": "No se pudo volver atrás: {{message}}"
   }
 }

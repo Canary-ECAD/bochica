@@ -31,7 +31,7 @@ move it there and leave a link here (`→ S4-03`).
 
 ## Agent
 
-- Hermes-style guardrails: see [guardrails.md](../design/guardrails.md) (core → done in S7, advanced → S10).
+- Hermes-style guardrails: see [guardrails.md](../design/guardrails.md) (core → done in S7, advanced → done in S10).
 - **Typed confirmation for destructive actions.** Deleting EPLAN projects (one or many) and
   other bulk-destructive actions must not be one click away: the user has to type an explicit
   phrase in a text box (e.g. the project name or "DELETE") before the action can run, every
@@ -54,6 +54,10 @@ move it there and leave a link here (`→ S4-03`).
   grants tools the mode doesn't have. Later, optional: short durable memory facts and a
   background review after turns (costs tokens, so not on by default). Own sprint, or with S10
   (approvals).
+
+- **Left out of S10:** a `/rewind` command; checkpoints for files changed by PowerShell commands
+  (today only the file tools are tracked, and the rewind dialog says so); "Always allow" by
+  category, e.g. every file write inside the working folder.
 
 - **Left out of S9:** the full "Context" popover (every MCP tool, deferred tools, compaction
   buffer), exact token counting where a provider has an API for it, and a helper's own tool

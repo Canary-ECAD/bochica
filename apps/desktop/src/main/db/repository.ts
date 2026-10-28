@@ -4,12 +4,24 @@ import {
   type SessionDetail,
   type SessionSummary,
 } from "@bochica/shared";
-import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { z } from "zod";
 import type { SqlDriver } from "./driver";
 import { prepare } from "./migrations";
-import { messages, sessions } from "./schema";
+import { checkpoints, messages, sessions } from "./schema";
+
+/** What a file held before a turn first changed it. */
+export type Snapshot =
+  | { state: "file"; content: Buffer }
+  | { state: "missing" }
+  | { state: "too-large" };
+
+export interface Checkpoint {
+  turnId: string;
+  path: string;
+  snapshot: Snapshot;
+}
 
 /** Saved sessions and their messages. All writes come from main, as turns happen. */
 export class SessionRepository {
@@ -112,6 +124,64 @@ export class SessionRepository {
     await this.db
       .delete(messages)
       .where(and(eq(messages.sessionId, sessionId), inArray(messages.id, ids)));
+  }
+
+  /**
+   * Deletes a message and every later one of its session, with their checkpoints. Returns the
+   * ids deleted (none if the message isn't there).
+   */
+  async deleteMessagesFrom(sessionId: string, messageId: string): Promise<string[]> {
+    const [from] = await this.db
+      .select({ position: messages.position })
+      .from(messages)
+      .where(and(eq(messages.sessionId, sessionId), eq(messages.id, messageId)));
+    if (!from) return [];
+    const later = and(eq(messages.sessionId, sessionId), gte(messages.position, from.position));
+    const deleted = await this.db.delete(messages).where(later).returning({ id: messages.id });
+    const ids = deleted.map((row) => row.id);
+    if (ids.length > 0) await this.db.delete(checkpoints).where(inArray(checkpoints.turnId, ids));
+    return ids;
+  }
+
+  /** Saves what a file held before the turn changed it; only the first one per turn counts. */
+  async saveCheckpoint(
+    sessionId: string,
+    turnId: string,
+    path: string,
+    snapshot: Snapshot,
+    now = Date.now(),
+  ): Promise<void> {
+    await this.db
+      .insert(checkpoints)
+      .values({
+        sessionId,
+        turnId,
+        path,
+        state: snapshot.state,
+        content: snapshot.state === "file" ? snapshot.content.toString("base64") : null,
+        createdAt: now,
+      })
+      .onConflictDoNothing();
+  }
+
+  /** The checkpoints of these turns, oldest first. */
+  async checkpointsOf(sessionId: string, turnIds: string[]): Promise<Checkpoint[]> {
+    if (turnIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(checkpoints)
+      .where(and(eq(checkpoints.sessionId, sessionId), inArray(checkpoints.turnId, turnIds)))
+      .orderBy(asc(checkpoints.createdAt), asc(checkpoints.id));
+    return rows.map((row) => ({
+      turnId: row.turnId,
+      path: row.path,
+      snapshot:
+        row.state === "file"
+          ? { state: "file", content: Buffer.from(row.content ?? "", "base64") }
+          : row.state === "missing"
+            ? { state: "missing" }
+            : { state: "too-large" },
+    }));
   }
 
   /** Turns still "streaming" were cut off by a crash or a forced quit: show them as stopped. */

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { win32 } from "node:path";
 import type { AgentTool, Assessment, ToolRunResult } from "../tools";
 import { assessCommand, type CommandBlock } from "./command-guard";
+import { deniedBy } from "./deny-rules";
 import { isDevicePath } from "./paths";
 
 // The PowerShell tool. Windows PowerShell 5.1 ships with every Windows, so it is always there.
@@ -16,6 +17,8 @@ export interface PowerShellOptions {
   env: Record<string, string | undefined>;
   /** Reads a script a command runs, so the guard can check it too. */
   readScript?: (path: string) => string | null;
+  /** The user's "never allow" patterns (guardrails layer 3). */
+  denyRules?: readonly string[];
   /** For tests. */
   executable?: string;
 }
@@ -210,14 +213,22 @@ function readScriptFile(path: string): string | null {
 
 export function powershellTool(options: PowerShellOptions): AgentTool {
   const assess = (input: unknown): Assessment => {
-    const result = assessCommand(text(input, "command"), {
+    const command = text(input, "command");
+    const result = assessCommand(command, {
       cwd: options.cwd,
       env: safeEnv(options.env),
       readScript: options.readScript ?? readScriptFile,
     });
-    return "block" in result
-      ? { block: result.block, reason: commandBlockReasons[result.block] }
-      : { risks: result.risks };
+    if ("block" in result)
+      return { block: result.block, reason: commandBlockReasons[result.block] };
+    const rule = deniedBy(command, options.denyRules ?? []);
+    if (rule) {
+      return {
+        block: "user-rule",
+        reason: `the user's own rules in Bochica's settings never allow commands like this one (rule "${rule}").`,
+      };
+    }
+    return { risks: result.risks };
   };
   return {
     name: "bochica__powershell",

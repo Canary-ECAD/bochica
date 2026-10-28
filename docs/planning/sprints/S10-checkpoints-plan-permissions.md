@@ -1,6 +1,6 @@
 # S10 — Checkpoints, plan mode and permissions
 
-**Status:** active
+**Status:** done
 **Goal:** the user can undo what the agent did to their files by rewinding to an earlier
 message; can ask for a plan first and approve it before anything changes; and can decide how
 much Bochica asks: rules that never allow a command, "Always allow" for what they trust, an
@@ -72,47 +72,47 @@ Packages: eplan, desktop (main), docs.
 
 Packages: shared, agent, desktop.
 
-- [ ] `PermissionStore` (`permissions.json`): always-allow rules, deny rules, smart switch,
+- [x] `PermissionStore` (`permissions.json`): always-allow rules, deny rules, smart switch,
       approval counts; corrupt file set aside; tests.
-- [ ] `commandStatements` / `matchesDenyRule` in agent, with a table test (aliases, statements,
+- [x] `commandStatements` / `matchesDenyRule` in agent, with a table test (aliases, statements,
       look-alikes that pass); the PowerShell tool blocks a match with `user-rule`.
-- [ ] IPC `permissions:get` / `permissions:set`; Settings → Permissions: deny rules (add,
+- [x] IPC `permissions:get` / `permissions:set`; Settings → Permissions: deny rules (add,
       remove), always-allow list (remove), smart switch. Strings in en and es.
 
 ### S10-02 · Always allow, history and automatic approvals
 
 Packages: shared, agent, desktop.
 
-- [ ] `ApprovalDecision` "always"; the card's third button (command or tool wording); main only
+- [x] `ApprovalDecision` "always"; the card's third button (command or tool wording); main only
       honours it when the request allowed it; approval counts and the suggestion line.
-- [ ] Approver answers can be automatic (`rule`, `smart`, `auto`); `tool-result.auto` saved on
+- [x] Approver answers can be automatic (`rule`, `smart`, `auto`); `tool-result.auto` saved on
       the part; the log shows why. Tests in `tools.test.ts` and `approvals.test.ts`.
 
 ### S10-03 · Permission modes: Ask, Plan, Auto
 
 Packages: shared, agent, desktop.
 
-- [ ] Picker in the composer, per session; `approvals:set-auto`; red bar with "Turn off";
+- [x] Picker in the composer, per session; `approvals:set-auto`; red bar with "Turn off";
       Auto skips what it may and nothing else (tests for each exception).
-- [ ] `ChatSendRequest.plan`; plan tool filter and prompt section; `propose_plan` tool; plan
+- [x] `ChatSendRequest.plan`; plan tool filter and prompt section; `propose_plan` tool; plan
       card with Go ahead; tests for the filter and the prompt.
 
 ### S10-04 · Smart approvals
 
 Packages: agent, desktop (main).
 
-- [ ] `judgeCommand(model, command, description)` with a mock model: yes, no, rubbish,
+- [x] `judgeCommand(model, command, description)` with a mock model: yes, no, rubbish,
       failure, timeout; only for risk-free PowerShell commands, only when switched on.
 
 ### S10-05 · Checkpoints and rewind
 
 Packages: shared, agent, desktop.
 
-- [ ] `AgentTool.writes(input)` on the file tools; `ChatService` saves the first snapshot of
+- [x] `AgentTool.writes(input)` on the file tools; `ChatService` saves the first snapshot of
       each file per turn (migration 4); repository tests.
-- [ ] `checkpoints:preview` / `checkpoints:rewind`: files restored or deleted, conversation
+- [x] `checkpoints:preview` / `checkpoints:rewind`: files restored or deleted, conversation
       cut, refused while a turn runs; tests on a temporary folder.
-- [ ] Rewind button and dialog, with the EPLAN / commands note and the backup path; the
+- [x] Rewind button and dialog, with the EPLAN / commands note and the backup path; the
       message goes back to the composer. Strings in en and es.
 
 ## Demo
@@ -128,4 +128,40 @@ harmless command through when the fake judge says yes.
 
 ## Outcome
 
-_To be written when the sprint closes._
+Closed 2026-10-28.
+
+- Shipped: built-in skills from eplan-scripting-skill and eec-pro-skill, each pinned and
+  downloaded on its own, stale caches removed; `PermissionStore` (`permissions.json`) with
+  "Always allow" rules, "Never allow" patterns, the smart switch and approval counts; `deniedBy`
+  in the PowerShell tool (`user-rule`); the approval card's "Always allow" / "Always allow this
+  command" and the "You allowed this N times" suggestion from the third request; automatic
+  answers (`rule`, `smart`, `auto`) saved on the tool part and explained in the log; permission
+  modes Ask / Plan / Auto in the composer, the red Auto bar, `approvals:set-auto`;
+  `planModeTools`, `propose_plan`, the plan prompt section and the plan card with "Go ahead";
+  `judgeCommand`; checkpoints (migration 4) with `AgentTool.writes`, `CheckpointService` and the
+  rewind dialog; Settings → Permissions. 549 tests.
+- Decisions taken while building: the approver gets `fixed` (the tool's own policy always asks),
+  so Auto skips risky commands but never EPLAN tools that always ask; "Always allow" is offered
+  exactly where "Allow for this session" is; a reloaded window turns Auto off in main too, since
+  the renderer forgets it (found during the demo); smart approval races its own timer, because
+  a provider that ignores the abort must not hold the card; a rewind that fails for some files
+  leaves the dialog open and lists them, and doesn't cut the conversation.
+- Demo on the built app with the fake LM Studio (isolated user-data folder, Spanish UI): two
+  turns wrote `notas.txt` (which existed) and `datos.csv` and then edited the notes; the rewind
+  dialog listed "notas.txt se restaura" and "datos.csv se borra, no existía"; "Volver:
+  conversación y archivos" put back the original text, deleted the CSV, emptied the
+  conversation and left the message in the composer. In Plan the model's tools had no write,
+  edit or PowerShell tool and it proposed a plan; "Adelante" switched to Preguntar, sent "Adelante
+  con el plan." and the write asked as usual. `Remove-Item*` added in Settings blocked
+  `rm x.txt`, also in Auto. "Permitir siempre este comando" on `Get-ChildItem -Name` made the
+  next one run with "Permitido por tu regla «Permitir siempre»". The third `Get-Date` card said
+  "Ya lo permitiste 2 veces. ¿Permitirlo siempre?". With smart approvals on, `Get-Date` ran
+  ("solo lee") and `New-Item` showed a card. Auto showed the red bar and wrote a file without a
+  card; "Desactivar" made the next write ask; Auto followed by a window reload asked again. After
+  a restart the saved parts kept `rule`, `smart` and `auto`, and the old skill cache was gone,
+  with both new commits downloaded.
+- Not exercised in the demo (covered by tests): Auto still asking for EPLAN tools that always
+  ask and for typed confirmations (no EPLAN in the demo); a real model's judgement for smart
+  approvals; rewinding files that are too large or became protected.
+- Moved out → backlog: `/rewind`, tracking files changed by PowerShell, "Always allow" by
+  category (e.g. every write inside the working folder).

@@ -51,7 +51,9 @@ Refused regardless of approvals, "always allow" or YOLO mode. Windows-first list
 ### 3. User deny rules
 
 A list of glob patterns in Settings ("Never allow…"), matched case-insensitively against the
-normalized command and each sub-command. Lets advanced users run YOLO with exceptions.
+normalized command and each sub-command, also with the command's alias expanded (`rm` →
+`Remove-Item`). Lets advanced users run YOLO with exceptions. Built in S10: `deniedBy`, checked in
+the PowerShell tool's assessment, so a match is blocked before any approval, in every mode.
 
 ### 4. Protected paths (file tools)
 
@@ -76,17 +78,24 @@ The approval card:
 - **Allow once** · **Allow for this session** · **Always allow** · **Deny** (default).
 - Times out after 5 minutes → denied (fail closed). A timed-out request is not reopened; the
   user asks again.
-- Until S10 brings "Always allow", a flagged command asks every time: "Allow for this session"
-  only covers commands with no flag.
-- "Always allow" entries are listed and removable in Settings. Destructive classes (recursive
-  delete, disk, registry, credential paths) can never be "always" allowed — only once/session.
+- A flagged command asks every time: "Allow for this session" and "Always allow" only cover
+  calls with no flag, and are never offered for tools that always ask or need typed
+  confirmation.
+- "Always allow" (S10) remembers the exact PowerShell command (spaces normalised,
+  case-insensitive) or, for other tools, the tool. Entries are listed and removable in Settings.
+  Since flagged calls can't be always allowed, destructive classes (recursive delete, disk,
+  registry, credential paths) never are.
 
-YOLO mode: a per-session toggle that skips layer 5 only. While on, a red banner stays visible in
-the session. Layers 1–4, 6's backups and 7–9 still apply.
+YOLO mode (S10, "Auto" in the UI): a per-session toggle that skips layer 5 only, risky commands
+included. While on, a red banner stays visible in the session with a button to turn it off,
+which applies at once. Layers 1–4, typed confirmation, EPLAN tools that always ask, 6's backups
+and 7–9 still apply. It is never remembered across restarts or window reloads.
 
-Later (S10): "smart" mode, where a small model auto-approves clearly harmless commands and
-escalates uncertain ones; and approval-history suggestions ("You allowed `git status` 14 times —
-always allow it?"), never proposing destructive classes.
+Smart approvals (S10, off by default): before a card is shown for a PowerShell command with no
+flag, the turn's own model is asked whether it only reads. Only an exact APPROVE runs it;
+anything else, a failure or 20 s without an answer shows the card. Approval history (S10):
+from the third request for the same command or tool, the card says how often the user allowed
+it and suggests "Always allow". Calls allowed without a card say why in the activity log.
 
 ### 6. EPLAN project safety
 

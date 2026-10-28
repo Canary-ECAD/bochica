@@ -9,6 +9,11 @@ const skill = {
 };
 
 describe("systemPrompt", () => {
+  test("plan mode says to propose a plan and stop, only when asked", () => {
+    expect(systemPrompt("tasks", [], { plan: true })).toContain("bochica__propose_plan");
+    expect(systemPrompt("tasks")).not.toContain("# Plan mode");
+  });
+
   test("Consult includes the scripting guide and says it can't act", () => {
     const prompt = systemPrompt("consult", [skill]);
     expect(prompt).toContain("# Mode: Consult");

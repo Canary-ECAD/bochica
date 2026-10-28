@@ -26,6 +26,18 @@ export const migrations: readonly string[] = [
   `ALTER TABLE sessions ADD COLUMN folder TEXT;`,
   // S9: context usage and compaction summaries on answers.
   `ALTER TABLE messages ADD COLUMN meta TEXT;`,
+  // S10: what each file held before a turn first changed it, for rewinding.
+  `CREATE TABLE checkpoints (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+     turn_id TEXT NOT NULL,
+     path TEXT NOT NULL,
+     state TEXT NOT NULL,
+     content TEXT,
+     created_at INTEGER NOT NULL,
+     UNIQUE (turn_id, path)
+   );
+   CREATE INDEX checkpoints_session ON checkpoints(session_id);`,
 ];
 
 function userVersion(driver: SqlDriver): number {

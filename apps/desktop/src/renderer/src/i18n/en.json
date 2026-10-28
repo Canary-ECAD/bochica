@@ -200,7 +200,12 @@
     "useSkill": "Used the skill {{name}}",
     "todoWrite": "Updated the task list",
     "compact": "Summarised the earlier conversation",
-    "task": "Asked a helper: {{description}}"
+    "task": "Asked a helper: {{description}}",
+    "auto": {
+      "rule": "Allowed by your “Always allow” rule",
+      "smart": "Allowed by smart approval: it only reads",
+      "auto": "Allowed by Auto mode"
+    }
   },
   "approval": {
     "title": "Bochica wants to do this:",
@@ -232,7 +237,11 @@
       "invisible-chars": "It contains invisible characters that can hide what it really does.",
       "secret-upload": "It may send passwords or keys over the internet.",
       "unknown-script": "It runs a script or program whose contents Bochica can't check."
-    }
+    },
+    "always": "Always allow",
+    "alwaysCommand": "Always allow this command",
+    "suggestAlways_one": "You allowed this once before. Always allow it?",
+    "suggestAlways_other": "You allowed this {{count}} times before. Always allow it?"
   },
   "docs": {
     "title": "EPLAN documentation",
@@ -328,7 +337,8 @@
     "kill-bochica": "it would close Bochica.",
     "invalid-path": "the path isn't a valid file path.",
     "protected-path": "that folder is protected (passwords, browser data, Bochica's own data, or Windows).",
-    "secret-file": "files like .env hold passwords and keys."
+    "secret-file": "files like .env hold passwords and keys.",
+    "user-rule": "one of your “Never allow” rules in Settings forbids it."
   },
   "folder": {
     "choose": "Working folder: {{folder}}. Click to choose another.",
@@ -397,5 +407,66 @@
       "free": "Free"
     },
     "note": "At {{percent}}% Bochica summarises the older conversation by itself. You can also type /compact. The split is an estimate."
+  },
+  "permission": {
+    "label": "Permissions",
+    "ask": {
+      "name": "Ask",
+      "description": "Asks before every change, as usual."
+    },
+    "plan": {
+      "name": "Plan",
+      "description": "Only looks around, then proposes a plan for you to approve. Changes nothing."
+    },
+    "auto": {
+      "name": "Auto",
+      "description": "Runs actions without asking. Typed confirmations, closing EPLAN and deleting pages still ask."
+    },
+    "autoBar": "Auto mode is on: Bochica runs actions in this session without asking. Typed confirmations, closing EPLAN and deleting pages still ask, and projects are still backed up.",
+    "turnOff": "Turn off"
+  },
+  "plan": {
+    "title": "Plan",
+    "goAhead": "Go ahead",
+    "hint": "Or write what to change, and Bochica will propose a new plan.",
+    "goMessage": "Go ahead with the plan."
+  },
+  "permissions": {
+    "title": "Permissions",
+    "description": "What Bochica may do without asking you. Commands that could wreck the computer are always blocked, whatever you set here.",
+    "smart": "Smart approvals",
+    "smartDescription": "Before asking you about a command, the AI model checks whether it only reads information. If it is clearly harmless, it runs without a card. Costs a short extra model call per command.",
+    "deny": "Never allow",
+    "denyDescription": "Commands that match one of these patterns are blocked, also in Auto mode. * stands for any text, ? for one character.",
+    "denyPlaceholder": "Pattern, e.g. git push*",
+    "add": "Add",
+    "denyEmpty": "No rules yet.",
+    "always": "Always allowed",
+    "alwaysDescription": "Added with “Always allow” on an approval card.",
+    "alwaysEmpty": "Nothing yet.",
+    "remove": "Remove",
+    "tool": "Every call of {{tool}} ({{server}})"
+  },
+  "rewind": {
+    "button": "Rewind to here",
+    "title": "Rewind to this message",
+    "description": "Undo what happened from this message on.",
+    "files_one": "{{count}} file goes back to how it was:",
+    "files_other": "{{count}} files go back to how they were:",
+    "noFiles": "Bochica's file tools changed no files since then.",
+    "change": {
+      "restore": "restored",
+      "delete": "deleted, it didn't exist",
+      "too-large": "can't be restored, too large"
+    },
+    "eplan": "Changes made in EPLAN are not undone.",
+    "backup": "Bochica's backup of the project: {{path}}",
+    "commands": "What PowerShell commands changed is not undone.",
+    "all": "Rewind conversation and files",
+    "conversation": "Conversation only",
+    "filesOnly": "Files only",
+    "cancel": "Cancel",
+    "failed": "These files couldn't be restored:",
+    "error": "Couldn't rewind: {{message}}"
   }
 }

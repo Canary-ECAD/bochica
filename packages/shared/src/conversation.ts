@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  AutoApproval,
   ChatErrorCode,
   type ChatMessage,
   Compaction,
@@ -23,6 +24,8 @@ export const ToolPart = z.object({
   output: z.string().optional(),
   blocked: z.string().optional(),
   diff: FileDiff.optional(),
+  /** Why it ran without asking, when it did. */
+  auto: AutoApproval.optional(),
 });
 export type ToolPart = z.infer<typeof ToolPart>;
 
@@ -126,6 +129,7 @@ export function applyTurnEvent(
                 output: event.output,
                 ...(event.blocked ? { blocked: event.blocked } : {}),
                 ...(event.diff ? { diff: event.diff } : {}),
+                ...(event.auto ? { auto: event.auto } : {}),
               }
             : p,
         ),

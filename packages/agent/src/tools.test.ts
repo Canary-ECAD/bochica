@@ -46,6 +46,8 @@ function searchTool(overrides: Partial<AgentTool> = {}): AgentTool {
   };
 }
 
+const allowedByRule: Approver = async () => ({ auto: "rule" });
+
 async function collect(
   model: MockLanguageModelV4,
   tools: AgentTool[],
@@ -235,6 +237,28 @@ describe("tools in the loop", () => {
     const events = await collect(model, [tool]);
     expect(events[1]).toMatchObject({ diff: { path: "a.txt", added: 1, removed: 0 } });
     expect(JSON.stringify(events)).not.toContain("SECRETSECRET");
+  });
+
+  test("an automatic approval runs the call and says why on its result", async () => {
+    const tool = searchTool({ approval: "ask" });
+    const model = new MockLanguageModelV4({ doStream: [callStep(tool.name, {}), textStep("ok")] });
+    const events = await collect(model, [tool], allowedByRule);
+    expect(events[1]).toMatchObject({ type: "tool-result", status: "ok", auto: "rule" });
+  });
+
+  test("the approver learns whether the tool itself always asks", async () => {
+    const asked: boolean[] = [];
+    const approve: Approver = async (call) => {
+      asked.push(call.fixed);
+      return "allow";
+    };
+    const always = searchTool({ name: "always", approval: "always" });
+    const ask = searchTool({ name: "ask", approval: "ask" });
+    const model = new MockLanguageModelV4({
+      doStream: [callStep("always", {}), callStep("ask", {}, "call-2"), textStep("ok")],
+    });
+    await collect(model, [always, ask], approve);
+    expect(asked).toEqual([true, false]);
   });
 
   test("without an approver, calls that need approval are denied", async () => {

@@ -166,6 +166,28 @@ export function assessCommand(command: string, context: CommandContext): Command
   return { risks: [...findings.risks] };
 }
 
+/**
+ * The statements of a command as the user would read them: each one's words joined by single
+ * spaces, nested commands (`$(…)`, `{…}`, `"$(…)"`) included, plus the same statement with its
+ * command name's alias expanded (`rm x` also gives `remove-item x`). Null if it can't be parsed.
+ */
+export function commandStatements(command: string): string[] | null {
+  const out: string[] = [];
+  const walk = (text: string, depth: number): boolean => {
+    if (depth > MAX_DEPTH) return false;
+    const lexed = lex(text.replace(INVISIBLE, ""));
+    if (!lexed) return false;
+    for (const words of lexed.statements) {
+      out.push(words.join(" "));
+      const [first, ...rest] = words;
+      const alias = first === undefined ? undefined : ALIASES[first.toLowerCase()];
+      if (alias) out.push([alias, ...rest].join(" "));
+    }
+    return lexed.nested.every((nested) => walk(nested, depth + 1));
+  };
+  return walk(command, 0) ? out : null;
+}
+
 function analyze(text: string, context: CommandContext, depth: number, out: Findings): void {
   if (out.block) return;
   if (depth > MAX_DEPTH) {

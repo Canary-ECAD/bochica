@@ -19,11 +19,13 @@ import { ContextMeter } from "@/components/context-meter";
 import { FolderPicker } from "@/components/folder-picker";
 import { ModelPicker } from "@/components/model-picker";
 import { ModePicker } from "@/components/mode-picker";
+import { PermissionPicker } from "@/components/permission-picker";
 import { skillsKey } from "@/components/skills-settings";
 import { Button } from "@/components/ui/button";
 import { activeTrigger, complete, matchByName } from "@/lib/composer-trigger";
 import { useMode } from "@/state/mode";
 import { useModelChoice } from "@/state/model-choice";
+import type { PermissionMode } from "@/state/permission";
 import type { ModelChoice } from "@/state/sessions";
 
 /**
@@ -53,6 +55,11 @@ interface ComposerProps {
   onPickFolder?: (() => void) | undefined;
   /** How full the model's context was after the last answer, in a session. */
   context?: ContextUsage | undefined;
+  /** How much Bochica asks: Ask, Plan or Auto. */
+  permission: PermissionMode;
+  onPermission(mode: PermissionMode): void;
+  /** Text the box starts with, e.g. a message given back by a rewind. */
+  initialText?: string | undefined;
 }
 
 export function Composer({
@@ -62,12 +69,15 @@ export function Composer({
   folder,
   onPickFolder,
   context,
+  permission,
+  onPermission,
+  initialText = "",
 }: ComposerProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setMode = useMode((state) => state.setMode);
-  const [draft, setDraft] = useState("");
-  const [cursor, setCursor] = useState(0);
+  const [draft, setDraft] = useState(initialText);
+  const [cursor, setCursor] = useState(initialText.length);
   const [active, setActive] = useState(0);
   /** Esc hides the menu until the text changes. */
   const [dismissed, setDismissed] = useState(false);
@@ -223,6 +233,7 @@ export function Composer({
       <div className="mt-1 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <ModePicker />
+          <PermissionPicker mode={permission} onChange={onPermission} />
           {folder && (
             <FolderPicker folder={folder} {...(onPickFolder ? { onPick: onPickFolder } : {})} />
           )}

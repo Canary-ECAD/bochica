@@ -1,4 +1,4 @@
-import type { Confirmation, FileDiff, ToolStatus } from "@bochica/shared";
+import type { AutoApproval, Confirmation, FileDiff, ToolStatus } from "@bochica/shared";
 import { dynamicTool, jsonSchema, type ToolSet } from "ai";
 import { redactSecrets } from "./redact";
 
@@ -29,6 +29,11 @@ export interface AgentTool {
    * make it ask every time and say why.
    */
   assess?: (input: unknown) => Assessment;
+  /**
+   * The file this call would write, as an absolute path, or null when it writes none or the
+   * path is refused. Lets Bochica save a checkpoint of the file before it changes.
+   */
+  writes?: (input: unknown) => string | null;
   execute(input: unknown, signal: AbortSignal): Promise<ToolRunResult>;
 }
 
@@ -46,14 +51,18 @@ export type Assessment =
   /** Allowed to ask; `risks` make it ask every time and are listed on the card. */
   | { risks: string[] };
 
-export type ApprovalAnswer = "allow" | "deny";
+/** The user's answer, or why the call was allowed without asking them. */
+export type ApprovalAnswer = "allow" | "deny" | { auto: AutoApproval };
 
 export type Approver = (call: {
   callId: string;
   server: string;
   tool: string;
   input: unknown;
+  /** "ask": may be allowed for the session or always. "always": asks every time. */
   approval: Exclude<ToolApproval, "never">;
+  /** The tool itself always asks (its policy says so), not just this call. */
+  fixed: boolean;
   confirm?: Confirmation;
   risks?: string[];
 }) => Promise<ApprovalAnswer>;
@@ -64,6 +73,7 @@ export interface ToolOutcome {
   text: string;
   blocked?: string;
   diff?: FileDiff;
+  auto?: AutoApproval;
 }
 
 /** Longest tool output sent to the model; longer output is cut with a note. */
@@ -103,6 +113,7 @@ export async function runTool(
   }
   const { risks } = assessment;
   const confirm = tool.confirmation?.(input) ?? undefined;
+  let auto: AutoApproval | undefined;
   if (confirm || risks.length > 0 || tool.approval !== "never") {
     // Destructive and risky calls ask every time, even on an otherwise read-only tool.
     const approval =
@@ -114,6 +125,7 @@ export async function runTool(
           tool: tool.tool,
           input,
           approval,
+          fixed: tool.approval === "always",
           ...(confirm ? { confirm } : {}),
           ...(risks.length > 0 ? { risks } : {}),
         })
@@ -124,6 +136,7 @@ export async function runTool(
         text: "The user did not allow this action. Do not retry it; ask the user how to continue.",
       };
     }
+    if (typeof answer === "object") auto = answer.auto;
   }
   try {
     const result = await tool.execute(input, signal);
@@ -131,10 +144,11 @@ export async function runTool(
       status: result.ok ? "ok" : "error",
       text: truncate(redactSecrets(result.text), MODEL_OUTPUT_LIMIT),
       ...(result.diff ? { diff: { ...result.diff, patch: redactSecrets(result.diff.patch) } } : {}),
+      ...(auto ? { auto } : {}),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return { status: "error", text: redactSecrets(message) };
+    return { status: "error", text: redactSecrets(message), ...(auto ? { auto } : {}) };
   }
 }
 

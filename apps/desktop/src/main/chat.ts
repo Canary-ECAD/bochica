@@ -12,7 +12,9 @@ import {
   estimateContext,
   expandSkillCommands,
   getProvider,
+  judgeCommand,
   type McpManager,
+  planModeTools,
   redactSecrets,
   runTurn,
   type SkillSet,
@@ -39,13 +41,15 @@ import {
   userMessage,
 } from "@bochica/shared";
 import type { WebContents } from "electron";
-import type { ApprovalService } from "./approvals";
+import type { ApprovalService, Judge } from "./approvals";
 import type { BackupGuard } from "./backup";
+import type { CheckpointService } from "./checkpoints";
 import type { CredentialStore } from "./credentials";
 import type { SessionRepository } from "./db/repository";
 import { builtinTools, type FolderService } from "./folders";
 import type { Logger } from "./logger";
 import { EPLAN_SERVER_ID } from "./mcp-service";
+import type { PermissionStore } from "./permissions";
 import type { SkillService } from "./skills";
 
 const TEXT_SAVE_INTERVAL_MS = 1_000;
@@ -62,6 +66,8 @@ export interface ChatDeps {
   sessions: SessionRepository;
   skills: SkillService;
   folders: FolderService;
+  permissions: PermissionStore;
+  checkpoints: CheckpointService;
   logger: Logger;
   /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
   extraTools?: AgentTool[];
@@ -69,7 +75,8 @@ export interface ChatDeps {
 
 /** Runs chat turns in the main process and streams their events to the window that asked. */
 export class ChatService {
-  private readonly running = new Map<string, AbortController>();
+  /** Turns in progress: turn id → its controller and session. */
+  private readonly running = new Map<string, { controller: AbortController; sessionId: string }>();
 
   private readonly credentials: CredentialStore;
   private readonly mcp: McpManager;
@@ -78,6 +85,8 @@ export class ChatService {
   private readonly sessions: SessionRepository;
   private readonly skills: SkillService;
   private readonly folders: FolderService;
+  private readonly permissions: PermissionStore;
+  private readonly checkpoints: CheckpointService;
   private readonly logger: Logger;
   private readonly extraTools: AgentTool[];
 
@@ -89,6 +98,8 @@ export class ChatService {
     this.sessions = deps.sessions;
     this.skills = deps.skills;
     this.folders = deps.folders;
+    this.permissions = deps.permissions;
+    this.checkpoints = deps.checkpoints;
     this.logger = deps.logger;
     this.extraTools = deps.extraTools ?? [];
   }
@@ -97,17 +108,55 @@ export class ChatService {
    * The tools a mode allows. Consult: the docs and the file tools. Tasks: the docs, the EPLAN
    * tools, the file tools and PowerShell. Draw: the docs and the drawing tools. Every mode can
    * open the skills, keep a task list and hand research to a helper, which gets only the mode's
-   * read-only tools.
+   * read-only tools. In plan mode, only what reads, plus propose_plan.
    */
-  private toolsFor(mode: ChatMode, folder: string, skills: SkillSet, model: Model): AgentTool[] {
+  private toolsFor(
+    mode: ChatMode,
+    folder: string,
+    skills: SkillSet,
+    model: Model,
+    plan: boolean,
+  ): AgentTool[] {
     const mcpTools = this.mcp
       .tools()
       .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
-    const builtin = builtinTools(mode, folder, this.folders.policy, process.env);
+    const builtin = builtinTools(
+      mode,
+      folder,
+      this.folders.policy,
+      process.env,
+      this.permissions.denyRules(),
+    );
     const own = [...mcpTools, ...skills.tools(), ...builtin, ...this.extraTools];
     const files = builtin.length > 0 ? `The user's working folder is ${folder}.` : undefined;
     const helper = subagentTool({ model, tools: own, ...(files ? { context: files } : {}) });
-    return [...own, todoTool, helper];
+    const all = [...own, todoTool, helper];
+    return plan ? planModeTools(all) : all;
+  }
+
+  /** Whether a turn of this session is running; rewinding waits until it isn't. */
+  busy(sessionId: string): boolean {
+    return [...this.running.values()].some((turn) => turn.sessionId === sessionId);
+  }
+
+  /**
+   * Smart approvals: risk-free PowerShell commands go to the turn's model first when the user
+   * switched it on (checked on every call, so the switch applies at once).
+   */
+  private judgeFor(model: Model, signal: AbortSignal): Judge {
+    return async ({ server, tool, input }) => {
+      if (server !== "bochica" || tool !== "powershell" || !this.permissions.smart()) return false;
+      const field = (name: string) => {
+        const value = (input as Record<string, unknown> | null)?.[name];
+        return typeof value === "string" ? value : "";
+      };
+      return judgeCommand({
+        model,
+        command: field("command"),
+        description: field("description"),
+        abortSignal: signal,
+      });
+    };
   }
 
   /** Whether `@path` names a file to attach. Refused paths count, so the log says why. */
@@ -175,21 +224,26 @@ export class ChatService {
       return;
     }
 
-    const approve = this.approvals.approverFor(request.sessionId, request.turnId, (approval) => {
-      if (!target.isDestroyed()) {
-        target.send(ipcChannels.approvalRequest, ApprovalRequest.parse(approval));
-      }
-    });
-
     const controller = new AbortController();
-    this.running.set(request.turnId, controller);
+    this.running.set(request.turnId, { controller, sessionId: request.sessionId });
     void (async () => {
       await started;
       try {
         const model = createModel(request.provider, key, request.model);
+        const approve = this.approvals.approverFor(
+          request.sessionId,
+          request.turnId,
+          (approval) => {
+            if (!target.isDestroyed()) {
+              target.send(ipcChannels.approvalRequest, ApprovalRequest.parse(approval));
+            }
+          },
+          this.judgeFor(model, controller.signal),
+        );
+        const plan = request.plan ?? false;
         const folder = await this.folderOf(request.sessionId);
         const skills = this.skills.available();
-        const tools = this.toolsFor(request.mode, folder, skills, model);
+        const tools = this.toolsFor(request.mode, folder, skills, model, plan);
         const find = (name: string) => tools.find((t) => t.server === "bochica" && t.tool === name);
         const guides = request.mode === "consult" ? this.skills.guides() : [];
         const messages = expandSkillCommands(request.messages, (name) => skills.find(name));
@@ -226,6 +280,7 @@ export class ChatService {
         const system = systemPrompt(request.mode, guides, {
           ...(find("read_file") ? { folder, terminal: Boolean(find("powershell")) } : {}),
           skills: skills.skills.filter((skill) => !guides.includes(skill)),
+          plan,
         });
         // Summarise the older conversation when this turn would fill most of the window, or
         // when the user asked for it with /compact (which needs no answer from the model).
@@ -250,9 +305,13 @@ export class ChatService {
           messages,
           system,
           abortSignal: controller.signal,
-          tools: tools.map((tool) =>
-            tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
-          ),
+          tools: tools
+            .map((tool) =>
+              tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
+            )
+            .map((tool) =>
+              tool.writes ? this.withCheckpoint(tool, request.sessionId, request.turnId) : tool,
+            ),
           approve,
         })) {
           if (event.type === "error") {
@@ -359,13 +418,32 @@ export class ChatService {
     };
   }
 
+  /**
+   * Checkpoints: after approval and right before the file changes, what it holds now is saved
+   * (only the first time per turn). A failed save is logged and the change still runs.
+   */
+  private withCheckpoint(tool: AgentTool, sessionId: string, turnId: string): AgentTool {
+    return {
+      ...tool,
+      execute: async (input, signal) => {
+        const path = tool.writes?.(input);
+        if (path) {
+          await this.checkpoints
+            .record(sessionId, turnId, path)
+            .catch((error: unknown) => this.logger.error("Saving a checkpoint failed", error));
+        }
+        return tool.execute(input, signal);
+      },
+    };
+  }
+
   stop(turnId: string): void {
     this.approvals.cancelTurn(turnId);
-    this.running.get(turnId)?.abort();
+    this.running.get(turnId)?.controller.abort();
   }
 
   stopAll(): void {
-    for (const [turnId, controller] of this.running) {
+    for (const [turnId, { controller }] of this.running) {
       this.approvals.cancelTurn(turnId);
       controller.abort();
     }

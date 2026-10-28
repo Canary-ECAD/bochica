@@ -9,6 +9,9 @@ import {
   ipcChannels,
   McpServerList,
   ModelList,
+  Permissions,
+  RewindPreview,
+  RewindResult,
   SessionDetail,
   SessionSummary,
   SkillInstallReport,
@@ -64,6 +67,20 @@ const api: BochicaApi = {
     respond: async (response) => {
       await ipcRenderer.invoke(ipcChannels.approvalRespond, response);
     },
+    setAuto: async (request) => {
+      await ipcRenderer.invoke(ipcChannels.approvalsSetAuto, request);
+    },
+  },
+  permissions: {
+    get: async () => Permissions.parse(await ipcRenderer.invoke(ipcChannels.permissionsGet)),
+    set: async (permissions) =>
+      Permissions.parse(await ipcRenderer.invoke(ipcChannels.permissionsSet, permissions)),
+  },
+  checkpoints: {
+    preview: async (request) =>
+      RewindPreview.parse(await ipcRenderer.invoke(ipcChannels.checkpointsPreview, request)),
+    rewind: async (request) =>
+      RewindResult.parse(await ipcRenderer.invoke(ipcChannels.checkpointsRewind, request)),
   },
   sessions: {
     list: async () =>

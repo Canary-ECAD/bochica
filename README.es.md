@@ -28,6 +28,10 @@ lo que quieres con tus propias palabras.
     (típicos, fórmulas, Job Server, generación).
   - [eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags): busca en la
     documentación de EPLAN (P8 2027 siempre activo; P8 2026 y EEC Pro opcionales).
+- Deshacer: vuelve a un mensaje anterior y los archivos que cambió el agente quedan como
+  estaban.
+- Primero un plan, o que trabaje solo: pide un plan para aprobarlo antes de cambiar nada, decide
+  qué se permite siempre y qué nunca, o pasa una sesión a modo Auto.
 - Actualizaciones con un clic.
 
 ## Requisitos

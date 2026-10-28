@@ -49,8 +49,9 @@ export function builtinTools(
   folder: string,
   policy: PathPolicy,
   env: Record<string, string | undefined>,
+  denyRules: readonly string[] = [],
 ): AgentTool[] {
   if (mode === "draw") return [];
   const files = fileTools({ cwd: folder, policy });
-  return mode === "tasks" ? [...files, powershellTool({ cwd: folder, env })] : files;
+  return mode === "tasks" ? [...files, powershellTool({ cwd: folder, env, denyRules })] : files;
 }

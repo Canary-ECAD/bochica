@@ -14,6 +14,7 @@ import {
 } from "@bochica/shared";
 import { create } from "zustand";
 import { useMode } from "./mode";
+import { permissionOf } from "./permission";
 
 // The renderer's view of the conversations. Main saves everything as turns happen; this store
 // mirrors it for the UI and loads saved sessions on demand.
@@ -226,6 +227,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
       messages,
       ...(session.folder ? { folder: session.folder } : {}),
       ...(choice.contextWindow ? { contextWindow: choice.contextWindow } : {}),
+      ...(permissionOf(sessionId) === "plan" ? { plan: true } : {}),
     })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({
@@ -264,6 +266,12 @@ export function answerApproval(
     decision,
     ...(typed === undefined ? {} : { typed }),
   });
+}
+
+/** Reads a session from disk again, e.g. after main cut it on a rewind. */
+export async function reloadSession(sessionId: string): Promise<void> {
+  const detail = await window.bochica.sessions.get(sessionId);
+  if (detail) useSessions.getState().loadSession(detail);
 }
 
 export async function renameSession(sessionId: string, title: string): Promise<void> {

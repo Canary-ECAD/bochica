@@ -1,11 +1,12 @@
 import { join } from "node:path";
 import { defaultPathPolicy } from "@bochica/agent";
-import { componentsLock } from "@bochica/eplan";
+import { componentsLock, eplanToolPolicy } from "@bochica/eplan";
 import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
 import { BackupGuard } from "./backup";
 import { ChatService, devEchoTool } from "./chat";
+import { CheckpointService } from "./checkpoints";
 import { CredentialStore } from "./credentials";
 import { nodeSqliteDriver } from "./db/driver";
 import { SessionRepository } from "./db/repository";
@@ -14,6 +15,7 @@ import { FolderService } from "./folders";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
+import { PermissionStore } from "./permissions";
 import { SettingsStore } from "./settings";
 import { BUILTIN_SKILLS, BuiltinSkills, removeStaleCaches, SkillService } from "./skills";
 
@@ -50,7 +52,8 @@ function builtinSkills(): BuiltinSkills[] {
   });
 }
 
-function createWindow(): void {
+/** @param onLoad runs each time the page (re)loads, when the renderer starts with fresh state. */
+function createWindow(onLoad: () => void): void {
   const window = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -79,6 +82,7 @@ function createWindow(): void {
   window.webContents.on("render-process-gone", (_event, details) =>
     logger.error(`Renderer process gone: ${details.reason} (exit code ${details.exitCode})`),
   );
+  window.webContents.on("did-start-loading", onLoad);
 
   const devServerUrl = process.env["ELECTRON_RENDERER_URL"];
   if (!app.isPackaged && devServerUrl) {
@@ -96,7 +100,8 @@ void app.whenReady().then(() => {
   );
   const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
   const mcp = new McpService(settings, logger);
-  const approvals = new ApprovalService();
+  const permissions = new PermissionStore(join(app.getPath("userData"), "permissions.json"));
+  const approvals = new ApprovalService({ rules: permissions });
   const callEplan = (tool: string, args: Record<string, unknown>) =>
     mcp.manager.callTool(EPLAN_SERVER_ID, tool, args);
   const backups = new BackupGuard(callEplan, join(app.getPath("documents"), "Bochica", "Backups"));
@@ -123,6 +128,12 @@ void app.whenReady().then(() => {
     app.getPath("documents"),
     defaultPathPolicy(process.env, app.getPath("userData")),
   );
+  const checkpoints = new CheckpointService({
+    sessions,
+    policy: folders.policy,
+    changesProject: (server, tool) =>
+      server === EPLAN_SERVER_ID && eplanToolPolicy(tool).changesProject,
+  });
   const chat = new ChatService({
     credentials,
     mcp: mcp.manager,
@@ -131,6 +142,8 @@ void app.whenReady().then(() => {
     sessions,
     skills,
     folders,
+    permissions,
+    checkpoints,
     logger,
     extraTools: devTools,
   });
@@ -144,7 +157,19 @@ void app.whenReady().then(() => {
     },
     (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
   );
-  registerIpc({ credentials, chat, mcp, approvals, eplan, sessions, folders, skills, logger });
+  registerIpc({
+    credentials,
+    chat,
+    mcp,
+    approvals,
+    eplan,
+    sessions,
+    folders,
+    skills,
+    permissions,
+    checkpoints,
+    logger,
+  });
 
   // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
   // EPLAN indicator re-checks as soon as its server comes up.
@@ -161,7 +186,8 @@ void app.whenReady().then(() => {
     void mcp.manager.close();
     sessions.close();
   });
-  createWindow();
+  // A reloaded renderer shows every session in Ask mode: main must not stay in Auto behind it.
+  createWindow(() => approvals.clearAuto());
 });
 
 app.on("window-all-closed", () => app.quit());

@@ -31,3 +31,22 @@ export const messages = sqliteTable(
   },
   (table) => [index("messages_session").on(table.sessionId, table.position)],
 );
+
+export const checkpoints = sqliteTable(
+  "checkpoints",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    turnId: text("turn_id").notNull(),
+    /** Absolute path of the file. */
+    path: text("path").notNull(),
+    /** "file": `content` holds it. "missing": it didn't exist. "too-large": not saved. */
+    state: text("state").notNull(),
+    /** Base64 of the file's bytes, for state "file". */
+    content: text("content"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("checkpoints_session").on(table.sessionId)],
+);

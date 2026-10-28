@@ -72,6 +72,12 @@ const longerJobs = `# Longer jobs
 - For a job with three or more steps, keep a task list with bochica__todo_write: the user sees it next to the chat. Mark one step in_progress before you start it and completed as soon as it is done. Skip it for quick questions.
 - For research that needs many searches or reads (documentation, many files), hand it to a helper with bochica__task and a complete prompt; you get its report back. Helpers can only read. Do the changes yourself.`;
 
+const planMode = `# Plan mode
+The user asked for a plan first. In this turn you only have tools that read; you cannot change anything, and the mode's other tools come back once the user approves.
+- Find out what you need: read files, check the EPLAN project, search the documentation. Ask the user if something important is unclear.
+- Then call bochica__propose_plan once with a short, concrete plan: numbered steps, what each one changes (projects, pages, devices, files) and what the user should check afterwards. Then stop.
+- If the user answers with changes instead of approving, propose a new plan.`;
+
 /** The skills the model may load with use_skill: only name and description go in the prompt. */
 function skillList(skills: ReadonlyArray<{ name: string; description: string }>): string {
   return `# Skills
@@ -86,6 +92,8 @@ export interface PromptOptions {
   terminal?: boolean;
   /** Skills the model can load on demand (not those already in the prompt as a guide). */
   skills?: ReadonlyArray<{ name: string; description: string }>;
+  /** Plan mode: read-only tools, and the model proposes a plan instead of acting. */
+  plan?: boolean;
 }
 
 export function systemPrompt(
@@ -96,5 +104,6 @@ export function systemPrompt(
   const section = mode === "consult" ? consult(skills) : mode === "tasks" ? tasks : draw;
   const files = options.folder ? `\n\n${workspace(options.folder, options.terminal ?? false)}` : "";
   const listed = options.skills?.length ? `\n\n${skillList(options.skills)}` : "";
-  return `${base}\n\n${section}${files}${listed}\n\n${longerJobs}`;
+  const plan = options.plan ? `\n\n${planMode}` : "";
+  return `${base}\n\n${section}${files}${listed}\n\n${longerJobs}${plan}`;
 }

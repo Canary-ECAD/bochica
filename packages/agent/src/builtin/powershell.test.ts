@@ -108,6 +108,19 @@ describe("powershellTool", () => {
     expect(tool().assess?.({ command: "Get-ChildItem" })).toEqual({ risks: [] });
   });
 
+  test("the user's deny rules block a command before anyone is asked", () => {
+    const ruled = powershellTool({
+      cwd: work,
+      env,
+      readScript: () => null,
+      denyRules: ["git push*"],
+    });
+    expect(ruled.assess?.({ command: "cd repo; git push --force" })).toMatchObject({
+      block: "user-rule",
+    });
+    expect(ruled.assess?.({ command: "git status" })).toEqual({ risks: [] });
+  });
+
   test("refuses to run in a folder that doesn't exist", async () => {
     const missing = powershellTool({ cwd: join(work, "nope"), env });
     expect(

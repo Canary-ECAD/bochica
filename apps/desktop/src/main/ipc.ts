@@ -11,10 +11,16 @@ import {
   ipcChannels,
   McpServerList,
   ModelList,
+  Permissions,
   ProviderId,
   RenameSessionRequest,
+  RewindPreview,
+  RewindPreviewRequest,
+  RewindRequest,
+  RewindResult,
   SessionDetail,
   SessionSummary,
+  SetAutoRequest,
   SetCredentialRequest,
   SetMcpEnabledRequest,
   SetSkillEnabledRequest,
@@ -25,11 +31,13 @@ import { app, BrowserWindow, dialog, ipcMain, type WebContents } from "electron"
 import { z } from "zod";
 import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
+import type { CheckpointService } from "./checkpoints";
 import type { CredentialStore } from "./credentials";
 import type { EplanStatusService } from "./eplan-status";
 import type { FolderService } from "./folders";
 import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
+import type { PermissionStore } from "./permissions";
 import type { SessionRepository } from "./db/repository";
 import type { SkillService } from "./skills";
 
@@ -42,6 +50,8 @@ export interface Services {
   sessions: SessionRepository;
   folders: FolderService;
   skills: SkillService;
+  permissions: PermissionStore;
+  checkpoints: CheckpointService;
   logger: Logger;
 }
 
@@ -57,6 +67,8 @@ export function registerIpc({
   sessions,
   folders,
   skills,
+  permissions,
+  checkpoints,
   logger,
 }: Services): void {
   const handle = (
@@ -220,5 +232,33 @@ export function registerIpc({
   handle(ipcChannels.approvalRespond, (arg) => {
     const { requestId, decision, typed } = ApprovalResponse.parse(arg);
     approvals.respond(requestId, decision, typed);
+  });
+
+  handle(ipcChannels.approvalsSetAuto, (arg) => {
+    const { sessionId, on } = SetAutoRequest.parse(arg);
+    approvals.setAuto(sessionId, on);
+    logger.info(`Auto mode ${on ? "on" : "off"} for a session`);
+  });
+
+  handle(ipcChannels.permissionsGet, () => Permissions.parse(permissions.get()));
+
+  handle(ipcChannels.permissionsSet, (arg) =>
+    Permissions.parse(permissions.set(Permissions.parse(arg))),
+  );
+
+  handle(ipcChannels.checkpointsPreview, async (arg) => {
+    const { sessionId, messageId } = RewindPreviewRequest.parse(arg);
+    if (chat.busy(sessionId)) throw new Error("A turn of this session is still running.");
+    return RewindPreview.parse(await checkpoints.preview(sessionId, messageId));
+  });
+
+  handle(ipcChannels.checkpointsRewind, async (arg) => {
+    const request = RewindRequest.parse(arg);
+    if (chat.busy(request.sessionId)) throw new Error("A turn of this session is still running.");
+    const result = await checkpoints.rewind(request);
+    logger.info(
+      `Rewound a session (${request.restore}): ${result.restored} file(s) restored, ${result.failed.length} failed`,
+    );
+    return RewindResult.parse(result);
   });
 }

@@ -2,15 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S9 done.** Streaming chat with any provider in three modes (Consult: docs, the
-> scripting skill and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
+> **Status: S10 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
-> read-only helpers (subagents); the agent's task list above the composer; guardrails core (hardline blocks, risky
-> commands that always ask, protected paths, filtered terminal environment, injection scan);
-> visible activity log with file diffs; approval cards plus typed confirmation; automatic
-> backups; EPLAN connection indicator; sessions saved in SQLite. Not built yet: checkpoints,
-> plan mode and the advanced guardrails (S10), the bundled Python runtime and the updater.
+> read-only helpers (subagents); the agent's task list above the composer; guardrails (hardline
+> blocks, the user's deny rules, risky commands that always ask, protected paths, filtered
+> terminal environment, injection scan); permission modes per session (Ask, Plan, Auto), "Always
+> allow" rules with approval-count suggestions and optional smart approvals; checkpoints and
+> rewind for the file tools; visible activity log with file diffs; approval cards plus typed
+> confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite. Not
+> built yet: the bundled Python runtime, the first-run wizard (S11) and the updater (S12).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -174,6 +176,26 @@ How the pieces fit:
   "Allow for this session" is keyed by session id + server + tool. Run the dev build with
   `BOCHICA_DEV_TOOLS=1` to get `dev_echo`, a harmless tool that asks, for testing cards. `always`
   tools send `allowSession: false`: the card hides "Allow for this session" and main ignores it.
+  Before a card, `approverFor` checks in order: the session's Auto mode (skips everything but
+  typed confirmations and tools whose policy is `always`, which the approver sees as `fixed`),
+  the session allowance, the user's "Always allow" rules and smart approval (`judgeCommand`,
+  PowerShell only, when switched on). An automatic answer is `{ auto }` and ends up on the tool
+  part (`auto`), which the log explains. Rules, deny patterns, the smart switch and approval
+  counts live in `PermissionStore` (`main/permissions.ts`, `permissions.json`); `ruleFor` says
+  what "Always allow" remembers (the exact command for PowerShell, the tool otherwise). Deny
+  rules (layer 3) are matched by `deniedBy` (`agent/src/builtin/deny-rules.ts`) inside the
+  PowerShell tool's `assess`, so they block in every mode.
+- **Permission modes** (renderer `state/permission.ts`, per session, memory only): Ask, Plan and
+  Auto. Auto goes to main with `approvals:set-auto`, and main forgets it when the window reloads.
+  Plan sends `plan: true`; `planModeTools` (`agent/src/plan.ts`) keeps what `helperCanUse` allows
+  plus the task list, helpers and `propose_plan`, and the prompt gets a plan section. The plan
+  shows as `PlanCard`; "Go ahead" switches back to Ask and sends a message.
+- **Checkpoints and rewind:** tools with `writes(input)` (the write and edit file tools) are
+  wrapped by `ChatService.withCheckpoint`, which saves the file's previous bytes per turn and
+  path in the `checkpoints` table (migration 4) before it changes. `CheckpointService`
+  (`main/checkpoints.ts`) previews and rewinds to a user message: earliest snapshot per file,
+  conversation cut with `deleteMessagesFrom`. Commands and EPLAN changes are not tracked; the
+  preview says so. Rewinding is refused while a turn of the session runs (`ChatService.busy`).
 - **Modes:** every turn carries a `ChatMode`. `ChatService.toolsFor` filters tools with
   `eplanToolInMode` (`packages/eplan/src/modes.ts`) and `systemPrompt(mode, guides, options)`
   adds the mode's section. In Consult the built-in scripting guides go into the prompt whole.

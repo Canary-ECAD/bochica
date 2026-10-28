@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, CircleAlert, RotateCcw } from "lucide-react";
+import { ArrowDown, CircleAlert, History, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityGroup } from "@/components/activity-log";
 import { ApprovalCard } from "@/components/approval-card";
 import { Markdown } from "@/components/markdown";
+import { PlanCard } from "@/components/plan-card";
 import { Button } from "@/components/ui/button";
 import type { Message, MessagePart, ToolPart } from "@/state/sessions";
 
@@ -14,9 +15,15 @@ const STICK_THRESHOLD = 48;
 export function MessageList({
   messages,
   onRetry,
+  onRewind,
+  onApprovePlan,
 }: {
   messages: Message[];
   onRetry(turnId: string): void;
+  /** Present when the user may rewind (no turn running): called with a user message. */
+  onRewind?: ((message: Message) => void) | undefined;
+  /** Present while the session plans: approves the plan of the latest answer. */
+  onApprovePlan?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const scroller = useRef<HTMLDivElement>(null);
@@ -60,16 +67,32 @@ export function MessageList({
         }}
       >
         <div ref={content} className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
-          {messages.map((message) =>
+          {messages.map((message, index) =>
             message.role === "user" ? (
-              <div
-                key={message.id}
-                className="ml-auto max-w-[85%] rounded-xl bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap"
-              >
-                {message.content}
+              <div key={message.id} className="group ml-auto flex max-w-[85%] items-start gap-1">
+                {onRewind && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="mt-1 size-7 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    onClick={() => onRewind(message)}
+                    aria-label={t("rewind.button")}
+                    title={t("rewind.button")}
+                  >
+                    <History />
+                  </Button>
+                )}
+                <div className="min-w-0 rounded-xl bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap">
+                  {message.content}
+                </div>
               </div>
             ) : (
-              <AssistantMessage key={message.id} message={message} onRetry={onRetry} />
+              <AssistantMessage
+                key={message.id}
+                message={message}
+                onRetry={onRetry}
+                onApprovePlan={index === messages.length - 1 ? onApprovePlan : undefined}
+              />
             ),
           )}
         </div>
@@ -92,9 +115,11 @@ export function MessageList({
 function AssistantMessage({
   message,
   onRetry,
+  onApprovePlan,
 }: {
   message: Message;
   onRetry(turnId: string): void;
+  onApprovePlan?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const last = message.parts.at(-1);
@@ -106,9 +131,20 @@ function AssistantMessage({
 
   return (
     <div className="flex flex-col gap-3">
-      {groupParts(message.parts).map((group) =>
+      {groupParts(message.parts).map((group, index, groups) =>
         group.type === "text" ? (
           <Markdown key={group.key}>{group.text}</Markdown>
+        ) : group.type === "plan" ? (
+          <PlanCard
+            key={group.key}
+            part={group.part}
+            // Only the answer's last plan, once the turn is over, can be approved.
+            onApprove={
+              message.status === "done" && !groups.slice(index + 1).some((g) => g.type === "plan")
+                ? onApprovePlan
+                : undefined
+            }
+          />
         ) : (
           <ActivityGroup key={group.key} parts={group.parts} />
         ),
@@ -182,15 +218,24 @@ function ErrorNotice({
 
 type PartGroup =
   | { type: "text"; key: string; text: string }
-  | { type: "tools"; key: string; parts: ToolPart[] };
+  | { type: "tools"; key: string; parts: ToolPart[] }
+  | { type: "plan"; key: string; part: ToolPart };
 
-/** Consecutive tool calls form one activity group; text parts stay as they are. */
+const isPlan = (part: ToolPart) =>
+  part.server === "bochica" && part.tool === "propose_plan" && part.status === "ok";
+
+/**
+ * Consecutive tool calls form one activity group; text parts stay as they are, and a proposed
+ * plan shows as its own card.
+ */
 function groupParts(parts: MessagePart[]): PartGroup[] {
   const groups: PartGroup[] = [];
   for (const [index, part] of parts.entries()) {
     const previous = groups.at(-1);
     if (part.type === "text") {
       if (part.text.trim()) groups.push({ type: "text", key: `text-${index}`, text: part.text });
+    } else if (isPlan(part)) {
+      groups.push({ type: "plan", key: part.callId, part });
     } else if (previous?.type === "tools") {
       previous.parts.push(part);
     } else {

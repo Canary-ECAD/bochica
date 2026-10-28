@@ -23,6 +23,12 @@ export const ipcChannels = {
   /** Main → renderer: a tool call waits for the user's decision. */
   approvalRequest: "approval:request",
   approvalRespond: "approval:respond",
+  /** Auto mode of a session (guardrails layer 5 skipped), on or off. */
+  approvalsSetAuto: "approvals:set-auto",
+  permissionsGet: "permissions:get",
+  permissionsSet: "permissions:set",
+  checkpointsPreview: "checkpoints:preview",
+  checkpointsRewind: "checkpoints:rewind",
   sessionsList: "sessions:list",
   sessionsGet: "sessions:get",
   sessionsRename: "sessions:rename",
@@ -136,6 +142,8 @@ export const ChatSendRequest = z.object({
   folder: z.string().min(1).max(1_000).optional(),
   /** The model's context window, when the model list gave one; main has defaults. */
   contextWindow: z.number().int().positive().max(100_000_000).optional(),
+  /** Plan mode: only tools that read, and the model proposes a plan instead of acting. */
+  plan: z.boolean().optional(),
 });
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>;
 
@@ -165,6 +173,13 @@ export const FileDiff = z.object({
   patch: z.string(),
 });
 export type FileDiff = z.infer<typeof FileDiff>;
+
+/**
+ * Why a call ran without a card: one of the user's "Always allow" rules, smart approval (the
+ * model judged the command harmless), or the session's Auto mode.
+ */
+export const AutoApproval = z.enum(["rule", "smart", "auto"]);
+export type AutoApproval = z.infer<typeof AutoApproval>;
 
 /**
  * How full the model's context was at the end of a turn: `used` is what the provider reported
@@ -225,6 +240,8 @@ export const TurnEvent = z.discriminatedUnion("type", [
     blocked: z.string().optional(),
     /** What a file write changed. */
     diff: FileDiff.optional(),
+    /** Set when the call was allowed without asking the user. */
+    auto: AutoApproval.optional(),
   }),
 ]);
 export type TurnEvent = z.infer<typeof TurnEvent>;
@@ -281,6 +298,10 @@ export const ApprovalRequest = z.object({
   input: z.unknown(),
   /** False for tools that must ask every time: the card hides "Allow for this session". */
   allowSession: z.boolean(),
+  /** Whether the card offers "Always allow" (the same calls that may be allowed for the session). */
+  allowAlways: z.boolean(),
+  /** How many times the user allowed this command or tool before, when it may be always allowed. */
+  allowedBefore: z.number().int().nonnegative().optional(),
   /** Present for destructive actions: the card asks the user to type this first. */
   confirm: Confirmation.optional(),
   /** Why Bochica flagged this call, e.g. "recursive-delete"; the card explains each one. */
@@ -288,7 +309,7 @@ export const ApprovalRequest = z.object({
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
-export const ApprovalDecision = z.enum(["once", "session", "deny"]);
+export const ApprovalDecision = z.enum(["once", "session", "always", "deny"]);
 export type ApprovalDecision = z.infer<typeof ApprovalDecision>;
 
 export const ApprovalResponse = z.object({
@@ -298,6 +319,69 @@ export const ApprovalResponse = z.object({
   typed: z.string().max(500).optional(),
 });
 export type ApprovalResponse = z.infer<typeof ApprovalResponse>;
+
+export const SetAutoRequest = z.object({ sessionId: z.string().min(1), on: z.boolean() });
+export type SetAutoRequest = z.infer<typeof SetAutoRequest>;
+
+// Permissions the user set in Settings (guardrails layers 3 and 5).
+
+/** A call the user always allows: one exact PowerShell command, or every call of a tool. */
+export const AlwaysAllowRule = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("command"), command: z.string().min(1).max(4_000) }),
+  z.object({ kind: z.literal("tool"), server: z.string().min(1), tool: z.string().min(1) }),
+]);
+export type AlwaysAllowRule = z.infer<typeof AlwaysAllowRule>;
+
+export const DenyRule = z.string().trim().min(1).max(200);
+
+export const Permissions = z.object({
+  alwaysAllow: z.array(AlwaysAllowRule).max(500),
+  /** Glob patterns (`*`, `?`) of commands that are never allowed. */
+  denyRules: z.array(DenyRule).max(100),
+  /** Smart approvals: the model may let clearly harmless commands run without a card. */
+  smart: z.boolean(),
+});
+export type Permissions = z.infer<typeof Permissions>;
+
+// Checkpoints and rewind.
+
+export const RewindPreviewRequest = z.object({
+  sessionId: z.string().min(1),
+  /** The user message to go back to: it and everything after it are undone. */
+  messageId: z.string().min(1),
+});
+export type RewindPreviewRequest = z.infer<typeof RewindPreviewRequest>;
+
+export const RewindPreview = z.object({
+  /** Files the agent's file tools changed since that message, and what rewinding does to each. */
+  files: z.array(
+    z.object({
+      path: z.string(),
+      /** restore: put back what it held. delete: it didn't exist. too-large: not saved. */
+      change: z.enum(["restore", "delete", "too-large"]),
+    }),
+  ),
+  /** Changes made in EPLAN since then, which rewinding can't undo. */
+  eplanChanges: z.boolean(),
+  /** PowerShell commands ran since then; what they changed isn't tracked. */
+  commands: z.boolean(),
+  /** Backups Bochica made of EPLAN projects in this session. */
+  backups: z.array(z.string()),
+});
+export type RewindPreview = z.infer<typeof RewindPreview>;
+
+export const RewindRequest = RewindPreviewRequest.extend({
+  /** all: conversation and files. */
+  restore: z.enum(["all", "conversation", "files"]),
+});
+export type RewindRequest = z.infer<typeof RewindRequest>;
+
+export const RewindResult = z.object({
+  restored: z.number().int().nonnegative(),
+  /** Files that couldn't be put back. */
+  failed: z.array(z.string()),
+});
+export type RewindResult = z.infer<typeof RewindResult>;
 
 // EPLAN connection.
 
@@ -428,6 +512,18 @@ export interface BochicaApi {
   approvals: {
     onRequest(listener: (request: ApprovalRequest) => void): () => void;
     respond(response: ApprovalResponse): Promise<void>;
+    /** Turns a session's Auto mode on or off; it applies at once, also to a running turn. */
+    setAuto(request: SetAutoRequest): Promise<void>;
+  };
+  permissions: {
+    get(): Promise<Permissions>;
+    /** Replaces the user's rules; returns what was saved. */
+    set(permissions: Permissions): Promise<Permissions>;
+  };
+  checkpoints: {
+    /** What rewinding to a message would undo. Rejects while a turn of the session runs. */
+    preview(request: RewindPreviewRequest): Promise<RewindPreview>;
+    rewind(request: RewindRequest): Promise<RewindResult>;
   };
   sessions: {
     /** Saved sessions, most recently active first. */

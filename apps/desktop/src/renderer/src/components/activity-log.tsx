@@ -117,6 +117,9 @@ function ToolRow({ part }: { part: ToolPart }) {
         />
       </button>
       {blocked && <p className="ml-5.5 text-xs text-destructive">{blocked}</p>}
+      {part.auto && (
+        <p className="ml-5.5 text-xs text-muted-foreground">{t(`activity.auto.${part.auto}`)}</p>
+      )}
       {open && (
         <div className="my-1 flex flex-col gap-2 rounded-lg border bg-code p-3 text-xs">
           {part.diff ? (

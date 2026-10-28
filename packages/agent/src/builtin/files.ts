@@ -53,6 +53,14 @@ function assessPath(options: FileToolOptions, op: "read" | "write", name = "path
   };
 }
 
+/** The tools' writes hook: the file a call would write, if its path is allowed. */
+function writePath(options: FileToolOptions) {
+  return (input: unknown): string | null => {
+    const check = checkPath(text(input, "path") || ".", options.cwd, "write", options.policy);
+    return "block" in check ? null : check.path;
+  };
+}
+
 /** Resolves and checks again at run time; throws with the reason if refused. */
 function resolvePath(options: FileToolOptions, raw: string, op: "read" | "write"): string {
   const check = checkPath(raw || ".", options.cwd, op, options.policy);
@@ -311,6 +319,7 @@ export function fileTools(options: FileToolOptions): AgentTool[] {
       },
       approval: "ask",
       assess: assessPath(options, "write"),
+      writes: writePath(options),
       execute: async (input): Promise<ToolRunResult> => {
         const path = resolvePath(options, text(input, "path"), "write");
         const content = text(input, "content");
@@ -346,6 +355,7 @@ export function fileTools(options: FileToolOptions): AgentTool[] {
       },
       approval: "ask",
       assess: assessPath(options, "write"),
+      writes: writePath(options),
       execute: async (input): Promise<ToolRunResult> => {
         const path = resolvePath(options, text(input, "path"), "write");
         const before = await readText(path);

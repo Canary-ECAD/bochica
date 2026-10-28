@@ -7,6 +7,7 @@ export { type PromptOptions, type PromptSkill, systemPrompt } from "./prompts";
 export { getProvider, providerIds, providers, type Provider } from "./providers";
 export { maskSecret, redactSecrets } from "./redact";
 export type { AgentTool, ApprovalAnswer, Approver, ToolApproval } from "./tools";
+export { deniedBy } from "./builtin/deny-rules";
 export { fileTools, findFiles } from "./builtin/files";
 export { checkPath, defaultPathPolicy, type PathPolicy } from "./builtin/paths";
 export { checkWorkingFolder, powershellTool } from "./builtin/powershell";
@@ -25,4 +26,6 @@ export {
 export { compactConversation } from "./compaction";
 export { COMPACT_AT, contextUsage, contextWindowFor, estimateContext, total } from "./context";
 export { subagentTool } from "./subagent";
+export { planModeTools } from "./plan";
+export { judgeCommand } from "./smart-approval";
 export { todoTool } from "./todos";

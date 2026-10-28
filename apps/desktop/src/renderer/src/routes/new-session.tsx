@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Composer } from "@/components/composer";
 import { greeting } from "@/lib/greeting";
 import { useFolder } from "@/state/folder";
+import { setPermission, startSessionWith, usePermission } from "@/state/permission";
 import { sendMessage, useSessions } from "@/state/sessions";
 
 export function NewSessionPage() {
@@ -19,6 +20,7 @@ export function NewSessionPage() {
     queryFn: () => window.bochica.folders.default(),
   });
   const folder = picked ?? fallback.data;
+  const permission = usePermission((state) => state.next);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6">
@@ -27,6 +29,8 @@ export function NewSessionPage() {
         <Composer
           autoFocus
           folder={folder}
+          permission={permission}
+          onPermission={(mode) => setPermission(undefined, mode)}
           onPickFolder={() => {
             void window.bochica.folders.pick(folder).then((chosen) => {
               if (chosen) setFolder(chosen);
@@ -34,6 +38,7 @@ export function NewSessionPage() {
           }}
           onSend={(text, choice) => {
             const sessionId = createSession(folder);
+            startSessionWith(sessionId);
             sendMessage(sessionId, text, choice);
             void navigate({ to: "/session/$sessionId", params: { sessionId } });
           }}
