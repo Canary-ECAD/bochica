@@ -134,5 +134,9 @@ Closed 2026-10-28.
   versions on GitHub" and stays quiet, as intended.
 - Not verified: the release workflow itself (it runs on the first `v0.2.0` tag) and an update
   between two releases published on GitHub.
-- Found in passing (backlog): eplan-mcp's server enumeration fails on a Spanish Windows with a
-  `UnicodeDecodeError` and falls back to port 49152.
+- Found in passing and fixed: eplan-mcp's port discovery parsed `tasklist` / `netstat` text,
+  which is localized, so on a Spanish Windows it failed with `UnicodeDecodeError` (Bochica runs
+  Python in UTF-8 mode) and fell back to port 49152; German prints `ABHÖREN` for LISTENING.
+  Canary-ECAD/eplan-mcp#74 reads processes and listening ports from the Windows API instead;
+  `components:bump eplan-mcp` pinned it (tools and dependency lock unchanged), and the bundled
+  runtime found EPLAN's port on this Spanish Windows.

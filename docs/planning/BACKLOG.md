@@ -71,10 +71,10 @@ move it there and leave a link here (`→ S4-03`).
 - **Code signing** (left out of S12): the installer isn't signed, so Windows SmartScreen warns on
   the first install and the updater checks only the SHA-512 in `latest.yml`. With a certificate,
   set `publisherName` so updates must come from the same publisher.
-- **eplan-mcp on a Spanish Windows** (seen in the S12 demo): its server enumeration reads a
-  command's output as UTF-8 (Bochica sets `PYTHONUTF8=1`), fails with `UnicodeDecodeError` on
-  byte `0xa2` (cp850 "ó") and falls back to port 49152, which works only while EPLAN uses it. To
-  report to eplan-mcp: decode that output with the console code page.
+- **eplan-mcp on a non-English Windows** (seen in the S12 demo): its port discovery parsed
+  `tasklist` / `netstat` text, which is in the console's language and code page, so on a Spanish
+  Windows it failed with `UnicodeDecodeError` and fell back to port 49152. → fixed in
+  Canary-ECAD/eplan-mcp#74 (Windows API instead of console text), pinned in S12.
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
 - **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded
