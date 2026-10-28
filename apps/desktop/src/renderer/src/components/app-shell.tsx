@@ -4,6 +4,7 @@ import { MessageSquarePlus, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EplanIndicator } from "@/components/eplan-indicator";
 import { SessionRow } from "@/components/session-row";
+import { onboardingKey, Welcome } from "@/components/welcome";
 import logo from "@/assets/logo.png";
 import { useSessions } from "@/state/sessions";
 
@@ -18,6 +19,14 @@ export function AppShell() {
   });
   const order = useSessions((state) => state.order);
   const sessions = useSessions((state) => state.sessions);
+  const onboarding = useQuery({
+    queryKey: onboardingKey,
+    queryFn: () => window.bochica.onboarding.get(),
+  });
+
+  // Nothing until main says whether this is the first run, so the app doesn't flash first.
+  if (onboarding.isPending) return null;
+  if (onboarding.data && !onboarding.data.done) return <Welcome />;
 
   return (
     <div className="flex h-screen">

@@ -14,7 +14,9 @@
     "title": "Settings",
     "general": "General",
     "language": "Language",
-    "disclaimer": "Bochica is an independent project by Canary-ECAD. It is not affiliated with, endorsed by, or supported by EPLAN GmbH & Co. KG. EPLAN and EPLAN Electric P8 are trademarks of their respective owner."
+    "disclaimer": "Bochica is an independent project by Canary-ECAD. It is not affiliated with, endorsed by, or supported by EPLAN GmbH & Co. KG. EPLAN and EPLAN Electric P8 are trademarks of their respective owner.",
+    "welcomeGuide": "Welcome guide",
+    "showWelcome": "Show again"
   },
   "providers": {
     "title": "AI providers",
@@ -274,7 +276,8 @@
       "connected": "EPLAN {{version}} connected",
       "busy": "EPLAN {{version}} is busy",
       "starting": "Starting EPLAN connection…",
-      "not_configured": "EPLAN not set up",
+      "not_configured": "EPLAN connection missing",
+      "not_installed": "EPLAN not installed",
       "closed": "EPLAN is closed",
       "unreachable": "Can't connect to EPLAN",
       "error": "EPLAN connection failed"
@@ -283,7 +286,8 @@
       "connected": "Bochica can read and change your EPLAN projects. Every change asks you first.",
       "busy": "EPLAN is open but not answering, usually because a dialog is open in EPLAN. Close it and Bochica continues.",
       "starting": "Bochica is starting its EPLAN connection. This takes a few seconds.",
-      "not_configured": "This copy of Bochica can't start its EPLAN connection yet. In this development version, set BOCHICA_EPLAN_MCP_DIR to an eplan-mcp folder and restart Bochica.",
+      "not_configured": "Part of Bochica that talks to EPLAN is missing from this computer. Install Bochica again to put it back; your conversations and settings are kept.",
+      "not_installed": "Bochica can't find EPLAN Electric P8 on this computer. You can still ask questions about EPLAN; to work on projects, install EPLAN 2024 or newer and restart Bochica.",
       "closed": "Open EPLAN on this computer. Bochica connects on its own within 15 seconds.",
       "unreachable": "EPLAN is running but doesn't accept connections. Allow remote access in EPLAN once:",
       "error": "Bochica's EPLAN connection didn't start. Restart Bochica; if it keeps happening, the details below help to report it."
@@ -365,8 +369,10 @@
     },
     "status": {
       "skipped": "Not loaded",
-      "invalid": "Broken"
+      "invalid": "Broken",
+      "missing": "Missing"
     },
+    "missing": "Bochica couldn't find this built-in skill. Install Bochica again to put it back.",
     "problem": {
       "no-skill-file": "There is no SKILL.md file in this folder.",
       "no-front-matter": "SKILL.md must start with a header between --- lines, with a name and a description.",
@@ -468,5 +474,36 @@
     "cancel": "Cancel",
     "failed": "These files couldn't be restored:",
     "error": "Couldn't rewind: {{message}}"
+  },
+  "welcome": {
+    "progress": "Step {{step}} of 4",
+    "start": "Get started",
+    "back": "Back",
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "finish": "Finish",
+    "intro": {
+      "title": "Welcome to Bochica",
+      "description": "An assistant for your work with EPLAN Electric P8. You type what you need in plain words; Bochica does the rest.",
+      "ask": "Ask anything about EPLAN, with answers taken from its documentation, and get help writing EPLAN scripts.",
+      "work": "Let it work on your projects in EPLAN: read them, change properties, export, check.",
+      "safe": "It asks before changing anything, and backs a project up before its first change."
+    },
+    "model": {
+      "title": "Connect an AI model",
+      "description": "Bochica works with the AI provider you choose. Pick one and paste your API key, then test it. The key is stored encrypted on this computer.",
+      "ready": "Ready: Bochica can talk to a model."
+    },
+    "eplan": {
+      "title": "EPLAN on this computer",
+      "description": "To work on projects, Bochica connects to EPLAN on its own. You don't need EPLAN to ask questions, so you can also sort this out later."
+    },
+    "try": {
+      "title": "Try a first question",
+      "description": "Ask this to check that everything works, or finish and start with your own.",
+      "question": "What is a macro in EPLAN Electric P8, and how do I insert one into a page?",
+      "ask": "Ask it",
+      "noModel": "Connect a model first (go back one step) to ask it."
+    }
   }
 }

@@ -35,7 +35,7 @@ export function ProviderSettings() {
   );
 }
 
-function ProviderCard({
+export function ProviderCard({
   provider,
   credentials,
 }: {

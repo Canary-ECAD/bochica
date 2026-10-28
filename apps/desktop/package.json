@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "package": "electron-vite build && electron-builder --win",
+    "package": "bun scripts/prepare-runtime.ts && electron-vite build && electron-builder --win",
+    "runtime": "bun scripts/prepare-runtime.ts",
+    "runtime:lock": "bun scripts/prepare-runtime.ts --lock",
     "typecheck": "tsc --noEmit --composite false -p tsconfig.node.json && tsc --noEmit --composite false -p tsconfig.web.json"
   },
   "devDependencies": {

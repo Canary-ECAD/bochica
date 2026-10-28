@@ -4,7 +4,7 @@
   "workspaces": {
     ".": {},
     "apps/desktop": {
-      "entry": ["src/renderer/src/components/ui/*.tsx"],
+      "entry": ["src/renderer/src/components/ui/*.tsx", "scripts/*.ts"],
       "project": ["src/**/*.{ts,tsx,css}"],
       "paths": {
         "@/*": ["src/renderer/src/*"]

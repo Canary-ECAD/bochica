@@ -1,12 +1,16 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { DocsSettings } from "@/components/docs-settings";
 import { PermissionsSettings } from "@/components/permissions-settings";
 import { ProviderSettings } from "@/components/provider-settings";
 import { SkillsSettings } from "@/components/skills-settings";
+import { Button } from "@/components/ui/button";
+import { onboardingKey } from "@/components/welcome";
 import { supportedLanguages } from "@/i18n";
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -53,6 +57,20 @@ export function SettingsPage() {
               ))}
             </select>
           </label>
+          <div className="mt-3 flex items-center justify-between gap-4 rounded-lg border p-4">
+            <span className="text-sm">{t("settings.welcomeGuide")}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void window.bochica.onboarding
+                  .set({ done: false })
+                  .then(() => queryClient.setQueryData(onboardingKey, { done: false }));
+              }}
+            >
+              {t("settings.showWelcome")}
+            </Button>
+          </div>
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">{t("settings.disclaimer")}</p>

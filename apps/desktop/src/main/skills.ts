@@ -13,10 +13,10 @@ import { basename, dirname, join } from "node:path";
 import { findSkillDirs, loadSkill, type Skill, type SkillLoad, SkillSet } from "@bochica/agent";
 import type { SkillInfo, SkillInstallReport } from "@bochica/shared";
 
-// Skills come from two places. Built in: eplan-scripting-skill and eec-pro-skill, each
-// downloaded once at the commit pinned in components.lock.json and cached under userData, or
-// read from local checkouts during development (BOCHICA_SKILLS_DIR); in Consult their guides go
-// into the system prompt. Added by the user: copied from a folder they pick into
+// Skills come from two places. Built in: eplan-scripting-skill and eec-pro-skill at the commits
+// pinned in components.lock.json, read from the installer's runtime folder, from local checkouts
+// during development (BOCHICA_SKILLS_DIR), or else downloaded once and cached under userData; in
+// Consult their guides go into the system prompt. Added by the user: copied from a folder they pick into
 // userData\skills\user\<name>, which the file tools can't write, so the agent can never add or
 // change a skill itself.
 
@@ -34,11 +34,11 @@ interface Source {
   commit: string;
 }
 
-/** A loaded (or refused) skill and where it came from. */
+/** A loaded (or refused) skill and where it came from; built-in ones may be missing. */
 interface SkillEntry {
   id: string;
   source: SkillInfo["source"];
-  load: SkillLoad;
+  load: SkillLoad | { status: "missing" };
 }
 
 /** The built-in skills of one repository: downloaded at the pinned commit, or a local checkout. */
@@ -55,17 +55,24 @@ export class BuiltinSkills {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  /** Downloads the skills if they aren't cached yet, then reads them. Never throws. */
+  /**
+   * Downloads the skills if they aren't cached yet, then reads them. Never throws: a skill that
+   * isn't there (offline, a broken install) is listed as missing.
+   */
   async load(): Promise<SkillEntry[]> {
     try {
       if (this.source && !existsSync(join(this.root, ".complete")))
         await this.download(this.source);
-      return this.dirs
-        .filter((dir) => existsSync(join(this.root, dir, "SKILL.md")))
-        .map((dir) => ({ id: dir, source: "builtin", load: loadSkill(join(this.root, dir), dir) }));
     } catch {
-      return [];
+      // Listed as missing below; the next start tries again.
     }
+    return this.dirs.map((dir) => ({
+      id: dir,
+      source: "builtin",
+      load: existsSync(join(this.root, dir, "SKILL.md"))
+        ? loadSkill(join(this.root, dir), dir)
+        : { status: "missing" },
+    }));
   }
 
   private async download({ repository, commit }: Source): Promise<void> {
@@ -161,10 +168,12 @@ export class SkillService {
     return entry.source === "builtin" || this.switches.isSkillEnabled(entry.id);
   }
 
-  /** Every skill, for Settings: loaded, left out by the injection scan, or broken. */
+  /** Every skill, for Settings: loaded, left out by the injection scan, broken or missing. */
   list(): SkillInfo[] {
     return this.entries.map(({ id, source, load }) => {
       const common = { id, source, enabled: this.enabled({ id, source, load }) };
+      if (load.status === "missing")
+        return { ...common, name: basename(id), description: "", status: "missing" };
       if (load.status === "ok") {
         const { name, description } = load.skill;
         return { ...common, name, description, status: "ok" };

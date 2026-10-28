@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S10 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S11 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -11,8 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > terminal environment, injection scan); permission modes per session (Ask, Plan, Auto), "Always
 > allow" rules with approval-count suggestions and optional smart approvals; checkpoints and
 > rewind for the file tools; visible activity log with file diffs; approval cards plus typed
-> confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite. Not
-> built yet: the bundled Python runtime, the first-run wizard (S11) and the updater (S12).
+> confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite; an
+> installer that carries its own Python, eplan-mcp and built-in skills; a first-run welcome
+> guide. Not built yet: the updater (S12).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -165,9 +166,11 @@ How the pieces fit:
   annotations, so Bochica classifies its tools. Unknown tools default to `ask` + backup. When
   bumping eplan-mcp in `components.lock.json`, regenerate `fixtures/eplan-mcp-tools.txt` and fix
   what `tool-policy.test.ts` reports.
-- **Local EPLAN server (dev):** set `BOCHICA_EPLAN_MCP_DIR` to an eplan-mcp checkout and, if
-  needed, `BOCHICA_PYTHON` to a 64-bit Python with its requirements. Without them the indicator
-  says "not set up". `EplanStatusService` connects on its own and re-checks every 15 s;
+- **Local EPLAN server:** `eplanServerLaunch` (`packages/eplan/src/runtime.ts`) picks
+  `BOCHICA_EPLAN_MCP_DIR` (+ `BOCHICA_PYTHON`) for development, else the bundled runtime
+  (`resources\runtime` packaged, `apps\desktop\runtime` in dev once `bun run runtime` made it),
+  never a system Python. Without either the indicator says the connection is missing; without
+  EPLAN (`eplanInstalled`) it says "not installed". `EplanStatusService` connects on its own and re-checks every 15 s;
   `BackupGuard` (`backup.ts`) backs a project up before its first change in a session, and
   `ChatService.withBackup` applies it to every `changesProject` tool after approval.
 - **Approvals:** a tool with `needsApproval` makes `ApprovalService` (main) send
@@ -237,6 +240,9 @@ How the pieces fit:
   `message-list.tsx` groups consecutive tool calls into one `ActivityGroup`; labels come from
   `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es: past tense under
   `activity.*` for the log, request form under `activity.eplanRequest.*` for approval cards).
+- **First-run guide:** `components/welcome.tsx`, rendered by `AppShell` instead of the app while
+  `onboarding:get` says not done (`settings.json` `onboarded`, or unset and no key yet). It reuses
+  `ProviderCard` and `EplanStatusDetails`; Settings → General shows it again.
 - **i18n:** strings live in `src/renderer/src/i18n/<lang>.json`; `en.json` is the reference and
   a test fails if another language has different keys. New language = new JSON + an entry in
   `supportedLanguages`.
@@ -280,11 +286,26 @@ Provider-agnostic, following Hermes's design:
 
 Users never install Python, Node or MCP servers by hand. The installer bundles a **standalone
 64-bit Python 3** (python-build-standalone) and **`uv`**, with the MCP server's dependencies
-preinstalled, so it works offline and behind corporate proxies. When the pinned MCP version
-changes, Bochica syncs its dependencies with `uv` into its own environment under
-`%LOCALAPPDATA%`; it never uses or modifies a system Python. Failures (EPLAN not installed,
-Remote Client disabled, proxy blocking a download…) are turned into messages that tell the user
-exactly what to do.
+preinstalled, so it works offline and behind corporate proxies.
+
+- `apps/desktop/scripts/prepare-runtime.ts` (first step of `bun run package`) fills
+  `apps/desktop/runtime` (not in Git): `python\`, `uv\uv.exe`, `eplan-mcp\` (only
+  `eplan-p8-mcp-server`), `skills\<repo>\skills\…` and `manifest.json`, written last. It skips
+  the work when the manifest matches the pins, and ends by starting the bundled server and
+  checking that it lists its tools. electron-builder ships the folder as `resources\runtime`.
+- Python and `uv` are pinned by URL and SHA-256 in `packages/eplan/src/runtime.ts`. eplan-mcp's
+  dependencies come from `packages/eplan/requirements.lock.txt` (hashes, wheels only), made from
+  its `requirements.txt` plus `requirements.constraints.txt` (`mcp<2`: 2.x dropped FastMCP).
+  **Bumping eplan-mcp** in `components.lock.json` means running
+  `bun run --filter @bochica/desktop runtime:lock` and committing the new lock with it.
+- Dependencies are installed into the bundled Python itself (a venv stores absolute paths) and
+  bytecode is compiled with unchecked hashes, so nothing is written next to the app. The server
+  gets `PYTHONNOUSERSITE=1`, `PYTHONUTF8=1` and `EPLAN_MCP_LOG_DIR` (logs\eplan-mcp).
+- `uv` is not run by the app yet; it is there for S12's dependency sync. When the pinned MCP version
+  changes, Bochica syncs its dependencies with `uv` into its own environment under
+  `%LOCALAPPDATA%`; it never uses or modifies a system Python. Failures (EPLAN not installed,
+  Remote Client disabled, proxy blocking a download…) are turned into messages that tell the user
+  exactly what to do.
 
 ### Updates
 
@@ -314,7 +335,7 @@ bun install                 # install dependencies for the whole monorepo
 bun run check               # every check below, in order; must pass before a change is done
 bun run dev                 # Electron + Vite with hot reload
 bun run build               # production build into apps/desktop/out
-bun run package             # Windows installer into apps/desktop/release (Python/uv not bundled yet)
+bun run package             # bundled runtime, then the Windows installer into apps/desktop/release
 bun run typecheck           # tsc --noEmit in every workspace (desktop: node + web configs)
 bun run lint                # oxlint (.oxlintrc.json)
 bun run format              # oxfmt, also formats Markdown and JSON

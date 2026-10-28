@@ -41,6 +41,7 @@ export {
   McpServerList,
   ModelInfo,
   ModelList,
+  Onboarding,
   Permissions,
   ProviderId,
   RenameSessionRequest,

@@ -7,8 +7,10 @@ import type { EplanStatus } from "@bochica/shared";
 const CHECK_INTERVAL_MS = 15_000;
 
 export interface EplanStatusDeps {
-  /** Whether the local EPLAN server can be started at all (dev runtime configured). */
+  /** Whether the local EPLAN server can be started at all (runtime present). */
   configured(): boolean;
+  /** Whether EPLAN is installed on this machine. */
+  installed(): boolean;
   /** The MCP server's own state: "connecting", "ready", "error"… */
   serverState(): { state: string; error?: string } | undefined;
   callTool(tool: string, args: Record<string, unknown>): Promise<{ ok: boolean; text: string }>;
@@ -62,6 +64,7 @@ export class EplanStatusService {
 
   private async evaluate(): Promise<EplanStatus> {
     if (!this.deps.configured()) return { state: "not_configured" };
+    if (!this.deps.installed()) return { state: "not_installed" };
     const server = this.deps.serverState();
     if (server?.state === "error") {
       return { state: "error", ...(server.error ? { detail: server.error } : {}) };

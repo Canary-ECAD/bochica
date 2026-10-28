@@ -14,7 +14,9 @@
     "title": "Ajustes",
     "general": "General",
     "language": "Idioma",
-    "disclaimer": "Bochica es un proyecto independiente de Canary-ECAD. No está afiliado, respaldado ni soportado por EPLAN GmbH & Co. KG. EPLAN y EPLAN Electric P8 son marcas de su respectivo titular."
+    "disclaimer": "Bochica es un proyecto independiente de Canary-ECAD. No está afiliado, respaldado ni soportado por EPLAN GmbH & Co. KG. EPLAN y EPLAN Electric P8 son marcas de su respectivo titular.",
+    "welcomeGuide": "Guía de bienvenida",
+    "showWelcome": "Volver a mostrar"
   },
   "providers": {
     "title": "Proveedores de IA",
@@ -274,7 +276,8 @@
       "connected": "EPLAN {{version}} conectado",
       "busy": "EPLAN {{version}} está ocupado",
       "starting": "Iniciando la conexión con EPLAN…",
-      "not_configured": "EPLAN sin configurar",
+      "not_configured": "Falta la conexión con EPLAN",
+      "not_installed": "EPLAN no está instalado",
       "closed": "EPLAN está cerrado",
       "unreachable": "No se puede conectar con EPLAN",
       "error": "Falló la conexión con EPLAN"
@@ -283,7 +286,8 @@
       "connected": "Bochica puede leer y modificar tus proyectos de EPLAN. Cada cambio te pide permiso antes.",
       "busy": "EPLAN está abierto pero no responde, normalmente porque hay un diálogo abierto. Ciérralo y Bochica continúa.",
       "starting": "Bochica está iniciando su conexión con EPLAN. Tarda unos segundos.",
-      "not_configured": "Esta copia de Bochica todavía no puede iniciar su conexión con EPLAN. En esta versión de desarrollo, define BOCHICA_EPLAN_MCP_DIR con una carpeta de eplan-mcp y reinicia Bochica.",
+      "not_configured": "Falta en este equipo la parte de Bochica que habla con EPLAN. Vuelve a instalar Bochica para recuperarla; tus conversaciones y ajustes se conservan.",
+      "not_installed": "Bochica no encuentra EPLAN Electric P8 en este equipo. Puedes seguir haciendo preguntas sobre EPLAN; para trabajar en proyectos, instala EPLAN 2024 o posterior y reinicia Bochica.",
       "closed": "Abre EPLAN en este equipo. Bochica se conecta solo en menos de 15 segundos.",
       "unreachable": "EPLAN está abierto pero no acepta conexiones. Permite el acceso remoto en EPLAN una vez:",
       "error": "La conexión de Bochica con EPLAN no ha arrancado. Reinicia Bochica; si se repite, los detalles de abajo sirven para informar del problema."
@@ -365,8 +369,10 @@
     },
     "status": {
       "skipped": "No cargada",
-      "invalid": "Dañada"
+      "invalid": "Dañada",
+      "missing": "No encontrada"
     },
+    "missing": "Bochica no encuentra esta skill integrada. Vuelve a instalar Bochica para recuperarla.",
     "problem": {
       "no-skill-file": "No hay ningún archivo SKILL.md en esta carpeta.",
       "no-front-matter": "SKILL.md debe empezar con una cabecera entre líneas ---, con un nombre y una descripción.",
@@ -468,5 +474,36 @@
     "cancel": "Cancelar",
     "failed": "Estos archivos no se pudieron restaurar:",
     "error": "No se pudo volver atrás: {{message}}"
+  },
+  "welcome": {
+    "progress": "Paso {{step}} de 4",
+    "start": "Empezar",
+    "back": "Atrás",
+    "continue": "Continuar",
+    "skip": "Ahora no",
+    "finish": "Terminar",
+    "intro": {
+      "title": "Te damos la bienvenida a Bochica",
+      "description": "Un asistente para tu trabajo con EPLAN Electric P8. Escribes lo que necesitas con tus palabras; Bochica se encarga del resto.",
+      "ask": "Pregunta lo que quieras sobre EPLAN, con respuestas sacadas de su documentación, y recibe ayuda para escribir scripts de EPLAN.",
+      "work": "Deja que trabaje en tus proyectos de EPLAN: leerlos, cambiar propiedades, exportar, comprobar.",
+      "safe": "Te pregunta antes de cambiar nada y hace una copia de seguridad del proyecto antes del primer cambio."
+    },
+    "model": {
+      "title": "Conecta un modelo de IA",
+      "description": "Bochica funciona con el proveedor de IA que elijas. Elige uno, pega tu API key y pruébala. La key se guarda cifrada en este equipo.",
+      "ready": "Listo: Bochica puede hablar con un modelo."
+    },
+    "eplan": {
+      "title": "EPLAN en este equipo",
+      "description": "Para trabajar en proyectos, Bochica se conecta a EPLAN por su cuenta. Para hacer preguntas no necesitas EPLAN, así que también puedes resolver esto más tarde."
+    },
+    "try": {
+      "title": "Prueba una primera pregunta",
+      "description": "Hazla para comprobar que todo funciona, o termina y empieza con la tuya.",
+      "question": "¿Qué es una macro en EPLAN Electric P8 y cómo inserto una en una página?",
+      "ask": "Preguntar",
+      "noModel": "Conecta antes un modelo (vuelve un paso atrás) para hacerla."
+    }
   }
 }

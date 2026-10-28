@@ -35,6 +35,8 @@ export const ipcChannels = {
   sessionsDelete: "sessions:delete",
   messagesDelete: "messages:delete",
   eplanStatus: "eplan:status",
+  onboardingGet: "onboarding:get",
+  onboardingSet: "onboarding:set",
   foldersDefault: "folders:default",
   foldersPick: "folders:pick",
   filesSearch: "files:search",
@@ -387,8 +389,10 @@ export type RewindResult = z.infer<typeof RewindResult>;
 
 export const EplanStatus = z.object({
   state: z.enum([
-    /** The local EPLAN server isn't set up on this machine. */
+    /** The bundled EPLAN server is missing: a broken install. */
     "not_configured",
+    /** EPLAN isn't installed on this machine. */
+    "not_installed",
     "starting",
     /** EPLAN isn't running. */
     "closed",
@@ -404,6 +408,14 @@ export const EplanStatus = z.object({
   detail: z.string().optional(),
 });
 export type EplanStatus = z.infer<typeof EplanStatus>;
+
+// First-run wizard.
+
+export const Onboarding = z.object({
+  /** False: the welcome guide is shown instead of the app. */
+  done: z.boolean(),
+});
+export type Onboarding = z.infer<typeof Onboarding>;
 
 // Saved sessions.
 
@@ -450,8 +462,11 @@ export const SkillInfo = z.object({
   /** builtin: the EPLAN scripting guides, always on. user: added in Settings. */
   source: z.enum(["builtin", "user"]),
   enabled: z.boolean(),
-  /** skipped: left out by the injection scan. invalid: its SKILL.md is broken. */
-  status: z.enum(["ok", "skipped", "invalid"]),
+  /**
+   * skipped: left out by the injection scan. invalid: its SKILL.md is broken. missing: a
+   * built-in skill Bochica couldn't find or download.
+   */
+  status: z.enum(["ok", "skipped", "invalid", "missing"]),
   findings: z.array(SkillFinding).optional(),
   problem: SkillProblem.optional(),
 });
@@ -550,6 +565,11 @@ export interface BochicaApi {
     install(): Promise<SkillInstallReport | null>;
     remove(id: string): Promise<SkillInfo[]>;
     setEnabled(request: SetSkillEnabledRequest): Promise<SkillInfo[]>;
+  };
+  onboarding: {
+    get(): Promise<Onboarding>;
+    /** Marks the welcome guide finished, or asks for it again (false). */
+    set(onboarding: Onboarding): Promise<void>;
   };
   eplan: {
     status(): Promise<EplanStatus>;

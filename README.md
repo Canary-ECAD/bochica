@@ -10,8 +10,8 @@ API key from the AI provider of your choice, and describe what you want in your 
 
 > **Status:** early development, not released yet. It already chats with any provider, answers
 > from the EPLAN documentation, acts on EPLAN with your approval, works with files and
-> PowerShell in a folder you choose, and takes your own skills. Still missing: the installer with
-> Python included and automatic updates.
+> PowerShell in a folder you choose, and takes your own skills. The installer carries everything
+> it needs; automatic updates are still missing.
 
 ## What it includes
 
@@ -37,6 +37,11 @@ API key from the AI provider of your choice, and describe what you want in your 
   access → "Allow remote access via Remote Client"** enabled.
 - An API key from a supported provider, or a local model server.
 
+Nothing else: the installer carries its own Python with the EPLAN server and the built-in
+skills, so it downloads nothing to get started (a corporate proxy is no problem) and never touches a Python you may
+have installed. On first start a short guide connects a model, checks EPLAN and asks a first
+question.
+
 ## Development
 
 Requires [Bun](https://bun.sh).
@@ -48,6 +53,11 @@ bun run dev
 
 Checks: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun run knip`, `bun test`.
 See [CLAUDE.md](CLAUDE.md) for the architecture.
+
+`bun run package` builds the installer in `apps/desktop/release`. Its first step,
+`bun run --filter @bochica/desktop runtime`, downloads the pinned Python, `uv`, eplan-mcp and the
+skills into `apps/desktop/runtime` and checks that the EPLAN server starts; `bun run dev` uses
+that folder too once it exists.
 
 ## License
 

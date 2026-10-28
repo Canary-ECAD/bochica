@@ -7,6 +7,8 @@ const SettingsFile = z.object({
   mcpEnabled: z.record(z.string(), z.boolean()).default({}),
   /** Added skills the user switched off; the rest are on. */
   skillsDisabled: z.array(z.string()).default([]),
+  /** Whether the welcome guide was finished; unset in files from before it existed. */
+  onboarded: z.boolean().optional(),
 });
 type Settings = z.infer<typeof SettingsFile>;
 
@@ -37,6 +39,16 @@ export class SettingsStore {
   setSkillEnabled(id: string, enabled: boolean): void {
     const others = this.settings.skillsDisabled.filter((s) => s !== id);
     this.settings = { ...this.settings, skillsDisabled: enabled ? others : [...others, id] };
+    this.persist();
+  }
+
+  /** Unset when the user never finished or reopened the welcome guide. */
+  onboarded(): boolean | undefined {
+    return this.settings.onboarded;
+  }
+
+  setOnboarded(done: boolean): void {
+    this.settings = { ...this.settings, onboarded: done };
     this.persist();
   }
 

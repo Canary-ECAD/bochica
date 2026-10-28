@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S11 — Installer with bundled Python and `uv`, first-run wizard (to be planned)**
+**Active sprint: S12 — One-click updater, release process (to be planned)**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -36,10 +36,10 @@ The agent drives a running EPLAN safely, and conversations survive a restart.
 
 ## M3 — Ship it
 
-| Sprint | Goal                                                                                        | Status  |
-| ------ | ------------------------------------------------------------------------------------------- | ------- |
-| S11    | Installer with bundled Python + `uv`; first-run wizard (EPLAN detected? key? test question) | Outline |
-| S12    | One-click updater; release process; components.lock bump procedure                          | Outline |
-| S13    | OAuth (device code, PKCE) for providers that allow it; multiple keys per provider           | Outline |
+| Sprint                                    | Goal                                                                                        | Status  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- | ------- |
+| [S11](sprints/S11-installer-first-run.md) | Installer with bundled Python + `uv`; first-run wizard (EPLAN detected? key? test question) | Done    |
+| S12                                       | One-click updater; release process; components.lock bump procedure                          | Outline |
+| S13                                       | OAuth (device code, PKCE) for providers that allow it; multiple keys per provider           | Outline |
 
 Requests from [BACKLOG.md](BACKLOG.md) are slotted into these sprints when each one is planned.

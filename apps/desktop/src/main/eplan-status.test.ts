@@ -4,6 +4,7 @@ import { type EplanStatusDeps, EplanStatusService } from "./eplan-status";
 
 interface Fake {
   configured?: boolean;
+  installed?: boolean;
   server?: { state: string; error?: string };
   connected?: boolean;
   ping?: { alive: boolean; timed_out?: boolean };
@@ -16,6 +17,7 @@ function deps(fake: Fake): EplanStatusDeps & { calls: string[] } {
   return {
     calls,
     configured: () => fake.configured ?? true,
+    installed: () => fake.installed ?? true,
     serverState: () => fake.server ?? { state: "ready" },
     callTool: async (tool) => {
       calls.push(tool);
@@ -52,6 +54,13 @@ describe("EplanStatusService", () => {
   test("not configured: no calls at all", async () => {
     expect(await evaluate({ configured: false })).toEqual({
       status: { state: "not_configured" },
+      calls: [],
+    });
+  });
+
+  test("EPLAN not installed: no calls at all", async () => {
+    expect(await evaluate({ installed: false })).toEqual({
+      status: { state: "not_installed" },
       calls: [],
     });
   });

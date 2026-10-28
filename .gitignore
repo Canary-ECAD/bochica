@@ -2,6 +2,9 @@ node_modules/
 out/
 dist/
 release/
+# The bundled runtime and its download cache (scripts/prepare-runtime.ts)
+apps/desktop/runtime/
+apps/desktop/.cache/
 *.log
 .env
 .env.*

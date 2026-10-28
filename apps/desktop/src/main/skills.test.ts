@@ -92,14 +92,15 @@ describe("BuiltinSkills", () => {
     expect(entries.map((e) => e.load.status)).toEqual(["ok"]);
   });
 
-  test("no network: no skills, no crash", async () => {
+  test("no network: the skills are listed as missing, no crash", async () => {
     const offline = Object.assign(
       async (): Promise<Response> => {
         throw new TypeError("fetch failed");
       },
       { preconnect: () => {} },
     );
-    expect(await new BuiltinSkills(root, dirs, source, offline).load()).toEqual([]);
+    const entries = await new BuiltinSkills(root, dirs, source, offline).load();
+    expect(entries.map((e) => e.load.status)).toEqual(["missing"]);
   });
 });
 
@@ -122,6 +123,10 @@ describe("built-in skills from several repositories", () => {
     );
     await skills.load();
     expect(skills.guides().map((s) => s.id)).toEqual(["eec-pro-development"]);
+    expect(skills.list().map((s) => [s.name, s.status])).toEqual([
+      ["eplan-scripting", "missing"],
+      ["eec-pro", "ok"],
+    ]);
   });
 
   test("caches of commits no longer pinned are deleted; added skills stay", () => {

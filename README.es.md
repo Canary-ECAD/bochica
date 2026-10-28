@@ -11,8 +11,8 @@ lo que quieres con tus propias palabras.
 
 > **Estado:** desarrollo inicial, aún sin publicar. Ya conversa con cualquier proveedor, responde
 > con la documentación de EPLAN, actúa en EPLAN con tu aprobación, trabaja con archivos y
-> PowerShell en la carpeta que elijas y admite tus propias skills. Falta: el instalador con
-> Python incluido y las actualizaciones automáticas.
+> PowerShell en la carpeta que elijas y admite tus propias skills. El instalador lleva todo lo
+> que necesita; faltan las actualizaciones automáticas.
 
 ## Qué incluye
 
@@ -41,6 +41,11 @@ lo que quieres con tus propias palabras.
   access → "Allow remote access via Remote Client"** activado.
 - Una API key de un proveedor compatible, o un servidor de modelos local.
 
+Nada más: el instalador lleva su propio Python con el servidor de EPLAN y las skills integradas,
+así que no descarga nada para empezar (un proxy corporativo no es problema) y nunca toca un Python que
+tengas instalado. Al abrirla por primera vez, una guía corta conecta un modelo, comprueba EPLAN y
+hace una primera pregunta.
+
 ## Desarrollo
 
 Requiere [Bun](https://bun.sh).
@@ -52,6 +57,11 @@ bun run dev
 
 Comprobaciones: `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun run knip`,
 `bun test`. La arquitectura está descrita en [CLAUDE.md](CLAUDE.md).
+
+`bun run package` genera el instalador en `apps/desktop/release`. Su primer paso,
+`bun run --filter @bochica/desktop runtime`, descarga el Python, `uv`, eplan-mcp y las skills
+fijados en `apps/desktop/runtime` y comprueba que el servidor de EPLAN arranca; `bun run dev`
+también usa esa carpeta cuando existe.
 
 ## Licencia
 

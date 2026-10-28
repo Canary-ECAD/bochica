@@ -1,7 +1,11 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { McpManager, type McpServerConfig, readOnlyPolicy } from "@bochica/agent";
-import { defaultMcpServers, eplanConfirmation, eplanToolPolicy } from "@bochica/eplan";
+import {
+  defaultMcpServers,
+  eplanConfirmation,
+  type EplanServerLaunch,
+  eplanServerLaunch,
+  eplanToolPolicy,
+} from "@bochica/eplan";
 import type { McpServerInfo } from "@bochica/shared";
 import type { Logger } from "./logger";
 import type { SettingsStore } from "./settings";
@@ -10,25 +14,9 @@ import type { SettingsStore } from "./settings";
 
 export const EPLAN_SERVER_ID = "eplan";
 
-/**
- * Where the local EPLAN server lives. Until S10 bundles Python and eplan-mcp, a developer points
- * Bochica at them: BOCHICA_EPLAN_MCP_DIR (an eplan-mcp checkout) and optionally BOCHICA_PYTHON
- * (default "python", a 64-bit Python with eplan-mcp's requirements installed).
- */
-function locateEplanServer(
-  env: NodeJS.ProcessEnv,
-): { command: string; args: string[]; cwd: string } | null {
-  const dir = env["BOCHICA_EPLAN_MCP_DIR"];
-  const server = defaultMcpServers.find((s) => s.transport === "stdio");
-  if (!dir || server?.transport !== "stdio") return null;
-  const script = join(dir, server.script);
-  if (!existsSync(script)) return null;
-  return { command: env["BOCHICA_PYTHON"] || "python", args: [script], cwd: dir };
-}
-
 function toConfig(
   server: (typeof defaultMcpServers)[number],
-  env: NodeJS.ProcessEnv,
+  launch: EplanServerLaunch | null,
 ): McpServerConfig | null {
   if (server.transport === "http") {
     return {
@@ -39,13 +27,11 @@ function toConfig(
       policy: server.readOnly ? readOnlyPolicy : eplanToolPolicy,
     };
   }
-  const location = locateEplanServer(env);
-  if (!location) return null;
+  if (!launch) return null;
   return {
     id: server.id,
     transport: "stdio",
-    ...location,
-    env: server.env,
+    ...launch,
     required: true,
     policy: eplanToolPolicy,
     confirm: eplanConfirmation,
@@ -55,12 +41,27 @@ function toConfig(
 export class McpService {
   readonly manager: McpManager;
 
+  private readonly launch: EplanServerLaunch | null;
+
+  /**
+   * @param runtimeRoot the bundled runtime folder; a developer's eplan-mcp checkout
+   *   (BOCHICA_EPLAN_MCP_DIR) comes first.
+   * @param logDir where eplan-mcp writes its own logs.
+   */
   constructor(
     private readonly settings: SettingsStore,
     logger: Logger,
-    private readonly env: NodeJS.ProcessEnv = process.env,
+    runtimeRoot: string | null,
+    logDir: string,
+    env: NodeJS.ProcessEnv = process.env,
   ) {
     this.manager = new McpManager(undefined, (server, line) => logger.info(`[${server}] ${line}`));
+    this.launch = eplanServerLaunch(env, runtimeRoot, logDir);
+    logger.info(
+      this.launch
+        ? `EPLAN server: ${this.launch.command} ${this.launch.args.join(" ")}`
+        : "EPLAN server: not set up (no bundled runtime, BOCHICA_EPLAN_MCP_DIR unset)",
+    );
   }
 
   start(): void {
@@ -69,7 +70,7 @@ export class McpService {
 
   /** Whether the local EPLAN server can be started on this machine. */
   eplanConfigured(): boolean {
-    return locateEplanServer(this.env) !== null;
+    return this.launch !== null;
   }
 
   list(): McpServerInfo[] {
@@ -100,7 +101,7 @@ export class McpService {
   private apply(): void {
     this.manager.configure(
       defaultMcpServers.flatMap((server) => {
-        const config = toConfig(server, this.env);
+        const config = toConfig(server, this.launch);
         return config ? [{ config, enabled: this.settings.isMcpEnabled(server.id) }] : [];
       }),
     );

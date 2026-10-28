@@ -1,6 +1,7 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { defaultPathPolicy } from "@bochica/agent";
-import { componentsLock, eplanToolPolicy } from "@bochica/eplan";
+import { componentsLock, eplanInstalled, eplanToolPolicy, runtimePaths } from "@bochica/eplan";
 import { EplanStatus, ipcChannels, McpServerList } from "@bochica/shared";
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
@@ -30,21 +31,27 @@ function broadcast(channel: string, payload: unknown): void {
 }
 
 /**
+ * The runtime the installer ships (Python, eplan-mcp, built-in skills): resources\runtime when
+ * packaged, apps\desktop\runtime in development once `bun run runtime` has prepared it.
+ */
+const runtimeRoot = app.isPackaged
+  ? join(process.resourcesPath, "runtime")
+  : join(app.getAppPath(), "runtime");
+
+/**
  * Where the built-in skills come from: during development, checkouts of each repository side by
- * side in BOCHICA_SKILLS_DIR; otherwise a cache of the commit pinned in components.lock.json,
- * downloaded on first use. Caches of commits no longer pinned are deleted.
+ * side in BOCHICA_SKILLS_DIR; then the copy in the runtime folder; otherwise a cache of the
+ * commit pinned in components.lock.json, downloaded on first use. Downloaded copies that aren't
+ * needed (another commit, or skills read from a folder) are deleted.
  */
 function builtinSkills(): BuiltinSkills[] {
-  const local = process.env["BOCHICA_SKILLS_DIR"];
+  const bundled = runtimePaths(runtimeRoot).skills;
+  const local = process.env["BOCHICA_SKILLS_DIR"] ?? (existsSync(bundled) ? bundled : undefined);
   const cache = join(app.getPath("userData"), "skills");
   const repositories = Object.entries(BUILTIN_SKILLS) as Array<
     [keyof typeof BUILTIN_SKILLS, readonly string[]]
   >;
-  if (!local)
-    removeStaleCaches(
-      cache,
-      repositories.map(([name]) => componentsLock[name].commit),
-    );
+  removeStaleCaches(cache, local ? [] : repositories.map(([name]) => componentsLock[name].commit));
   return repositories.map(([name, dirs]) => {
     if (local) return new BuiltinSkills(join(local, name, "skills"), dirs, null);
     const pinned = componentsLock[name];
@@ -99,7 +106,7 @@ void app.whenReady().then(() => {
     safeStorage,
   );
   const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
-  const mcp = new McpService(settings, logger);
+  const mcp = new McpService(settings, logger, runtimeRoot, join(app.getPath("logs"), "eplan-mcp"));
   const permissions = new PermissionStore(join(app.getPath("userData"), "permissions.json"));
   const approvals = new ApprovalService({ rules: permissions });
   const callEplan = (tool: string, args: Record<string, unknown>) =>
@@ -151,6 +158,7 @@ void app.whenReady().then(() => {
   const eplan = new EplanStatusService(
     {
       configured: () => mcp.eplanConfigured(),
+      installed: () => eplanInstalled(process.env),
       serverState: () => mcp.manager.states().find((s) => s.id === EPLAN_SERVER_ID),
       callTool: callEplan,
       isEplanRunning,
@@ -168,6 +176,7 @@ void app.whenReady().then(() => {
     skills,
     permissions,
     checkpoints,
+    settings,
     logger,
   });
 

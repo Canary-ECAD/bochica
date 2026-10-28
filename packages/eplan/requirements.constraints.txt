@@ -1,0 +1,3 @@
+# Constraints on top of eplan-mcp's requirements.txt when Bochica builds its lock
+# (requirements.lock.txt). eplan-mcp imports mcp.server.fastmcp, which mcp 2.x removed.
+mcp<2

@@ -11,6 +11,7 @@ import {
   ipcChannels,
   McpServerList,
   ModelList,
+  Onboarding,
   Permissions,
   ProviderId,
   RenameSessionRequest,
@@ -39,6 +40,7 @@ import type { Logger } from "./logger";
 import type { McpService } from "./mcp-service";
 import type { PermissionStore } from "./permissions";
 import type { SessionRepository } from "./db/repository";
+import type { SettingsStore } from "./settings";
 import type { SkillService } from "./skills";
 
 export interface Services {
@@ -52,6 +54,7 @@ export interface Services {
   skills: SkillService;
   permissions: PermissionStore;
   checkpoints: CheckpointService;
+  settings: SettingsStore;
   logger: Logger;
 }
 
@@ -69,6 +72,7 @@ export function registerIpc({
   skills,
   permissions,
   checkpoints,
+  settings,
   logger,
 }: Services): void {
   const handle = (
@@ -90,6 +94,15 @@ export function registerIpc({
   );
 
   handle(ipcChannels.credentialsList, () => CredentialList.parse(credentials.list()));
+
+  // People who used Bochica before the guide existed already have a key: they don't need it.
+  handle(ipcChannels.onboardingGet, () =>
+    Onboarding.parse({ done: settings.onboarded() ?? credentials.list().length > 0 }),
+  );
+
+  handle(ipcChannels.onboardingSet, (arg) => {
+    settings.setOnboarded(Onboarding.parse(arg).done);
+  });
 
   handle(ipcChannels.credentialsSet, (arg) => {
     const { provider, secret } = SetCredentialRequest.parse(arg);

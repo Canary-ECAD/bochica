@@ -48,6 +48,9 @@ export function SkillsSettings() {
                   {skill.description}
                 </p>
               )}
+              {skill.status === "missing" && (
+                <p className="mt-1 text-xs text-destructive">{t("skills.missing")}</p>
+              )}
               {skill.problem && (
                 <p className="mt-1 text-xs text-destructive">
                   {t(`skills.problem.${skill.problem}`)}

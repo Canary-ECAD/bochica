@@ -9,6 +9,7 @@ import {
   ipcChannels,
   McpServerList,
   ModelList,
+  Onboarding,
   Permissions,
   RewindPreview,
   RewindResult,
@@ -116,6 +117,12 @@ const api: BochicaApi = {
     remove: async (id) => SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsRemove, id)),
     setEnabled: async (request) =>
       SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsSetEnabled, request)),
+  },
+  onboarding: {
+    get: async () => Onboarding.parse(await ipcRenderer.invoke(ipcChannels.onboardingGet)),
+    set: async (onboarding) => {
+      await ipcRenderer.invoke(ipcChannels.onboardingSet, onboarding);
+    },
   },
   eplan: {
     status: async () => EplanStatus.parse(await ipcRenderer.invoke(ipcChannels.eplanStatus)),

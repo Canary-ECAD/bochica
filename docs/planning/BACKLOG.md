@@ -7,6 +7,9 @@ move it there and leave a link here (`→ S4-03`).
 
 - Everything a user can do in Claude Code Desktop that makes sense for EPLAN work — to be
   itemized as requests come in.
+- **Inline code shows its backticks** in answers (`` `.ema` `` appears with the backticks): the
+  typography plugin adds them around `code`; `markdown.tsx` should switch that off. Seen in the
+  S11 demo.
 - **New-session heading**: no "What do you want to do in EPLAN today?"; a large greeting that
   changes daily ("Good morning", "Happy Tuesday", "New task"). → done in S5
 - **Modes** in the composer. **Consulta**: questions about EPLAN (docs RAGs) and help writing
@@ -66,7 +69,7 @@ move it there and leave a link here (`→ S4-03`).
 ## Infrastructure
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
-- **Built-in skills inside the installer** → S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded
+- **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded
   from GitHub on the first start; offline or behind a proxy that blocks GitHub, the app starts
   without its skills and only the log says why. The installer should carry the pinned commit
   (like Python and `uv`), the download stays only for updates, and a missing skill shows a
