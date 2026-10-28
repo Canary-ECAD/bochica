@@ -15,7 +15,7 @@ import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { SettingsStore } from "./settings";
-import { BuiltinSkills, SkillService } from "./skills";
+import { BUILTIN_SKILLS, BuiltinSkills, removeStaleCaches, SkillService } from "./skills";
 
 const logger = createLogger(app.getPath("logs"));
 
@@ -28,15 +28,26 @@ function broadcast(channel: string, payload: unknown): void {
 }
 
 /**
- * Where the scripting skill comes from: a local eplan-scripting-skill checkout during
- * development (BOCHICA_SKILLS_DIR), otherwise a cache of the commit pinned in
- * components.lock.json, downloaded on first use.
+ * Where the built-in skills come from: during development, checkouts of each repository side by
+ * side in BOCHICA_SKILLS_DIR; otherwise a cache of the commit pinned in components.lock.json,
+ * downloaded on first use. Caches of commits no longer pinned are deleted.
  */
-function skillLocation(): [string, { repository: string; commit: string } | null] {
+function builtinSkills(): BuiltinSkills[] {
   const local = process.env["BOCHICA_SKILLS_DIR"];
-  if (local) return [join(local, "skills"), null];
-  const pinned = componentsLock["eplan-scripting-skill"];
-  return [join(app.getPath("userData"), "skills", pinned.commit), pinned];
+  const cache = join(app.getPath("userData"), "skills");
+  const repositories = Object.entries(BUILTIN_SKILLS) as Array<
+    [keyof typeof BUILTIN_SKILLS, readonly string[]]
+  >;
+  if (!local)
+    removeStaleCaches(
+      cache,
+      repositories.map(([name]) => componentsLock[name].commit),
+    );
+  return repositories.map(([name, dirs]) => {
+    if (local) return new BuiltinSkills(join(local, name, "skills"), dirs, null);
+    const pinned = componentsLock[name];
+    return new BuiltinSkills(join(cache, pinned.commit), dirs, pinned);
+  });
 }
 
 function createWindow(): void {
@@ -97,7 +108,7 @@ void app.whenReady().then(() => {
     .markInterruptedTurns()
     .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
   const skills = new SkillService(
-    new BuiltinSkills(...skillLocation()),
+    builtinSkills(),
     join(app.getPath("userData"), "skills", "user"),
     settings,
   );

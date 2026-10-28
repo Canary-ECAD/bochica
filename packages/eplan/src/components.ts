@@ -12,6 +12,7 @@ const PinnedComponent = z.object({
 export const ComponentsLock = z.object({
   "eplan-mcp": PinnedComponent,
   "eplan-scripting-skill": PinnedComponent,
+  "eec-pro-skill": PinnedComponent,
 });
 export type ComponentsLock = z.infer<typeof ComponentsLock>;
 

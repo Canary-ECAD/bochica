@@ -13,14 +13,18 @@ import { basename, dirname, join } from "node:path";
 import { findSkillDirs, loadSkill, type Skill, type SkillLoad, SkillSet } from "@bochica/agent";
 import type { SkillInfo, SkillInstallReport } from "@bochica/shared";
 
-// Skills come from two places. Built in: eplan-scripting-skill, downloaded once at the commit
-// pinned in components.lock.json and cached under userData, or read from a local checkout
-// during development (BOCHICA_SKILLS_DIR); in Consult its guides go into the system prompt.
-// Added by the user: copied from a folder they pick into userData\skills\user\<name>, which the
-// file tools can't write, so the agent can never add or change a skill itself.
+// Skills come from two places. Built in: eplan-scripting-skill and eec-pro-skill, each
+// downloaded once at the commit pinned in components.lock.json and cached under userData, or
+// read from local checkouts during development (BOCHICA_SKILLS_DIR); in Consult their guides go
+// into the system prompt. Added by the user: copied from a folder they pick into
+// userData\skills\user\<name>, which the file tools can't write, so the agent can never add or
+// change a skill itself.
 
-/** The built-in skills, inside eplan-scripting-skill's skills/ folder. */
-const BUILTIN_DIRS = ["eplan-p8/eplan-scripting", "eec-pro/eec-pro-development"];
+/** The built-in skills of each repository, as folders inside its skills/ folder. */
+export const BUILTIN_SKILLS = {
+  "eplan-scripting-skill": ["eplan-p8/eplan-scripting"],
+  "eec-pro-skill": ["eec-pro-development"],
+} as const;
 
 /** The composer's own `/` commands (composer.tsx); no added skill may take these names. */
 const APP_COMMANDS = ["new", "consult", "tasks", "draw", "settings", "compact"];
@@ -37,14 +41,16 @@ interface SkillEntry {
   load: SkillLoad;
 }
 
-/** eplan-scripting-skill: downloaded at the pinned commit, or a local checkout. */
+/** The built-in skills of one repository: downloaded at the pinned commit, or a local checkout. */
 export class BuiltinSkills {
   /**
    * @param root the folder that contains the skill folders: a local checkout's `skills/`, or
    *   the cache, which mirrors it.
+   * @param dirs the skill folders to use, relative to `root`.
    */
   constructor(
     private readonly root: string,
+    private readonly dirs: readonly string[],
     private readonly source: Source | null,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
@@ -54,9 +60,9 @@ export class BuiltinSkills {
     try {
       if (this.source && !existsSync(join(this.root, ".complete")))
         await this.download(this.source);
-      return BUILTIN_DIRS.filter((dir) => existsSync(join(this.root, dir, "SKILL.md"))).map(
-        (dir) => ({ id: dir, source: "builtin", load: loadSkill(join(this.root, dir), dir) }),
-      );
+      return this.dirs
+        .filter((dir) => existsSync(join(this.root, dir, "SKILL.md")))
+        .map((dir) => ({ id: dir, source: "builtin", load: loadSkill(join(this.root, dir), dir) }));
     } catch {
       return [];
     }
@@ -73,7 +79,7 @@ export class BuiltinSkills {
       tree: Array<{ path: string; type: string }>;
     };
     const wanted = entries.filter(
-      (e) => e.type === "blob" && BUILTIN_DIRS.some((dir) => e.path.startsWith(`skills/${dir}/`)),
+      (e) => e.type === "blob" && this.dirs.some((dir) => e.path.startsWith(`skills/${dir}/`)),
     );
     await Promise.all(
       wanted.map(async (entry) => {
@@ -92,6 +98,23 @@ export class BuiltinSkills {
   }
 }
 
+/**
+ * Deletes cached downloads of commits no longer pinned, inside `root` (userData\skills). Only
+ * folders named like a commit are touched; added skills live in `user` and stay.
+ */
+export function removeStaleCaches(root: string, pinned: readonly string[]): void {
+  let names: string[];
+  try {
+    names = readdirSync(root);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (/^[0-9a-f]{40}$/.test(name) && !pinned.includes(name))
+      rmSync(join(root, name), { recursive: true, force: true });
+  }
+}
+
 /** Where the on/off switches of added skills are kept (settings.json). */
 export interface SkillSwitches {
   isSkillEnabled(id: string): boolean;
@@ -101,17 +124,21 @@ export interface SkillSwitches {
 export class SkillService {
   private entries: SkillEntry[] = [];
 
-  /** @param userRoot where added skills are copied, one folder per skill name. */
+  /**
+   * @param builtin one source per repository of built-in skills.
+   * @param userRoot where added skills are copied, one folder per skill name.
+   */
   constructor(
-    private readonly builtin: BuiltinSkills,
+    private readonly builtin: readonly BuiltinSkills[],
     private readonly userRoot: string,
     private readonly switches: SkillSwitches,
   ) {}
 
   /** Reads every skill again. Never throws. */
   async load(): Promise<void> {
-    const builtin = await this.builtin.load();
-    this.entries = [...builtin, ...this.loadUser()];
+    // Each repository on its own: one that can't be downloaded doesn't hold back the others.
+    const builtin = await Promise.all(this.builtin.map((source) => source.load()));
+    this.entries = [...builtin.flat(), ...this.loadUser()];
   }
 
   private loadUser(): SkillEntry[] {

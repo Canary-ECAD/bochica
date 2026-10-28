@@ -62,7 +62,7 @@ move it there and leave a link here (`→ S4-03`).
 ## Infrastructure
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
-- **Built-in skills inside the installer** → S11. Today eplan-scripting-skill is downloaded
+- **Built-in skills inside the installer** → S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded
   from GitHub on the first start; offline or behind a proxy that blocks GitHub, the app starts
   without its skills and only the log says why. The installer should carry the pinned commit
   (like Python and `uv`), the download stays only for updates, and a missing skill shows a

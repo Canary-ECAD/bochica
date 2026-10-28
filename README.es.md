@@ -23,7 +23,9 @@ lo que quieres con tus propias palabras.
   - [eplan-mcp](https://github.com/Canary-ECAD/eplan-mcp): controla una instancia de EPLAN
     abierta.
   - [eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill): enseña al
-    agente a escribir scripts de EPLAN correctos.
+    agente a escribir scripts de EPLAN Electric P8 correctos.
+  - [eec-pro-skill](https://github.com/Canary-ECAD/eec-pro-skill): lo mismo para EPLAN EEC Pro
+    (típicos, fórmulas, Job Server, generación).
   - [eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags): busca en la
     documentación de EPLAN (P8 2027 siempre activo; P8 2026 y EEC Pro opcionales).
 - Actualizaciones con un clic.

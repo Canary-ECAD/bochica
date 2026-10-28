@@ -5,6 +5,10 @@
   },
   "eplan-scripting-skill": {
     "repository": "https://github.com/Canary-ECAD/eplan-scripting-skill",
-    "commit": "2f717232b27c8c371acf047c8bd4787061888f86"
+    "commit": "12fe786d344b9a29825e5b8cd7952d31f554ead3"
+  },
+  "eec-pro-skill": {
+    "repository": "https://github.com/Canary-ECAD/eec-pro-skill",
+    "commit": "9f89fefc05f78984a4750851e80e9e423918e4bf"
   }
 }

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S10 — Checkpoints and rewind, plan mode, guardrails advanced (to be planned)**
+**Active sprint: [S10](sprints/S10-checkpoints-plan-permissions.md) — Checkpoints and rewind, plan mode, permissions**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -28,11 +28,11 @@ The agent drives a running EPLAN safely, and conversations survive a restart.
 
 ## M2 — Claude Code parity
 
-| Sprint                                      | Goal                                                                                                                       | Status  |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S8](sprints/S8-skills-commands.md)         | Skills beyond the default one, slash commands, `@file` mentions                                                            | Done    |
-| [S9](sprints/S9-context-subagents-todos.md) | Context compaction, subagents, todo list in the UI                                                                         | Done    |
-| S10                                         | Checkpoints and rewind; plan mode; guardrails advanced (deny rules, always allow, YOLO, smart approvals, approval history) | Outline |
+| Sprint                                             | Goal                                                                                                                       | Status |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------ |
+| [S8](sprints/S8-skills-commands.md)                | Skills beyond the default one, slash commands, `@file` mentions                                                            | Done   |
+| [S9](sprints/S9-context-subagents-todos.md)        | Context compaction, subagents, todo list in the UI                                                                         | Done   |
+| [S10](sprints/S10-checkpoints-plan-permissions.md) | Checkpoints and rewind; plan mode; guardrails advanced (deny rules, always allow, YOLO, smart approvals, approval history) | Active |
 
 ## M3 — Ship it
 

@@ -20,7 +20,9 @@ API key from the AI provider of your choice, and describe what you want in your 
 - Ready-made EPLAN integration, nothing to configure:
   - [eplan-mcp](https://github.com/Canary-ECAD/eplan-mcp) — drives a running EPLAN instance.
   - [eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill) — teaches the
-    agent to write correct EPLAN scripts.
+    agent to write correct EPLAN Electric P8 scripts.
+  - [eec-pro-skill](https://github.com/Canary-ECAD/eec-pro-skill) — the same for EPLAN EEC Pro
+    (typicals, formulas, Job Server, generation).
   - [eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags) — searches the
     EPLAN documentation (P8 2027 always on; P8 2026 and EEC Pro optional).
 - One-click updates.

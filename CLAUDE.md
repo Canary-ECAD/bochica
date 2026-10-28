@@ -35,7 +35,8 @@ model provider**, plus a preconfigured EPLAN integration:
 | Component                                                             | Repository                                                                                | How it is integrated                                                              |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Local MCP server that drives EPLAN (Python, 199 tools in `full` mode) | [Canary-ECAD/eplan-mcp](https://github.com/Canary-ECAD/eplan-mcp)                         | stdio MCP server launched by Bochica (`eplan-p8-mcp-server/mcp_server/server.py`) |
-| EPLAN scripting skills (router + P8 / EEC Pro)                        | [Canary-ECAD/eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill) | Loaded by default (agentskills.io format, `SKILL.md`)                             |
+| EPLAN P8 scripting skill (router + P8)                                | [Canary-ECAD/eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill) | Loaded by default (agentskills.io format, `SKILL.md`)                             |
+| EPLAN EEC Pro skill                                                   | [Canary-ECAD/eec-pro-skill](https://github.com/Canary-ECAD/eec-pro-skill)                 | Loaded by default (agentskills.io format, `SKILL.md`)                             |
 | P8 2027 documentation RAG (required minimum)                          | [Canary-ECAD/eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags) | Remote HTTPS MCP `https://rag2027.covaga.xyz/mcp`                                 |
 | Optional RAGs: P8 2026 and EEC Pro 2026                               | same repository                                                                           | `https://rag2026.covaga.xyz/mcp`, `https://rageecpro.covaga.xyz/mcp`              |
 
@@ -178,9 +179,9 @@ How the pieces fit:
   adds the mode's section. In Consult the built-in scripting guides go into the prompt whole.
 - **Skills:** format, loading, injection scan and the tools `use_skill` / `read_skill_file` are
   in `packages/agent/src/skills.ts` (`SkillSet` reads only inside a skill's folder).
-  `SkillService` (`main/skills.ts`) has two sources: built in (eplan-scripting-skill, downloaded
-  at the commit pinned in `components.lock.json` into `userData\skills\<commit>`, or read from
-  `BOCHICA_SKILLS_DIR`) and added by the user (copied into `userData\skills\user\<name>`, on/off
+  `SkillService` (`main/skills.ts`) has two sources: built in (eplan-scripting-skill and
+  eec-pro-skill, `BUILTIN_SKILLS`, each downloaded at the commit pinned in `components.lock.json`
+  into `userData\skills\<commit>`, or read from checkouts side by side in `BOCHICA_SKILLS_DIR`) and added by the user (copied into `userData\skills\user\<name>`, on/off
   in `settings.json`). Added skills are listed by name and description in every mode; a
   `/skill …` message is expanded by `expandSkillCommands` in main. The composer's app commands
   (`/new`, `/tasks`…) are reserved names, listed in `composer.tsx` and `APP_COMMANDS`.
