@@ -81,19 +81,36 @@ questions are answered when the sprint is planned.
     macro or picture; duplicates; inconsistent units and spelling; parts a project uses that the
     database lacks), shown in the app and exportable as CSV. Then fixes proposed in batches:
     one approval card per batch, master data backed up before the first write.
-  - Open: is there an API (or an EPLAN action) to search and download from the Data Portal, or
-    does the agent only guide the user through it? Which database backends (Access, SQL
-    Server)? Report as an artifact in the chat or its own view?
+  - Data Portal, two ways in:
+    - **Inside EPLAN**, through the Data Portal add-in's actions and EPLAN's own sign-in. A
+      closed eplan-mcp PR (Canary-ECAD/eplan-mcp#75) measured them on P8 2026:
+      `EDPCloudGetSearchCountAction` counts hits and `EDPCloudAddPartsToBasketAction` queues
+      parts (`PARTNR<i>` + `PARTID<i>`, both required, indexes from 1). The download itself is a
+      modal dialog, so the agent asks the user to click it. Data Portal skips parts whose number
+      the database already has. The same PR sent .NET `Console.Out` to stderr, because the Remote
+      Client's greeting broke the stdio channel; check whether the pinned eplan-mcp needs that.
+    - **The Data Portal web API** (`dataportal.eplan.com/api/doc`) can search and download
+      without dialogs, with a personal token. The token belongs in Bochica's credential store
+      (main only, never in prompts or child processes beyond the one that needs it), so this
+      leans on S13's several credentials.
+    - Either way the tools go into eplan-mcp; Bochica classifies them and stores the token.
+  - Open: which database backends (Access, SQL Server)? Report as an artifact in the chat or
+    its own view?
 - **PLC generator** (Canary-ECAD/bochica#2) → S16. Organise and create control schematics with
   any part number (SKU).
   - What exists: macros (`eplan_insert_device`, `eplan_generate_macros`), the live drawing tools,
     PLC data exchange (`eplan_plc_import`, `eplan_plc_export`) and the parts database (S15).
-  - Sketch: input is one or more part numbers plus an I/O list (CSV or Excel: address, symbol,
-    comment). The agent finds each card in the parts database, uses its macro when there is one
-    (live drawing as a fallback), lays out one page per card with addresses and symbolic names,
-    and checks the result with `eplan_live_verify_page` and the project check.
-  - Open: "any SKU" — a part missing from the database comes from the Data Portal (S15) or is
-    refused? Which layouts (PLC overview, multi-line I/O pages)? Which manufacturers first?
+  - It's a methodology, so the main deliverable is a **skill**: a walkthrough the agent follows
+    to create a macro project, set up the macros that go with a part number, and configure the
+    generator that builds the control schematics from them. It ships as a built-in skill
+    (pinned in `components.lock.json` like the others); eplan-mcp gets any tool the walkthrough
+    finds missing.
+  - Sketch: given a part number, find or fetch the part (S15), create or open the macro
+    project, build and assign its macros, configure the generator, generate a sample schematic
+    and check it with `eplan_live_verify_page` and the project check. A made-up sample part and
+    I/O list serve as the demo.
+  - Open: which generator (the one in P8, or EEC Pro)? Which part families first (PLC cards,
+    then contactors, motor starters)?
 - **Eyes and PDF to schematic** (Canary-ECAD/bochica#3) → S17. Redraw a PDF schematic in EPLAN
   with any model; EPDZ projects as guidance.
   - What exists: the live drawing primitives (Canary-ECAD/eplan-mcp#34: create pages, place
@@ -101,10 +118,19 @@ questions are answered when the sprint is planned.
   - Missing in Bochica: the model can't see images. Needed: attaching images and PDFs in the
     composer (per provider: not every model takes them), and tools that return an image, such
     as a rendered EPLAN page, so the agent can compare what it drew with the source.
-  - Sketch: read the PDF page, list devices and connections, draw them with the primitives,
-    render the page, compare, correct. Made-up sample projects (EPDZ) exported to PDF give
-    pairs with a known answer, to measure how close a redraw gets (devices and connections found
-    by `eplan_live_read_page`). Only made-up projects: this is a public repository.
+  - Vision alone guesses positions. Bochica gives the model **exact positions** from the page
+    itself, as a tool that returns text with coordinates:
+    - a PDF exported from a CAD tool is vector: its texts (device tags such as `-K1`, pin
+      numbers), lines and boxes come out with exact coordinates, no OCR needed;
+    - a scanned PDF or a photo needs OCR. Windows has an offline OCR engine that returns each
+      word with its box, so nothing has to be bundled for it;
+    - symbol shapes (a relay coil, a contact) are found by the vision model, anchored to those
+      texts and lines, and can be compared against the EPLAN symbol library.
+  - Sketch: extract the page (texts, lines, symbols with positions), map it to EPLAN symbols,
+    draw with the primitives, render the page, compare with the source, correct. Made-up sample
+    projects (EPDZ) exported to PDF give pairs with a known answer, to measure how close a redraw
+    gets (devices and connections found by `eplan_live_read_page`). Only made-up projects: this
+    is a public repository.
   - Open: what does an EPDZ give as "eyes" — the reference structure to learn from, or test
     cases? Scope of the first version (one page, one symbol library)?
 
