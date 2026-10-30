@@ -66,6 +66,48 @@ move it there and leave a link here (`→ S4-03`).
   buffer), exact token counting where a provider has an API for it, and a helper's own tool
   calls shown nested in the activity log.
 
+## EPLAN workflows
+
+From the enhancement issues. Each one is an outline sprint in ROADMAP.md (M4); the open
+questions are answered when the sprint is planned.
+
+- **Parts database doctor** (Canary-ECAD/bochica#1) → S15. Curate the parts database and use the
+  Data Portal to fill what is missing.
+  - What exists: eplan-mcp reads and writes parts (`eplan_parts_db_query`, `_get_part`,
+    `_list_product_groups`, `_update`, `_create`), imports and exports them
+    (`eplan_partsmanagement_*`), checks a project's parts (`eplan_check_parts`) and backs up
+    master data (`eplan_backup_masterdata`).
+  - Sketch: a read-only health report first (missing description, manufacturer, order number,
+    macro or picture; duplicates; inconsistent units and spelling; parts a project uses that the
+    database lacks), shown in the app and exportable as CSV. Then fixes proposed in batches:
+    one approval card per batch, master data backed up before the first write.
+  - Open: is there an API (or an EPLAN action) to search and download from the Data Portal, or
+    does the agent only guide the user through it? Which database backends (Access, SQL
+    Server)? Report as an artifact in the chat or its own view?
+- **PLC generator** (Canary-ECAD/bochica#2) → S16. Organise and create control schematics with
+  any part number (SKU).
+  - What exists: macros (`eplan_insert_device`, `eplan_generate_macros`), the live drawing tools,
+    PLC data exchange (`eplan_plc_import`, `eplan_plc_export`) and the parts database (S15).
+  - Sketch: input is one or more part numbers plus an I/O list (CSV or Excel: address, symbol,
+    comment). The agent finds each card in the parts database, uses its macro when there is one
+    (live drawing as a fallback), lays out one page per card with addresses and symbolic names,
+    and checks the result with `eplan_live_verify_page` and the project check.
+  - Open: "any SKU" — a part missing from the database comes from the Data Portal (S15) or is
+    refused? Which layouts (PLC overview, multi-line I/O pages)? Which manufacturers first?
+- **Eyes and PDF to schematic** (Canary-ECAD/bochica#3) → S17. Redraw a PDF schematic in EPLAN
+  with any model; EPDZ projects as guidance.
+  - What exists: the live drawing primitives (Canary-ECAD/eplan-mcp#34: create pages, place
+    symbols, connect pins, read back) and page exports to PDF and graphics files.
+  - Missing in Bochica: the model can't see images. Needed: attaching images and PDFs in the
+    composer (per provider: not every model takes them), and tools that return an image, such
+    as a rendered EPLAN page, so the agent can compare what it drew with the source.
+  - Sketch: read the PDF page, list devices and connections, draw them with the primitives,
+    render the page, compare, correct. Made-up sample projects (EPDZ) exported to PDF give
+    pairs with a known answer, to measure how close a redraw gets (devices and connections found
+    by `eplan_live_read_page`). Only made-up projects: this is a public repository.
+  - Open: what does an EPDZ give as "eyes" — the reference structure to learn from, or test
+    cases? Scope of the first version (one page, one symbol library)?
+
 ## Infrastructure
 
 - **Code signing** (left out of S12): the installer isn't signed, so Windows SmartScreen warns on
