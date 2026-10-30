@@ -75,6 +75,11 @@ move it there and leave a link here (`→ S4-03`).
   `tasklist` / `netstat` text, which is in the console's language and code page, so on a Spanish
   Windows it failed with `UnicodeDecodeError` and fell back to port 49152. → fixed in
   Canary-ECAD/eplan-mcp#74 (Windows API instead of console text), pinned in S12.
+- **Contract with eplan-mcp instead of guessing.** eplan-mcp publishes no safety annotations, so
+  `tool-policy.ts` classifies ~200 tools by name and every bump is a manual review. Keep the
+  repositories separate, but have eplan-mcp declare MCP annotations and EPLAN facts, publish
+  tagged releases with a tool list, and let Bochica derive its policy and watch for releases.
+  → S14
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
 - **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded
