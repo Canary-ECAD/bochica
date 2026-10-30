@@ -8,10 +8,11 @@
 EPLAN Electric P8 through an AI agent — no programming, no command line. Install it, paste an
 API key from the AI provider of your choice, and describe what you want in your own words.
 
-> **Status:** early development, not released yet. It already chats with any provider, answers
-> from the EPLAN documentation, acts on EPLAN with your approval, works with files and
-> PowerShell in a folder you choose, and takes your own skills. The installer carries everything
-> it needs; automatic updates are still missing.
+> **Status:** early development. Download the installer from
+> [Releases](https://github.com/Canary-ECAD/bochica/releases/latest); after that, Bochica updates
+> itself. It chats with any provider, answers from the EPLAN documentation, acts on EPLAN with
+> your approval, works with files and PowerShell in a folder you choose, and takes your own
+> skills. The installer isn't code-signed yet, so Windows SmartScreen may warn the first time.
 
 ## What it includes
 
