@@ -65,6 +65,10 @@ The notice appears 30 seconds after start; **Update now** installs into
 
 - **The workflow fails before uploading:** fix it on `main`, delete the tag
   (`git push --delete origin v0.3.0`, `git tag -d v0.3.0`) and tag again.
+- **"Draft release" fails with `HTTP 500`** (seen with 0.3.1: GitHub refused the workflow's
+  token twice while a maintainer's token worked): create the draft yourself,
+  `gh release create v0.3.1 --draft --title 0.3.1 --notes ""`, then re-run the workflow. The
+  step skips an existing draft and the installer is uploaded to it.
 - **The workflow fails after creating the draft:** delete the draft on GitHub as well, then tag
   again. A draft is never seen by users, so nothing reached them.
 - **A published release is broken:** don't delete it (apps that already downloaded it keep its
