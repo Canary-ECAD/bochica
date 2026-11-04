@@ -1,6 +1,6 @@
 # S13c — An update you can see from start to finish
 
-**Status:** planned
+**Status:** active
 **Goal:** from **Update now** until the new version opens, the user always sees a small Bochica
 window that says it is updating and that Bochica will open by itself. Nothing looks like a
 crash, and opening Bochica again in the middle neither starts a second copy nor breaks the

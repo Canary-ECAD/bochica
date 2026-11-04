@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > guide; one-click updates from GitHub Releases, built by a tag-driven release workflow;
 > several keys per provider with failover per model call, and OpenRouter sign-in (S13);
 > Claude Agent, a Claude Pro/Max plan through the user's own Claude Code (S13b).
-> Next: the eplan-mcp contract (S14).
+> Next: an update window that bridges the install (S13c), then the eplan-mcp contract (S14).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
