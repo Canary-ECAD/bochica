@@ -1,7 +1,7 @@
 import type { UpdateStatus } from "@bochica/shared";
 import { useQuery } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { Download, X } from "lucide-react";
+import { Download, LoaderCircle, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -54,11 +54,17 @@ export function UpdateNotice() {
   if (!["available", "downloading", "ready"].includes(status.state) && !failed) return null;
   if (failed && dismissed) return null;
   const version = status.version ?? "";
+  // Downloading, or closing to install: something is happening even if no button shows.
+  const busy = status.state === "downloading" || (status.state === "ready" && !status.waiting);
 
   return (
     <div className="mb-1 flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
       <div className="flex items-start gap-2">
-        <Download className="mt-0.5 size-4 shrink-0 text-primary" />
+        {busy ? (
+          <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+        ) : (
+          <Download className="mt-0.5 size-4 shrink-0 text-primary" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="font-medium">{t("updates.available", { version })}</p>
           {status.state === "downloading" && (

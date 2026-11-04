@@ -37,6 +37,8 @@ export function electronUpdater(logger: Logger, feed: string | null): Updater {
       }
     },
     // quitAndInstall reports a failure only as an "error" event; on success the app quits.
+    // Not silent: the one-click installer shows its own small progress window while it replaces
+    // the app, so the minute between closing and reopening doesn't look like a crash.
     install: () =>
       new Promise<void>((resolve, reject) => {
         const timer = setTimeout(resolve, INSTALL_ERROR_MS);
@@ -44,7 +46,7 @@ export function electronUpdater(logger: Logger, feed: string | null): Updater {
           clearTimeout(timer);
           reject(error);
         });
-        autoUpdater.quitAndInstall(true, true);
+        autoUpdater.quitAndInstall(false, true);
       }),
   };
 }

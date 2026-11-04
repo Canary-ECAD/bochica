@@ -24,7 +24,7 @@
     "later": "Más tarde",
     "whatsNew": "Novedades",
     "downloading": "Descargando… {{percent}} %",
-    "restarting": "Reiniciando para actualizar…",
+    "restarting": "Instalando… Bochica se cerrará, verás el progreso del instalador y se abrirá de nuevo en un minuto.",
     "waiting": "Bochica se reiniciará para actualizar cuando termine la tarea en curso.",
     "tryAgain": "Reintentar",
     "dismiss": "Cerrar",

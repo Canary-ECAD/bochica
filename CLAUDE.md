@@ -345,8 +345,9 @@ update** covering everything:
   `components/update-notice.tsx`) with **Update now** and **Later**; Settings → General →
   Updates (`UpdateSettings`) shows the state and can check by hand. Nothing downloads or
   installs without one of those clicks. Update now downloads and restarts, waiting for a running
-  task (`ChatService.busy()` / `onIdle`); Later downloads quietly and installs on quit
-  (`autoInstallOnAppQuit`).
+  task (`ChatService.busy()` / `onIdle`); the installer is not silent (`quitAndInstall(false,
+  true)`), so its small progress window shows while the app is closed. Later downloads quietly
+  and installs on quit (`autoInstallOnAppQuit`).
 - `UpdateService` (`main/updates.ts`) holds the state machine (`off` in development builds,
   `idle`, `checking`, `available`, `downloading`, `ready`, `error`) behind an `Updater`
   interface; `main/updater.ts` adapts electron-updater. IPC: `updates:get|check|install|later`

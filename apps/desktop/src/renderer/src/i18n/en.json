@@ -24,7 +24,7 @@
     "later": "Later",
     "whatsNew": "What's new",
     "downloading": "Downloading… {{percent}}%",
-    "restarting": "Restarting to update…",
+    "restarting": "Installing… Bochica closes, shows the installer's progress and opens again in a minute.",
     "waiting": "Bochica will restart to update when the current task finishes.",
     "tryAgain": "Try again",
     "dismiss": "Dismiss",
