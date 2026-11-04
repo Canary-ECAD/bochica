@@ -3,6 +3,14 @@ export { testConnection } from "./connection";
 export { runTurn } from "./loop";
 export { McpManager, type McpServerConfig, readOnlyPolicy, type ToolPolicy } from "./mcp";
 export { createModel, listModels } from "./models";
+export {
+  claudeCodeEnv,
+  claudeCodeRun,
+  type ClaudeCodeSetup,
+  claudeCodeSignedIn,
+  findClaudeCode,
+  listClaudeModels,
+} from "./claude-code";
 export type { KeyOutcome, KeyPool, PooledKey } from "./pool";
 export { LoginError, type LoginFailure, pkceLogin } from "./oauth";
 export { type PromptOptions, type PromptSkill, systemPrompt } from "./prompts";

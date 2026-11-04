@@ -29,7 +29,8 @@ export interface ModelChoiceState {
 }
 
 /**
- * Providers the user can chat with: those with a key, plus local servers that answer.
+ * Providers the user can chat with: those with a key, plus local servers that answer and
+ * Claude Agent when Claude Code is installed and signed in.
  * A provider whose model list fails is simply not offered.
  */
 export function useModelChoice(): ModelChoiceState {
@@ -38,7 +39,7 @@ export function useModelChoice(): ModelChoiceState {
     queryFn: () => window.bochica.credentials.list(),
   });
   const candidates = providers.filter(
-    (p) => p.auth === "local" || (credentials.data ?? []).some((c) => c.provider === p.id),
+    (p) => p.auth !== "api_key" || (credentials.data ?? []).some((c) => c.provider === p.id),
   );
   const lists = useQueries({
     queries: candidates.map((provider) => ({

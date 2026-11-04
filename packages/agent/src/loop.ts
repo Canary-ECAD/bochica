@@ -2,6 +2,7 @@ import type { ChatErrorCode, ChatMessage, TurnEvent } from "@bochica/shared";
 import { APICallError, type LanguageModel, RetryError, stepCountIs, streamText } from "ai";
 import { systemPrompt } from "./prompts";
 import { redactSecrets } from "./redact";
+import { registerTurnTools } from "./turn-tools";
 import {
   type AgentTool,
   type Approver,
@@ -42,6 +43,8 @@ export async function* runTurn({
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
   // What is really in the context: the last model call's input and output, not the sum of steps.
   let contextTokens: number | null = null;
+  // For models that run the tools themselves (Claude Agent); see turn-tools.ts.
+  const turnTools = tools.length > 0 ? registerTurnTools(tools, approve) : undefined;
   try {
     const result = streamText({
       model,
@@ -50,8 +53,12 @@ export async function* runTurn({
       messages: messages.map(({ role, content }) => ({ role, content })),
       abortSignal,
       maxRetries: 2,
-      ...(tools.length > 0
-        ? { tools: toToolSet(tools, approve), stopWhen: stepCountIs(maxSteps) }
+      ...(turnTools
+        ? {
+            tools: toToolSet(tools, approve),
+            stopWhen: stepCountIs(maxSteps),
+            providerOptions: turnTools.providerOptions,
+          }
         : {}),
       // Errors arrive as stream parts and are reported below; skip the SDK's console logging.
       onError: () => {},
@@ -130,6 +137,8 @@ export async function* runTurn({
       return;
     }
     yield toErrorEvent(error);
+  } finally {
+    turnTools?.release();
   }
 }
 

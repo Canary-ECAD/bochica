@@ -39,6 +39,9 @@ API key from the AI provider of your choice, and describe what you want in your 
 - An API key from a supported provider (with OpenRouter you can also sign in from the app),
   or a local model server. A provider can hold several keys: Bochica uses them in order and
   moves to the next one when a key is refused, rate-limited or out of credit.
+- Or a Claude Pro or Max plan, through **Claude Agent**: install Claude Code, run
+  `claude auth login` once, and pick Claude Agent in the model list. Bochica keeps its own
+  tools and safeguards. Not officially supported by Anthropic: use it at your own risk.
 
 Nothing else: the installer carries its own Python with the EPLAN server and the built-in
 skills, so it downloads nothing to get started (a corporate proxy is no problem) and never touches a Python you may

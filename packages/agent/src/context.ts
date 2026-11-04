@@ -11,6 +11,7 @@ const DEFAULT_WINDOWS: Record<ProviderId, number> = {
   openai: 128_000,
   google: 1_000_000,
   openrouter: 128_000,
+  "claude-agent": 200_000,
   ollama: 8_192,
   lmstudio: 8_192,
 };

@@ -45,6 +45,7 @@ import type { WebContents } from "electron";
 import type { ApprovalService, Judge } from "./approvals";
 import type { BackupGuard } from "./backup";
 import type { CheckpointService } from "./checkpoints";
+import type { ClaudeCodeService } from "./claude-code";
 import type { CredentialStore } from "./credentials";
 import type { SessionRepository } from "./db/repository";
 import { builtinTools, type FolderService } from "./folders";
@@ -61,6 +62,7 @@ type Model = ReturnType<typeof createModel>;
 
 export interface ChatDeps {
   credentials: CredentialStore;
+  claudeCode: ClaudeCodeService;
   mcp: McpManager;
   approvals: ApprovalService;
   backups: BackupGuard;
@@ -81,6 +83,7 @@ export class ChatService {
   private readonly idleListeners = new Set<() => void>();
 
   private readonly credentials: CredentialStore;
+  private readonly claudeCode: ClaudeCodeService;
   private readonly mcp: McpManager;
   private readonly approvals: ApprovalService;
   private readonly backups: BackupGuard;
@@ -94,6 +97,7 @@ export class ChatService {
 
   constructor(deps: ChatDeps) {
     this.credentials = deps.credentials;
+    this.claudeCode = deps.claudeCode;
     this.mcp = deps.mcp;
     this.approvals = deps.approvals;
     this.backups = deps.backups;
@@ -240,7 +244,7 @@ export class ChatService {
     void (async () => {
       await started;
       try {
-        const model = createModel(request.provider, pool, request.model);
+        const model = createModel(request.provider, pool, request.model, this.claudeCode.run());
         const approve = this.approvals.approverFor(
           request.sessionId,
           request.turnId,
@@ -479,12 +483,15 @@ const localPool: KeyPool = {
   report: () => {},
 };
 
-/** The keys a turn's model spreads its calls over; undefined when none is configured. */
+/**
+ * The keys a turn's model spreads its calls over; undefined when none is configured. Local
+ * servers and Claude Agent need none.
+ */
 function poolFor(
   provider: ChatSendRequest["provider"],
   credentials: CredentialStore,
 ): KeyPool | undefined {
-  return getProvider(provider).auth === "local" ? localPool : credentials.pool(provider);
+  return getProvider(provider).auth === "api_key" ? credentials.pool(provider) : localPool;
 }
 
 /**

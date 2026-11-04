@@ -38,6 +38,7 @@ import { z } from "zod";
 import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
 import type { CheckpointService } from "./checkpoints";
+import type { ClaudeCodeService } from "./claude-code";
 import type { CredentialStore } from "./credentials";
 import type { EplanStatusService } from "./eplan-status";
 import type { FolderService } from "./folders";
@@ -52,6 +53,7 @@ import type { UpdateService } from "./updates";
 
 export interface Services {
   credentials: CredentialStore;
+  claudeCode: ClaudeCodeService;
   logins: LoginService;
   chat: ChatService;
   mcp: McpService;
@@ -72,6 +74,7 @@ export interface Services {
 
 export function registerIpc({
   credentials,
+  claudeCode,
   logins,
   chat,
   mcp,
@@ -147,6 +150,7 @@ export function registerIpc({
   handle(ipcChannels.credentialsTest, async (arg) => {
     const request = TestCredentialRequest.parse(arg);
     const provider = getProvider(request.provider);
+    if (provider.auth === "claude_code") return ConnectionResult.parse(await claudeCode.status());
     const local = provider.auth === "local";
     const entry = local ? undefined : credentials.inUse(provider.id, request.id);
     if (!local && !entry) return ConnectionResult.parse({ status: "missing_key" });
@@ -159,6 +163,9 @@ export function registerIpc({
 
   handle(ipcChannels.modelsList, async (arg) => {
     const provider = ProviderId.parse(arg);
+    if (getProvider(provider).auth === "claude_code") {
+      return ModelList.parse(await claudeCode.models().catch(() => []));
+    }
     const key = keyFor(provider, credentials);
     if (key === undefined) throw new Error("No API key saved for this provider.");
     try {

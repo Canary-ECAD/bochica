@@ -14,15 +14,21 @@ interface ConnectionCheck {
 export interface Provider {
   id: ProviderId;
   label: string;
-  /** "api_key" providers need a credential; "local" ones talk to a server on this machine. */
-  auth: "api_key" | "local";
+  /**
+   * "api_key" providers need a credential; "local" ones talk to a server on this machine;
+   * "claude_code" runs the user's own Claude Code, signed in to their Claude plan.
+   */
+  auth: "api_key" | "local" | "claude_code";
+  /** Where to learn how to set it up, for providers without a key. */
+  setupUrl?: string;
   /** Where the user gets a key, shown as the "where do I get my key?" link. */
   keyUrl?: string;
   /** Environment variables that may already hold a key, checked in order. */
   envVars: readonly string[];
   /** Default endpoint for local, OpenAI-compatible servers. */
   baseUrl?: string;
-  check: ConnectionCheck;
+  /** How Test checks a key or a local server; Claude Agent asks Claude Code instead. */
+  check?: ConnectionCheck;
   /** A browser sign-in that gives an API key (OAuth PKCE, loopback redirect); see oauth.ts. */
   login?: ProviderLogin;
 }
@@ -80,6 +86,14 @@ export const providers: readonly Provider[] = [
       authorizeUrl: "https://openrouter.ai/auth",
       exchangeUrl: "https://openrouter.ai/api/v1/auth/keys",
     },
+  },
+  {
+    // Anthropic's allowed name for products built on the Agent SDK; never "Claude Code".
+    id: "claude-agent",
+    label: "Claude Agent",
+    auth: "claude_code",
+    setupUrl: "https://code.claude.com/docs/en/setup",
+    envVars: [],
   },
   {
     id: "ollama",

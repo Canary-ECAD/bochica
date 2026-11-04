@@ -44,6 +44,10 @@ lo que quieres con tus propias palabras.
 - Una API key de un proveedor compatible (con OpenRouter también puedes iniciar sesión desde
   la app), o un servidor de modelos local. Un proveedor puede tener varias keys: Bochica las
   usa en orden y pasa a la siguiente cuando una se rechaza, se limita o se queda sin saldo.
+- O un plan Claude Pro o Max, mediante **Claude Agent**: instala Claude Code, ejecuta una vez
+  `claude auth login` y elige Claude Agent en la lista de modelos. Bochica mantiene sus propias
+  herramientas y protecciones. Anthropic no lo admite oficialmente: úsalo bajo tu
+  responsabilidad.
 
 Nada más: el instalador lleva su propio Python con el servidor de EPLAN y las skills integradas,
 así que no descarga nada para empezar (un proxy corporativo no es problema) y nunca toca un Python que

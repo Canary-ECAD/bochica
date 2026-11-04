@@ -25,7 +25,11 @@ describe("providers", () => {
 
   test("checks use HTTPS except for local servers", () => {
     for (const p of providers) {
-      expect(p.check.url).toStartWith(p.auth === "local" ? "http://127.0.0.1:" : "https://");
+      if (p.auth === "claude_code") {
+        expect(p.check).toBeUndefined();
+        continue;
+      }
+      expect(p.check?.url).toStartWith(p.auth === "local" ? "http://127.0.0.1:" : "https://");
     }
   });
 

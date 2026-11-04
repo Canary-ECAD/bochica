@@ -64,7 +64,8 @@
       "unknown": "Sin probar",
       "noKey": "Sin key",
       "local": "Local",
-      "paused": "En pausa hasta las {{time}}"
+      "paused": "En pausa hasta las {{time}}",
+      "plan": "Tu plan de Claude"
     },
     "result": {
       "ok": "Conectado a {{provider}}.",
@@ -72,7 +73,9 @@
       "missing_key": "Primero guarda una key.",
       "network_error": "No se ha podido conectar con {{provider}}. Comprueba tu conexión a internet y vuelve a intentarlo.",
       "localUnreachable": "{{provider}} no responde. Comprueba que se está ejecutando en este equipo.",
-      "error": "{{provider}} ha respondido con el error {{code}}. Vuelve a intentarlo en unos minutos."
+      "error": "{{provider}} ha respondido con el error {{code}}. Vuelve a intentarlo en unos minutos.",
+      "not_installed": "Claude Code no está instalado en este equipo. Instálalo y vuelve a intentarlo.",
+      "signed_out": "Claude Code está instalado pero nadie ha iniciado sesión. Ejecuta claude auth login en una terminal y vuelve a intentarlo."
     },
     "addKey": "Añadir otra key",
     "inUse": "en uso",
@@ -95,6 +98,12 @@
       "timeout": "El inicio de sesión tardó demasiado. Vuelve a intentarlo.",
       "failed": "{{provider}} no ha dado ninguna key. Vuelve a intentarlo en unos minutos.",
       "busy": "Otro inicio de sesión sigue esperando en el navegador."
+    },
+    "claudeAgent": {
+      "description": "Usa tu plan Claude Pro o Max a través de Claude Code instalado en este equipo. Bochica mantiene sus propias herramientas, aprobaciones y protecciones; las herramientas propias de Claude Code quedan desactivadas.",
+      "steps": "Instala Claude Code, ejecuta una vez claude auth login en una terminal y pulsa Probar conexión.",
+      "unofficial": "Anthropic no lo admite oficialmente: sus condiciones piden a las apps de terceros una API key. Úsalo bajo tu responsabilidad.",
+      "install": "Cómo instalar Claude Code"
     }
   },
   "error": {

@@ -70,6 +70,10 @@ move it there and leave a link here (`→ S4-03`).
   secret or another tool's client id); rotation strategies other than "in order" (round
   robin, least used); a note in the chat when a call moved to another key.
 
+- **Left out of S13b (Claude Agent):** reuse a Claude Code session between turns instead of a
+  transcript; images; the run's thinking in the activity log; context usage from the last call
+  of a run instead of the sum.
+
 ## EPLAN workflows
 
 From the enhancement issues. Each one is an outline sprint in ROADMAP.md (M4); the open

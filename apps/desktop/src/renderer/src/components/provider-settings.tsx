@@ -77,6 +77,8 @@ export function ProviderCard({
   };
   const test = useMutation({
     mutationFn: () => window.bochica.credentials.test({ provider: provider.id }),
+    // Claude Agent's models depend on Claude Code being installed and signed in.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["models", provider.id] }),
   });
 
   return (
@@ -86,6 +88,8 @@ export function ProviderCard({
           <CardTitle className="text-sm">{provider.label}</CardTitle>
           {provider.auth === "local" ? (
             <Badge variant="secondary">{t("providers.status.local")}</Badge>
+          ) : provider.auth === "claude_code" ? (
+            <Badge variant="secondary">{t("providers.status.plan")}</Badge>
           ) : (
             <StatusBadge credential={active} />
           )}
@@ -93,6 +97,12 @@ export function ProviderCard({
         {provider.auth === "local" ? (
           <CardDescription>
             {t("providers.localDescription", { url: provider.baseUrl })}
+          </CardDescription>
+        ) : provider.auth === "claude_code" ? (
+          <CardDescription className="flex flex-col gap-2">
+            <span>{t("providers.claudeAgent.description")}</span>
+            <span>{t("providers.claudeAgent.steps")}</span>
+            <span className="text-xs">{t("providers.claudeAgent.unofficial")}</span>
           </CardDescription>
         ) : (
           saved.length === 0 &&
@@ -103,7 +113,7 @@ export function ProviderCard({
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3 px-4">
-        {provider.auth === "local" ? (
+        {provider.auth !== "api_key" ? (
           <div className="flex flex-col gap-2">
             <div>
               <Button
@@ -156,6 +166,17 @@ export function ProviderCard({
           </>
         )}
 
+        {provider.setupUrl && (
+          <a
+            href={provider.setupUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 self-end text-xs text-muted-foreground hover:text-foreground"
+          >
+            {t("providers.claudeAgent.install")}
+            <ExternalLink className="size-3" />
+          </a>
+        )}
         {provider.keyUrl && (
           <a
             href={provider.keyUrl}

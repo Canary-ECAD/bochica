@@ -64,7 +64,8 @@
       "unknown": "Not tested",
       "noKey": "No key",
       "local": "Local",
-      "paused": "Paused until {{time}}"
+      "paused": "Paused until {{time}}",
+      "plan": "Your Claude plan"
     },
     "result": {
       "ok": "Connected to {{provider}}.",
@@ -72,7 +73,9 @@
       "missing_key": "Save a key first.",
       "network_error": "Couldn't reach {{provider}}. Check your internet connection and try again.",
       "localUnreachable": "{{provider}} isn't answering. Make sure it is running on this computer.",
-      "error": "{{provider}} answered with error {{code}}. Try again in a few minutes."
+      "error": "{{provider}} answered with error {{code}}. Try again in a few minutes.",
+      "not_installed": "Claude Code isn't installed on this computer. Install it and try again.",
+      "signed_out": "Claude Code is installed but nobody is signed in. Run claude auth login in a terminal, then try again."
     },
     "addKey": "Add another key",
     "inUse": "in use",
@@ -95,6 +98,12 @@
       "timeout": "The sign-in took too long. Try again.",
       "failed": "{{provider}} didn't give a key. Try again in a few minutes.",
       "busy": "Another sign-in is still waiting in the browser."
+    },
+    "claudeAgent": {
+      "description": "Uses your Claude Pro or Max plan through Claude Code installed on this computer. Bochica keeps its own tools, approvals and safeguards; Claude Code's own tools stay off.",
+      "steps": "Install Claude Code, run claude auth login in a terminal once, then press Test.",
+      "unofficial": "Not officially supported by Anthropic: its terms ask third-party apps for an API key. Use it at your own risk.",
+      "install": "How to install Claude Code"
     }
   },
   "error": {

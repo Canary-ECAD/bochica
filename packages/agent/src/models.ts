@@ -5,6 +5,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { ModelInfo, ProviderId } from "@bochica/shared";
 import type { LanguageModelV4 } from "@ai-sdk/provider";
 import { z } from "zod";
+import { claudeAgentModel, type ClaudeRun } from "./claude-agent";
 import { type KeyPool, pooledModel } from "./pool";
 import { getProvider } from "./providers";
 
@@ -19,7 +20,10 @@ const localModel = (id: ProviderId) => (key: string, modelId: string) =>
     ...(key ? { apiKey: key } : {}),
   }).chatModel(modelId);
 
-const factories: Record<ProviderId, (key: string, modelId: string) => LanguageModelV4> = {
+/** Providers reached over HTTP with a key or a local server; Claude Agent runs Claude Code. */
+type HttpProvider = Exclude<ProviderId, "claude-agent">;
+
+const factories: Record<HttpProvider, (key: string, modelId: string) => LanguageModelV4> = {
   anthropic: (key, modelId) => createAnthropic({ apiKey: key })(modelId),
   openai: (key, modelId) => createOpenAI({ apiKey: key })(modelId),
   google: (key, modelId) => createGoogle({ apiKey: key })(modelId),
@@ -33,8 +37,20 @@ const factories: Record<ProviderId, (key: string, modelId: string) => LanguageMo
   lmstudio: localModel("lmstudio"),
 };
 
-/** The provider's model over its keys: each call uses the first usable key (see pool.ts). */
-export function createModel(provider: ProviderId, pool: KeyPool, modelId: string): LanguageModelV4 {
+/**
+ * The provider's model over its keys: each call uses the first usable key (see pool.ts). Claude
+ * Agent needs `claude`, the way to run the user's Claude Code (claude-code.ts), and no key.
+ */
+export function createModel(
+  provider: ProviderId,
+  pool: KeyPool,
+  modelId: string,
+  claude?: ClaudeRun,
+): LanguageModelV4 {
+  if (provider === "claude-agent") {
+    if (!claude) throw new Error("Claude Code was not found on this computer.");
+    return claudeAgentModel(modelId, claude);
+  }
   return pooledModel(provider, modelId, pool, (key) => factories[provider](key, modelId));
 }
 
@@ -48,7 +64,7 @@ const IdList = z.object({ data: z.array(z.object({ id: z.string() })) });
 const openAiChat = /^(gpt-|o\d|chatgpt-)/;
 const openAiNonChat = /(audio|realtime|transcribe|tts|image|search|embedding|moderation|instruct)/;
 
-const sources: Record<ProviderId, ModelSource> = {
+const sources: Record<HttpProvider, ModelSource> = {
   anthropic: {
     url: "https://api.anthropic.com/v1/models?limit=100",
     parse: (body) =>
@@ -128,9 +144,10 @@ export async function listModels(
   key: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ModelInfo[]> {
+  if (provider === "claude-agent") throw new Error("Claude Code lists its own models.");
   const source = sources[provider];
   const response = await fetchImpl(source.url, {
-    headers: getProvider(provider).check.headers(key),
+    headers: getProvider(provider).check?.headers(key) ?? {},
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`Listing models failed with HTTP ${response.status}`);

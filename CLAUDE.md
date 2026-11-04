@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S13 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S13b done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -14,7 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite; an
 > installer that carries its own Python, eplan-mcp and built-in skills; a first-run welcome
 > guide; one-click updates from GitHub Releases, built by a tag-driven release workflow;
-> several keys per provider with failover per model call, and OpenRouter sign-in (S13).
+> several keys per provider with failover per model call, and OpenRouter sign-in (S13);
+> Claude Agent, a Claude Pro/Max plan through the user's own Claude Code (S13b).
 > Next: the eplan-mcp contract (S14).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
@@ -258,8 +259,19 @@ Provider-agnostic, like Hermes. The loop (message → tool calls → results →
 Vercel AI SDK is used only as the provider and streaming layer. Everything Claude Code ships out
 of the box is implemented in `packages/agent`:
 
-- **Providers:** Anthropic, OpenAI, Google, OpenRouter, and local OpenAI-compatible servers
-  (Ollama, LM Studio). Adding a provider must not touch the loop.
+- **Providers:** Anthropic, OpenAI, Google, OpenRouter, Claude Agent, and local
+  OpenAI-compatible servers (Ollama, LM Studio). Adding a provider must not touch the loop.
+- **Claude Agent** (`claude-agent`, `auth: "claude_code"`): the user's own Claude Code,
+  signed in to their Claude plan, run through `@anthropic-ai/claude-agent-sdk` (not MIT; its
+  platform binaries are not shipped). `claude-code.ts` finds `claude.exe`, reads
+  `claude auth status`, lists models and runs Claude Code isolated (`tools: []`,
+  `settingSources: []`, `skills: []`, `strictMcpConfig`, `persistSession: false`, no auto
+  memory, `safeEnv`). `claude-agent.ts` makes one model call out of one Claude Code run:
+  Bochica's tools go through an in-process MCP server (`mcp__b__…`) and run through `runTool`
+  with the approver of the `runTurn` that made the call, found through `turn-tools.ts` (an id
+  in `providerOptions`); they come back as provider-executed tool calls with results, matched
+  to approval cards by `claudecode/toolUseId`. History goes as a transcript in the prompt.
+  `ClaudeCodeService` (main) backs `credentials:test`, `models:list` and `ChatService`.
 - **Built-in tools:** read/write/edit files, search (glob/grep), PowerShell terminal, plus the
   tools of every connected MCP server.
 - **Skills:** folders with a `SKILL.md`; only name and description go into the prompt, the body
@@ -287,8 +299,11 @@ Provider-agnostic, following Hermes's design:
   in main): PKCE with a loopback redirect (`127.0.0.1`, ephemeral port, nonce in the path,
   system browser), and the key it gives is stored like a pasted one. No device code yet (no
   provider offers one that fits). Never a `client_secret` or another tool's client id.
-- **Never** a "Sign in with Claude" button, and never reuse other tools' logins (`~/.claude`,
-  `~/.codex`): Anthropic is API key only.
+- **Anthropic:** API keys, plus Claude Agent for a Pro/Max plan, decided by the maintainer in
+  S13b knowing Anthropic's Agent SDK page asks third-party apps not to offer claude.ai login
+  without its approval (the card says so). Bochica never reads, stores or refreshes that
+  login: the user signs in to Claude Code, which reads it itself. Never another tool's
+  credential files or client id (`~/.claude`, `~/.codex`).
 - Secrets never reach prompts, logs, generated scripts or child-process environments (terminal,
   MCP) beyond what that specific process needs.
 

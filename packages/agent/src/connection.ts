@@ -3,16 +3,21 @@ import type { Provider } from "./providers";
 
 const TIMEOUT_MS = 10_000;
 
-/** Proves that a key (or a local server) works with one cheap request. Never throws. */
+/**
+ * Proves that a key (or a local server) works with one cheap request. Never throws, except for
+ * a provider without an HTTP check (Claude Agent), which main tests another way.
+ */
 export async function testConnection(
   provider: Provider,
   key: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ConnectionResult> {
+  const { check } = provider;
+  if (!check) throw new Error(`${provider.label} is not tested over HTTP.`);
   let response: Response;
   try {
-    response = await fetchImpl(provider.check.url, {
-      headers: provider.check.headers(key),
+    response = await fetchImpl(check.url, {
+      headers: check.headers(key),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {

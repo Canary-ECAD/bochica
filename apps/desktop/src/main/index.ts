@@ -8,6 +8,7 @@ import { ApprovalService } from "./approvals";
 import { BackupGuard } from "./backup";
 import { ChatService, devEchoTool } from "./chat";
 import { CheckpointService } from "./checkpoints";
+import { ClaudeCodeService } from "./claude-code";
 import { CredentialStore } from "./credentials";
 import { nodeSqliteDriver } from "./db/driver";
 import { SessionRepository } from "./db/repository";
@@ -148,8 +149,14 @@ void app.whenReady().then(() => {
     changesProject: (server, tool) =>
       server === EPLAN_SERVER_ID && eplanToolPolicy(tool).changesProject,
   });
+  const claudeCode = new ClaudeCodeService(
+    process.env,
+    `bochica/${app.getVersion()}`,
+    app.getPath("userData"),
+  );
   const chat = new ChatService({
     credentials,
+    claudeCode,
     mcp: mcp.manager,
     approvals,
     backups,
@@ -207,6 +214,7 @@ void app.whenReady().then(() => {
 
   registerIpc({
     credentials,
+    claudeCode,
     logins,
     chat,
     mcp,

@@ -72,6 +72,7 @@ export const ProviderId = z.enum([
   "openai",
   "google",
   "openrouter",
+  "claude-agent",
   "ollama",
   "lmstudio",
 ]);
@@ -146,6 +147,9 @@ export const ConnectionResult = z.discriminatedUnion("status", [
   z.object({ status: z.literal("missing_key") }),
   z.object({ status: z.literal("network_error") }),
   z.object({ status: z.literal("error"), httpStatus: z.number().int() }),
+  /** Claude Agent: Claude Code isn't installed, or nobody signed in to it. */
+  z.object({ status: z.literal("not_installed") }),
+  z.object({ status: z.literal("signed_out") }),
 ]);
 export type ConnectionResult = z.infer<typeof ConnectionResult>;
 

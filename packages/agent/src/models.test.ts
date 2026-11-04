@@ -82,10 +82,18 @@ describe("listModels", () => {
   });
 });
 
+/** A Claude Code run that yields nothing; createModel only needs one to exist. */
+async function* claude() {}
+
 describe("createModel", () => {
+  test("Claude Agent needs Claude Code", () => {
+    const pool = { keys: () => [], report: () => {} };
+    expect(() => createModel("claude-agent", pool, "sonnet")).toThrow("Claude Code");
+  });
+
   test.each(providerIds.map((id) => [id]))("builds a model for %s", (id: ProviderId) => {
     const pool = { keys: () => [{ id: "a", key: "k", paused: false }], report: () => {} };
-    const model = createModel(id, pool, "some-model");
+    const model = createModel(id, pool, "some-model", claude);
     expect(model.modelId).toBe("some-model");
     expect(model.provider).toBe(id);
   });
