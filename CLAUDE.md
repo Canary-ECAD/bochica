@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S12 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S13 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -13,8 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > rewind for the file tools; visible activity log with file diffs; approval cards plus typed
 > confirmation; automatic backups; EPLAN connection indicator; sessions saved in SQLite; an
 > installer that carries its own Python, eplan-mcp and built-in skills; a first-run welcome
-> guide; one-click updates from GitHub Releases, built by a tag-driven release workflow. Next:
-> OAuth and several keys per provider (S13).
+> guide; one-click updates from GitHub Releases, built by a tag-driven release workflow;
+> several keys per provider with failover per model call, and OpenRouter sign-in (S13).
+> Next: the eplan-mcp contract (S14).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -273,11 +274,19 @@ Provider-agnostic, following Hermes's design:
 - **The main process alone owns credentials and child processes.** The renderer requests,
   displays status and starts flows over IPC; it never sees a token in clear text.
   `contextIsolation: true`, `nodeIntegration: false`.
-- **API keys first** (M0): one field per provider, masked value, a "where do I get my key?"
-  link and a **Test** button. Stored with `safeStorage`/DPAPI, with the source visible (app,
-  environment variable…). The store supports several credentials per provider from the start.
-- **OAuth** (M1): device code by default; PKCE with a loopback redirect (`127.0.0.1`, ephemeral
-  port, system browser) only where a provider requires it. Never a `client_secret` in the app.
+- **API keys**, several per provider: each with a label, a masked preview, its status and a
+  **Test** button, in the order the user sets; keys from environment variables follow,
+  read-only. Stored with `safeStorage`/DPAPI by `CredentialStore` (`main/credentials.ts`).
+- **Failover per model call:** `createModel(provider, pool, model)` returns `pooledModel`
+  (`agent/src/pool.ts`), which sends each call to the first usable key and, on 401/403
+  (marked invalid, saved), 429 (paused 60 s) or 402 (paused 1 h), sends the same call to the
+  next key. Other errors go to the loop. Pauses live in memory; with every key paused the
+  first one is tried alone. Compaction, helpers and smart approval use the same model.
+- **OAuth only where a provider offers it to third-party apps without a secret:** today only
+  OpenRouter (`login` in `providers.ts`, `pkceLogin` in `agent/src/oauth.ts`, `LoginService`
+  in main): PKCE with a loopback redirect (`127.0.0.1`, ephemeral port, nonce in the path,
+  system browser), and the key it gives is stored like a pasted one. No device code yet (no
+  provider offers one that fits). Never a `client_secret` or another tool's client id.
 - **Never** a "Sign in with Claude" button, and never reuse other tools' logins (`~/.claude`,
   `~/.codex`): Anthropic is API key only.
 - Secrets never reach prompts, logs, generated scripts or child-process environments (terminal,

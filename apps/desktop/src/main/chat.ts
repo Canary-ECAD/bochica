@@ -9,6 +9,7 @@ import {
   contextUsage,
   contextWindowFor,
   createModel,
+  type KeyPool,
   estimateContext,
   expandSkillCommands,
   getProvider,
@@ -222,8 +223,8 @@ export class ChatService {
     void save(userMessage(request.userMessageId, question));
     const started = save(answer);
 
-    const key = keyFor(request.provider, this.credentials);
-    if (key === undefined) {
+    const pool = poolFor(request.provider, this.credentials);
+    if (pool === undefined) {
       void started.then(() =>
         emit({
           type: "error",
@@ -239,7 +240,7 @@ export class ChatService {
     void (async () => {
       await started;
       try {
-        const model = createModel(request.provider, key, request.model);
+        const model = createModel(request.provider, pool, request.model);
         const approve = this.approvals.approverFor(
           request.sessionId,
           request.turnId,
@@ -461,12 +462,29 @@ export class ChatService {
   }
 }
 
-/** The key to call a provider with: "" for local servers, undefined when none is configured. */
+/**
+ * The key to call a provider with: "" for local servers, the given key or the one in use,
+ * undefined when none is configured.
+ */
 export function keyFor(
   provider: ChatSendRequest["provider"],
   credentials: CredentialStore,
+  id?: string,
 ): string | undefined {
-  return getProvider(provider).auth === "local" ? "" : credentials.resolve(provider);
+  return getProvider(provider).auth === "local" ? "" : credentials.resolve(provider, id);
+}
+
+const localPool: KeyPool = {
+  keys: () => [{ id: "local", key: "", paused: false }],
+  report: () => {},
+};
+
+/** The keys a turn's model spreads its calls over; undefined when none is configured. */
+function poolFor(
+  provider: ChatSendRequest["provider"],
+  credentials: CredentialStore,
+): KeyPool | undefined {
+  return getProvider(provider).auth === "local" ? localPool : credentials.pool(provider);
 }
 
 /**

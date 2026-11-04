@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: S13 — OAuth and several keys per provider (to be planned)**
+**Active sprint: [S14](sprints/S14-eplan-mcp-contract.md) — eplan-mcp contract**
 
 Each milestone ends with something a non-technical user could try.
 
@@ -40,7 +40,7 @@ The agent drives a running EPLAN safely, and conversations survive a restart.
 | ----------------------------------------- | ------------------------------------------------------------------------------------------- | ------- |
 | [S11](sprints/S11-installer-first-run.md) | Installer with bundled Python + `uv`; first-run wizard (EPLAN detected? key? test question) | Done    |
 | [S12](sprints/S12-updater-release.md)     | One-click updater; release process; components.lock bump procedure                          | Done    |
-| S13                                       | OAuth (device code, PKCE) for providers that allow it; multiple keys per provider           | Outline |
+| [S13](sprints/S13-keys-sign-in.md)        | Several keys per provider with failover; OpenRouter sign-in (OAuth PKCE)                    | Done    |
 | [S14](sprints/S14-eplan-mcp-contract.md)  | eplan-mcp contract: tool annotations upstream, tagged releases, policy from facts, watch    | Planned |
 
 ## M4 — EPLAN workflows

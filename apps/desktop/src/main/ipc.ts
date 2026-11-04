@@ -22,7 +22,11 @@ import {
   SessionDetail,
   SessionSummary,
   SetAutoRequest,
+  LoginRequest,
+  LoginResult,
   SetCredentialRequest,
+  TestCredentialRequest,
+  UpdateCredentialRequest,
   SetMcpEnabledRequest,
   SetSkillEnabledRequest,
   SkillInstallReport,
@@ -38,6 +42,7 @@ import type { CredentialStore } from "./credentials";
 import type { EplanStatusService } from "./eplan-status";
 import type { FolderService } from "./folders";
 import type { Logger } from "./logger";
+import type { LoginService } from "./logins";
 import type { McpService } from "./mcp-service";
 import type { PermissionStore } from "./permissions";
 import type { SessionRepository } from "./db/repository";
@@ -47,6 +52,7 @@ import type { UpdateService } from "./updates";
 
 export interface Services {
   credentials: CredentialStore;
+  logins: LoginService;
   chat: ChatService;
   mcp: McpService;
   approvals: ApprovalService;
@@ -66,6 +72,7 @@ export interface Services {
 
 export function registerIpc({
   credentials,
+  logins,
   chat,
   mcp,
   approvals,
@@ -109,9 +116,27 @@ export function registerIpc({
   });
 
   handle(ipcChannels.credentialsSet, (arg) => {
-    const { provider, secret } = SetCredentialRequest.parse(arg);
-    credentials.save(provider, secret);
+    const { provider, secret, label } = SetCredentialRequest.parse(arg);
+    credentials.add(provider, secret, label);
     return CredentialList.parse(credentials.list());
+  });
+
+  handle(ipcChannels.credentialsUpdate, (arg) => {
+    const { id, ...change } = UpdateCredentialRequest.parse(arg);
+    credentials.update(id, change);
+    return CredentialList.parse(credentials.list());
+  });
+
+  handle(ipcChannels.credentialsLogin, async (arg) => {
+    const request = LoginRequest.parse(arg);
+    const result = await logins.start(request);
+    return LoginResult.parse(
+      result.status === "ok" ? { ...result, credentials: credentials.list() } : result,
+    );
+  });
+
+  handle(ipcChannels.credentialsLoginCancel, () => {
+    logins.cancel();
   });
 
   handle(ipcChannels.credentialsDelete, (arg) => {
@@ -120,12 +145,14 @@ export function registerIpc({
   });
 
   handle(ipcChannels.credentialsTest, async (arg) => {
-    const provider = getProvider(ProviderId.parse(arg));
-    const key = keyFor(provider.id, credentials);
-    if (key === undefined) return ConnectionResult.parse({ status: "missing_key" });
-    const result = await testConnection(provider, key);
-    if (provider.auth === "api_key" && (result.status === "ok" || result.status === "invalid")) {
-      credentials.setStatus(provider.id, result.status);
+    const request = TestCredentialRequest.parse(arg);
+    const provider = getProvider(request.provider);
+    const local = provider.auth === "local";
+    const entry = local ? undefined : credentials.inUse(provider.id, request.id);
+    if (!local && !entry) return ConnectionResult.parse({ status: "missing_key" });
+    const result = await testConnection(provider, entry?.key ?? "");
+    if (entry && (result.status === "ok" || result.status === "invalid")) {
+      credentials.setStatus(entry.id, result.status);
     }
     return ConnectionResult.parse(result);
   });

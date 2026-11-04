@@ -15,6 +15,7 @@ import { EplanStatusService, isEplanRunning } from "./eplan-status";
 import { FolderService } from "./folders";
 import { registerIpc } from "./ipc";
 import { createLogger } from "./logger";
+import { LoginService } from "./logins";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { PermissionStore } from "./permissions";
 import { SettingsStore } from "./settings";
@@ -160,6 +161,8 @@ void app.whenReady().then(() => {
     logger,
     extraTools: devTools,
   });
+  // Sign-in pages are the provider's own https page; nothing else is opened from here.
+  const logins = new LoginService(credentials, (url) => shell.openExternal(url), logger);
 
   const eplan = new EplanStatusService(
     {
@@ -177,6 +180,7 @@ void app.whenReady().then(() => {
    */
   const stopChildren = async (): Promise<void> => {
     chat.stopAll();
+    logins.cancel();
     eplan.stop();
     await Promise.race([
       mcp.manager.stop(),
@@ -203,6 +207,7 @@ void app.whenReady().then(() => {
 
   registerIpc({
     credentials,
+    logins,
     chat,
     mcp,
     approvals,

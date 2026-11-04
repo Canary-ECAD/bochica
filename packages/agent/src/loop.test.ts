@@ -152,6 +152,7 @@ describe("runTurn", () => {
     [403, "invalid_key"],
     [404, "model_not_found"],
     [429, "rate_limit"],
+    [402, "quota"],
     [529, "provider_unavailable"],
     [400, "unknown"],
   ])("HTTP %i becomes %s", async (status, code) => {

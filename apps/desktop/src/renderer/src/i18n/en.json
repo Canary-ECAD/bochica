@@ -49,21 +49,22 @@
   },
   "providers": {
     "title": "AI providers",
-    "description": "Bochica needs at least one AI provider. Paste an API key, or use a model running on this computer. Keys are stored encrypted on this computer and never shown again.",
+    "description": "Bochica needs at least one AI provider. Paste an API key, or use a model running on this computer. Keys are stored encrypted on this computer and never shown again. With several keys, Bochica uses them in order and moves to the next one when a key is refused, limited or out of credit.",
     "pasteKey": "Paste your API key",
     "keyLabel": "{{provider}} API key",
     "save": "Save",
     "test": "Test connection",
     "remove": "Remove key",
     "whereToGetKey": "Where do I get my key?",
-    "fromEnv": "Using the key from the {{name}} environment variable. Save a key here to use a different one.",
+    "fromEnv": "Using the key from the {{name}} environment variable. Keys you save here are used first.",
     "localDescription": "Runs on this computer at {{url}}. No key needed.",
     "status": {
       "ok": "Connected",
       "invalid": "Key rejected",
       "unknown": "Not tested",
       "noKey": "No key",
-      "local": "Local"
+      "local": "Local",
+      "paused": "Paused until {{time}}"
     },
     "result": {
       "ok": "Connected to {{provider}}.",
@@ -72,6 +73,28 @@
       "network_error": "Couldn't reach {{provider}}. Check your internet connection and try again.",
       "localUnreachable": "{{provider}} isn't answering. Make sure it is running on this computer.",
       "error": "{{provider}} answered with error {{code}}. Try again in a few minutes."
+    },
+    "addKey": "Add another key",
+    "inUse": "in use",
+    "rename": "Rename",
+    "moveUp": "Use earlier",
+    "moveDown": "Use later",
+    "testKey": "Test",
+    "envVariable": "{{name}} environment variable",
+    "defaultLabel": "Key {{n}}",
+    "labelField": "Name for this key",
+    "cancel": "Cancel",
+    "signIn": {
+      "button": "Sign in with {{provider}}",
+      "label": "{{provider}} sign-in",
+      "waiting": "Finish signing in in your browser…",
+      "pageDone": "Bochica has your {{provider}} key. You can close this tab.",
+      "pageFailed": "The sign-in didn't finish. Go back to Bochica and try again.",
+      "ok": "Signed in. {{provider}} gave Bochica a key, saved with the others.",
+      "denied": "The sign-in was refused in the browser.",
+      "timeout": "The sign-in took too long. Try again.",
+      "failed": "{{provider}} didn't give a key. Try again in a few minutes.",
+      "busy": "Another sign-in is still waiting in the browser."
     }
   },
   "error": {
@@ -101,7 +124,8 @@
       "model_not_found": "This model is not available with your key. Choose another one.",
       "provider_unavailable": "The provider is having problems right now. Retry in a few minutes.",
       "network": "Couldn't connect. Check your internet connection and retry.",
-      "unknown": "Something went wrong while answering. Retry, or open Details to see what happened."
+      "unknown": "Something went wrong while answering. Retry, or open Details to see what happened.",
+      "quota": "The account behind this key has no credit left. Add credit, or another key in Settings."
     }
   },
   "activity": {

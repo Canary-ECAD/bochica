@@ -4,6 +4,7 @@ import {
   AppInfo,
   ConnectionResult,
   CredentialList,
+  LoginResult,
   ModelList,
   SetCredentialRequest,
   TurnEvent,
@@ -35,7 +36,14 @@ function fieldNames(schema: z.ZodType): string[] {
 }
 
 describe("credential responses", () => {
-  const responses = { CredentialList, ConnectionResult, AppInfo, ModelList, TurnEvent };
+  const responses = {
+    CredentialList,
+    ConnectionResult,
+    AppInfo,
+    ModelList,
+    TurnEvent,
+    LoginResult,
+  };
   const forbidden = new Set(["secret", "key", "apikey", "token", "value", "password"]);
 
   test.each(Object.entries(responses))("%s has no field that could carry a key", (_, schema) => {
@@ -47,16 +55,25 @@ describe("credential responses", () => {
 
 describe("SetCredentialRequest", () => {
   test("trims the key", () => {
-    const parsed = SetCredentialRequest.parse({ provider: "openai", secret: "  sk-abcdefgh  " });
+    const parsed = SetCredentialRequest.parse({
+      provider: "openai",
+      secret: "  sk-abcdefgh  ",
+      label: "Work",
+    });
     expect(parsed.secret).toBe("sk-abcdefgh");
   });
 
   test("rejects an unknown provider and an empty key", () => {
     expect(
-      SetCredentialRequest.safeParse({ provider: "acme", secret: "sk-abcdefgh" }).success,
+      SetCredentialRequest.safeParse({ provider: "acme", secret: "sk-abcdefgh", label: "Work" })
+        .success,
     ).toBe(false);
-    expect(SetCredentialRequest.safeParse({ provider: "openai", secret: "   " }).success).toBe(
-      false,
-    );
+    expect(
+      SetCredentialRequest.safeParse({ provider: "openai", secret: "   ", label: "Work" }).success,
+    ).toBe(false);
+    expect(
+      SetCredentialRequest.safeParse({ provider: "openai", secret: "sk-abcdefgh", label: " " })
+        .success,
+    ).toBe(false);
   });
 });

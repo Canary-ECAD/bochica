@@ -37,6 +37,8 @@ export {
   FileDiff,
   FileSearchRequest,
   ipcChannels,
+  LoginRequest,
+  LoginResult,
   McpServerInfo,
   McpServerList,
   ModelInfo,
@@ -58,8 +60,10 @@ export {
   SkillInstallReport,
   SkillList,
   SkillProblem,
+  TestCredentialRequest,
   ToolStatus,
   TurnEvent,
+  UpdateCredentialRequest,
   UpdateStatus,
 } from "./ipc";
 export {

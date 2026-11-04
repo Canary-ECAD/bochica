@@ -41,7 +41,9 @@ lo que quieres con tus propias palabras.
 - Windows 10 u 11 (64 bits).
 - EPLAN Electric P8 2024–2027, con **File → Settings → Workstation → Interfaces → Remote
   access → "Allow remote access via Remote Client"** activado.
-- Una API key de un proveedor compatible, o un servidor de modelos local.
+- Una API key de un proveedor compatible (con OpenRouter también puedes iniciar sesión desde
+  la app), o un servidor de modelos local. Un proveedor puede tener varias keys: Bochica las
+  usa en orden y pasa a la siguiente cuando una se rechaza, se limita o se queda sin saldo.
 
 Nada más: el instalador lleva su propio Python con el servidor de EPLAN y las skills integradas,
 así que no descarga nada para empezar (un proxy corporativo no es problema) y nunca toca un Python que

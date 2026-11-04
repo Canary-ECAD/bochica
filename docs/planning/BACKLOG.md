@@ -66,6 +66,10 @@ move it there and leave a link here (`→ S4-03`).
   buffer), exact token counting where a provider has an API for it, and a helper's own tool
   calls shown nested in the activity log.
 
+- **Left out of S13:** the device-code sign-in (build it when a provider offers one without a
+  secret or another tool's client id); rotation strategies other than "in order" (round
+  robin, least used); a note in the chat when a call moved to another key.
+
 ## EPLAN workflows
 
 From the enhancement issues. Each one is an outline sprint in ROADMAP.md (M4); the open

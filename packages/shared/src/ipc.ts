@@ -10,7 +10,11 @@ export const ipcChannels = {
   credentialsList: "credentials:list",
   credentialsSet: "credentials:set",
   credentialsDelete: "credentials:delete",
+  credentialsUpdate: "credentials:update",
   credentialsTest: "credentials:test",
+  /** Sign in with the provider in the browser; the key it gives is saved like a pasted one. */
+  credentialsLogin: "credentials:login",
+  credentialsLoginCancel: "credentials:login-cancel",
   modelsList: "models:list",
   chatSend: "chat:send",
   chatStop: "chat:stop",
@@ -85,6 +89,8 @@ export const CredentialInfo = z.object({
   /** Lower is tried first. */
   priority: z.number().int(),
   status: z.enum(["unknown", "ok", "invalid"]),
+  /** Paused after a rate limit or an empty balance: skipped until this time (ms since epoch). */
+  limitedUntil: z.number().int().optional(),
   /** e.g. `sk-ant-…a1b2`, or the variable name for keys from the environment. */
   preview: z.string(),
 });
@@ -92,11 +98,47 @@ export type CredentialInfo = z.infer<typeof CredentialInfo>;
 
 export const CredentialList = z.array(CredentialInfo);
 
+const CredentialLabel = z.string().trim().min(1).max(60);
+
 export const SetCredentialRequest = z.object({
   provider: ProviderId,
   secret: z.string().trim().min(8).max(512),
+  label: CredentialLabel,
 });
 export type SetCredentialRequest = z.infer<typeof SetCredentialRequest>;
+
+/** Renames a saved key, or moves it among its provider's keys (0 = used first). */
+export const UpdateCredentialRequest = z.object({
+  id: z.string().min(1),
+  label: CredentialLabel.optional(),
+  position: z.number().int().nonnegative().optional(),
+});
+export type UpdateCredentialRequest = z.infer<typeof UpdateCredentialRequest>;
+
+/** Tests one key, or without `id` the one in use (or the local server). */
+export const TestCredentialRequest = z.object({
+  provider: ProviderId,
+  id: z.string().min(1).optional(),
+});
+export type TestCredentialRequest = z.infer<typeof TestCredentialRequest>;
+
+export const LoginRequest = z.object({
+  provider: ProviderId,
+  label: CredentialLabel,
+  /** What the browser shows after the redirect, in the user's language. */
+  page: z.object({ done: z.string().max(300), failed: z.string().max(300) }),
+});
+export type LoginRequest = z.infer<typeof LoginRequest>;
+
+/**
+ * How a sign-in ended. denied: the user said no in the browser; timeout: no answer in five
+ * minutes; failed: the provider didn't give a key; busy: another sign-in is still waiting.
+ */
+export const LoginResult = z.union([
+  z.object({ status: z.literal("ok"), credentials: CredentialList }),
+  z.object({ status: z.enum(["denied", "timeout", "cancelled", "failed", "busy"]) }),
+]);
+export type LoginResult = z.infer<typeof LoginResult>;
 
 export const ConnectionResult = z.discriminatedUnion("status", [
   z.object({ status: z.literal("ok") }),
@@ -161,6 +203,7 @@ export const ChatErrorCode = z.enum([
   "missing_key",
   "invalid_key",
   "rate_limit",
+  "quota",
   "model_not_found",
   "provider_unavailable",
   "network",
@@ -546,10 +589,14 @@ export interface BochicaApi {
   getAppInfo(): Promise<AppInfo>;
   credentials: {
     list(): Promise<CredentialInfo[]>;
-    /** Saves the key for a provider, replacing the previous one. Returns the updated list. */
+    /** Adds a key after the provider's others. Returns the updated list. */
     set(request: SetCredentialRequest): Promise<CredentialInfo[]>;
+    update(request: UpdateCredentialRequest): Promise<CredentialInfo[]>;
     remove(id: string): Promise<CredentialInfo[]>;
-    test(provider: ProviderId): Promise<ConnectionResult>;
+    test(request: TestCredentialRequest): Promise<ConnectionResult>;
+    /** Opens the browser to sign in with the provider and saves the key it gives. */
+    login(request: LoginRequest): Promise<LoginResult>;
+    cancelLogin(): Promise<void>;
   };
   models: {
     /** Chat models the provider offers with the configured key. Rejects if it can't list them. */

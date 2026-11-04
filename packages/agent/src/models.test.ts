@@ -84,7 +84,9 @@ describe("listModels", () => {
 
 describe("createModel", () => {
   test.each(providerIds.map((id) => [id]))("builds a model for %s", (id: ProviderId) => {
-    const model = createModel(id, "k", "some-model");
-    expect(typeof model === "string" ? model : model.modelId).toBe("some-model");
+    const pool = { keys: () => [{ id: "a", key: "k", paused: false }], report: () => {} };
+    const model = createModel(id, pool, "some-model");
+    expect(model.modelId).toBe("some-model");
+    expect(model.provider).toBe(id);
   });
 });

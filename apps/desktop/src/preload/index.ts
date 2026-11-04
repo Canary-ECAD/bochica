@@ -7,6 +7,7 @@ import {
   CredentialList,
   EplanStatus,
   ipcChannels,
+  LoginResult,
   McpServerList,
   ModelList,
   Onboarding,
@@ -40,10 +41,17 @@ const api: BochicaApi = {
     list: async () => CredentialList.parse(await ipcRenderer.invoke(ipcChannels.credentialsList)),
     set: async (request) =>
       CredentialList.parse(await ipcRenderer.invoke(ipcChannels.credentialsSet, request)),
+    update: async (request) =>
+      CredentialList.parse(await ipcRenderer.invoke(ipcChannels.credentialsUpdate, request)),
     remove: async (id) =>
       CredentialList.parse(await ipcRenderer.invoke(ipcChannels.credentialsDelete, id)),
-    test: async (provider) =>
-      ConnectionResult.parse(await ipcRenderer.invoke(ipcChannels.credentialsTest, provider)),
+    test: async (request) =>
+      ConnectionResult.parse(await ipcRenderer.invoke(ipcChannels.credentialsTest, request)),
+    login: async (request) =>
+      LoginResult.parse(await ipcRenderer.invoke(ipcChannels.credentialsLogin, request)),
+    cancelLogin: async () => {
+      await ipcRenderer.invoke(ipcChannels.credentialsLoginCancel);
+    },
   },
   models: {
     list: async (provider) =>

@@ -49,21 +49,22 @@
   },
   "providers": {
     "title": "Proveedores de IA",
-    "description": "Bochica necesita al menos un proveedor de IA. Pega una API key o usa un modelo que se ejecute en este equipo. Las keys se guardan cifradas en este equipo y no se vuelven a mostrar.",
+    "description": "Bochica necesita al menos un proveedor de IA. Pega una API key o usa un modelo que se ejecute en este equipo. Las keys se guardan cifradas en este equipo y no se vuelven a mostrar. Con varias keys, Bochica las usa en orden y pasa a la siguiente cuando una se rechaza, se limita o se queda sin saldo.",
     "pasteKey": "Pega tu API key",
     "keyLabel": "API key de {{provider}}",
     "save": "Guardar",
     "test": "Probar conexión",
     "remove": "Quitar key",
     "whereToGetKey": "¿Dónde consigo mi key?",
-    "fromEnv": "Se está usando la key de la variable de entorno {{name}}. Guarda una key aquí para usar otra.",
+    "fromEnv": "Se está usando la key de la variable de entorno {{name}}. Las keys que guardes aquí se usan antes.",
     "localDescription": "Se ejecuta en este equipo en {{url}}. No necesita key.",
     "status": {
       "ok": "Conectado",
       "invalid": "Key rechazada",
       "unknown": "Sin probar",
       "noKey": "Sin key",
-      "local": "Local"
+      "local": "Local",
+      "paused": "En pausa hasta las {{time}}"
     },
     "result": {
       "ok": "Conectado a {{provider}}.",
@@ -72,6 +73,28 @@
       "network_error": "No se ha podido conectar con {{provider}}. Comprueba tu conexión a internet y vuelve a intentarlo.",
       "localUnreachable": "{{provider}} no responde. Comprueba que se está ejecutando en este equipo.",
       "error": "{{provider}} ha respondido con el error {{code}}. Vuelve a intentarlo en unos minutos."
+    },
+    "addKey": "Añadir otra key",
+    "inUse": "en uso",
+    "rename": "Cambiar nombre",
+    "moveUp": "Usar antes",
+    "moveDown": "Usar después",
+    "testKey": "Probar",
+    "envVariable": "Variable de entorno {{name}}",
+    "defaultLabel": "Key {{n}}",
+    "labelField": "Nombre de esta key",
+    "cancel": "Cancelar",
+    "signIn": {
+      "button": "Iniciar sesión con {{provider}}",
+      "label": "Sesión de {{provider}}",
+      "waiting": "Termina de iniciar sesión en el navegador…",
+      "pageDone": "Bochica ya tiene tu key de {{provider}}. Puedes cerrar esta pestaña.",
+      "pageFailed": "El inicio de sesión no terminó. Vuelve a Bochica e inténtalo de nuevo.",
+      "ok": "Sesión iniciada. {{provider}} ha dado a Bochica una key, guardada con las demás.",
+      "denied": "Se rechazó el inicio de sesión en el navegador.",
+      "timeout": "El inicio de sesión tardó demasiado. Vuelve a intentarlo.",
+      "failed": "{{provider}} no ha dado ninguna key. Vuelve a intentarlo en unos minutos.",
+      "busy": "Otro inicio de sesión sigue esperando en el navegador."
     }
   },
   "error": {
@@ -101,7 +124,8 @@
       "model_not_found": "Este modelo no está disponible con tu key. Elige otro.",
       "provider_unavailable": "El proveedor tiene problemas ahora mismo. Reintenta en unos minutos.",
       "network": "No se ha podido conectar. Comprueba tu conexión a internet y reintenta.",
-      "unknown": "Algo ha fallado al responder. Reintenta o abre Detalles para ver qué ha pasado."
+      "unknown": "Algo ha fallado al responder. Reintenta o abre Detalles para ver qué ha pasado.",
+      "quota": "La cuenta de esta key se ha quedado sin saldo. Añade saldo, u otra key en Ajustes."
     }
   },
   "activity": {

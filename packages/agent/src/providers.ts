@@ -23,6 +23,15 @@ export interface Provider {
   /** Default endpoint for local, OpenAI-compatible servers. */
   baseUrl?: string;
   check: ConnectionCheck;
+  /** A browser sign-in that gives an API key (OAuth PKCE, loopback redirect); see oauth.ts. */
+  login?: ProviderLogin;
+}
+
+export interface ProviderLogin {
+  /** Page the browser opens, with `callback_url` and the PKCE challenge added. */
+  authorizeUrl: string;
+  /** Where the code from the redirect is swapped for the key. */
+  exchangeUrl: string;
 }
 
 const bearer = (key: string): Record<string, string> => ({ Authorization: `Bearer ${key}` });
@@ -65,6 +74,12 @@ export const providers: readonly Provider[] = [
     keyUrl: "https://openrouter.ai/keys",
     envVars: ["OPENROUTER_API_KEY"],
     check: { url: "https://openrouter.ai/api/v1/key", headers: bearer },
+    // https://openrouter.ai/docs/guides/overview/auth/oauth: the key it gives is a normal,
+    // user-owned API key; no client id, no secret, no refresh token.
+    login: {
+      authorizeUrl: "https://openrouter.ai/auth",
+      exchangeUrl: "https://openrouter.ai/api/v1/auth/keys",
+    },
   },
   {
     id: "ollama",

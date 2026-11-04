@@ -3,8 +3,9 @@ import { createGoogle } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { ModelInfo, ProviderId } from "@bochica/shared";
-import type { LanguageModel } from "ai";
+import type { LanguageModelV4 } from "@ai-sdk/provider";
 import { z } from "zod";
+import { type KeyPool, pooledModel } from "./pool";
 import { getProvider } from "./providers";
 
 // Main-process side of the provider catalog: building SDK models and listing what a key can
@@ -18,7 +19,7 @@ const localModel = (id: ProviderId) => (key: string, modelId: string) =>
     ...(key ? { apiKey: key } : {}),
   }).chatModel(modelId);
 
-const factories: Record<ProviderId, (key: string, modelId: string) => LanguageModel> = {
+const factories: Record<ProviderId, (key: string, modelId: string) => LanguageModelV4> = {
   anthropic: (key, modelId) => createAnthropic({ apiKey: key })(modelId),
   openai: (key, modelId) => createOpenAI({ apiKey: key })(modelId),
   google: (key, modelId) => createGoogle({ apiKey: key })(modelId),
@@ -32,8 +33,9 @@ const factories: Record<ProviderId, (key: string, modelId: string) => LanguageMo
   lmstudio: localModel("lmstudio"),
 };
 
-export function createModel(provider: ProviderId, key: string, modelId: string): LanguageModel {
-  return factories[provider](key, modelId);
+/** The provider's model over its keys: each call uses the first usable key (see pool.ts). */
+export function createModel(provider: ProviderId, pool: KeyPool, modelId: string): LanguageModelV4 {
+  return pooledModel(provider, modelId, pool, (key) => factories[provider](key, modelId));
 }
 
 interface ModelSource {

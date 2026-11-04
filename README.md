@@ -36,7 +36,9 @@ API key from the AI provider of your choice, and describe what you want in your 
 - Windows 10 or 11 (64-bit).
 - EPLAN Electric P8 2024–2027, with **File → Settings → Workstation → Interfaces → Remote
   access → "Allow remote access via Remote Client"** enabled.
-- An API key from a supported provider, or a local model server.
+- An API key from a supported provider (with OpenRouter you can also sign in from the app),
+  or a local model server. A provider can hold several keys: Bochica uses them in order and
+  moves to the next one when a key is refused, rate-limited or out of credit.
 
 Nothing else: the installer carries its own Python with the EPLAN server and the built-in
 skills, so it downloads nothing to get started (a corporate proxy is no problem) and never touches a Python you may

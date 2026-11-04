@@ -144,6 +144,7 @@ function classify(error: unknown): ChatErrorCode {
     const status = error.statusCode ?? 0;
     if (status === 401 || status === 403) return "invalid_key";
     if (status === 429) return "rate_limit";
+    if (status === 402) return "quota";
     if (status === 404) return "model_not_found";
     if (status >= 500) return "provider_unavailable";
     if (status === 0) return "network";
