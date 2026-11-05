@@ -31,22 +31,23 @@ export function electronUpdater(logger: Logger, feed: string | null): Updater {
       const listener = (progress: ProgressInfo) => onProgress(progress.percent);
       autoUpdater.on("download-progress", listener);
       try {
-        await autoUpdater.downloadUpdate();
+        const files = await autoUpdater.downloadUpdate();
+        return files.find((file) => file.toLowerCase().endsWith(".exe")) ?? null;
       } finally {
         autoUpdater.off("download-progress", listener);
       }
     },
     // quitAndInstall reports a failure only as an "error" event; on success the app quits.
-    // Not silent: the one-click installer shows its own small progress window while it replaces
-    // the app, so the minute between closing and reopening doesn't look like a crash.
-    install: () =>
+    // Silent only when the helper's update window is up; otherwise the one-click installer shows
+    // its own small progress window, so the minute without Bochica doesn't look like a crash.
+    install: (silent) =>
       new Promise<void>((resolve, reject) => {
         const timer = setTimeout(resolve, INSTALL_ERROR_MS);
         autoUpdater.once("error", (error) => {
           clearTimeout(timer);
           reject(error);
         });
-        autoUpdater.quitAndInstall(false, true);
+        autoUpdater.quitAndInstall(silent, true);
       }),
   };
 }

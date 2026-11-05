@@ -485,6 +485,8 @@ export const UpdateStatus = z.object({
     "downloading",
     /** Downloaded: it installs on restart. */
     "ready",
+    /** "Update now" is closing Bochica to install: the update window is up. */
+    "installing",
     "error",
   ]),
   /** The installed version. */
@@ -497,7 +499,10 @@ export const UpdateStatus = z.object({
   percent: z.number().optional(),
   /** "Later" was chosen for this version: no notice; it installs when the app closes. */
   deferred: z.boolean(),
-  /** "Update now" was pressed, but a task runs: the restart waits for it to end. */
+  /**
+   * "Update now" was pressed while a task ran: the restart waits for it to end, and the update
+   * window stays away so the task's answers and approvals remain visible.
+   */
   waiting: z.boolean(),
   /** When the last check found nothing new (ms since epoch). */
   upToDateAt: z.number().optional(),

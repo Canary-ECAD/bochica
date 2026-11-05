@@ -14,8 +14,18 @@ files:
 extraResources:
   - from: runtime
     to: runtime
+  # The window that stays up while the installer replaces the app (src/main/update-helper.ts).
+  - from: resources/update-helper
+    to: update-helper
+  - from: build/icon.ico
+    to: update-helper/icon.ico
+  - from: build/icon.png
+    to: update-helper/icon.png
 win:
   target: nsis
+# The one-click installer's window takes productName and the app's icon, and its language follows
+# Windows': electron-builder bundles every NSIS language unless installerLanguages narrows them.
+# It only shows when the update helper couldn't start (otherwise the install is silent).
 nsis:
   oneClick: true
   perMachine: false

@@ -1,6 +1,6 @@
 # S13c — An update you can see from start to finish
 
-**Status:** active
+**Status:** done
 **Goal:** from **Update now** until the new version opens, the user always sees a small Bochica
 window that says it is updating and that Bochica will open by itself. Nothing looks like a
 crash, and opening Bochica again in the middle neither starts a second copy nor breaks the
@@ -50,41 +50,41 @@ next to the installer.
 
 Packages: shared (`UpdateStatus`), desktop (main `updates.ts`, a new window, renderer route).
 
-- [ ] A frameless window showing the update's step and percent, fed by `updates:changed`, with
+- [x] A frameless window showing the update's step and percent, fed by `updates:changed`, with
       strings in en and es.
-- [ ] **Update now**: the main window hides and the update window shows during download,
+- [x] **Update now**: the main window hides and the update window shows during download,
       preparing (MCP servers stopping) and the hand-off; it stays at least 2.5 s before quitting.
-- [ ] A failure closes the update window, brings the main window back and shows the usual error
+- [x] A failure closes the update window, brings the main window back and shows the usual error
       with **Try again**.
 
 ### S13c-02 · Helper that bridges the install
 
 Packages: desktop (main, `resources`), electron-builder config.
 
-- [ ] A PowerShell helper shipped as an extra resource, copied to a temp folder and started
+- [x] A PowerShell helper shipped as an extra resource, copied to a temp folder and started
       detached with an absolute `powershell.exe` path; it shows the same window, waits for the
       old pid (pid + start time), then for the new Bochica window or a timeout.
-- [ ] If the helper can't start, the update goes on with the installer's own window.
-- [ ] Tests for the arguments and the hand-off decision; a live check on Windows.
+- [x] If the helper can't start, the update goes on with the installer's own window.
+- [x] Tests for the arguments and the hand-off decision; a live check on Windows.
 
 ### S13c-03 · One instance, and no start mid-update
 
 Packages: desktop (main `index.ts`, `updates.ts`).
 
-- [ ] `requestSingleInstanceLock`: a second launch focuses the existing window.
-- [ ] An update marker (pid + start time, in the updater's cache folder) is written before the
+- [x] `requestSingleInstanceLock`: a second launch focuses the existing window.
+- [x] An update marker (pid + start time, in the updater's cache folder) is written before the
       hand-off and removed by the new version; a launch that finds a live marker shows the
       update window and exits. A dead owner's marker is ignored.
 
 ### S13c-04 · "Later" and the installer window
 
-- [ ] Install on quit shows the helper's window until the installer ends.
-- [ ] The installer's one-click window carries Bochica's name and icon, and Spanish where the
+- [x] Install on quit shows the helper's window until the installer ends.
+- [x] The installer's one-click window carries Bochica's name and icon, and Spanish where the
       system is in Spanish, if electron-builder supports it.
 
 ### S13c-05 · Docs
 
-- [ ] CLAUDE.md (Updates), `docs/releasing.md` (how to try the window with a local feed), this
+- [x] CLAUDE.md (Updates), `docs/releasing.md` (how to try the window with a local feed), this
       file's outcome.
 
 ## Demo
@@ -97,4 +97,45 @@ instead of a second copy. A failed download brings the main window back with **T
 
 ## Outcome
 
-_To be written when the sprint closes._
+Done on 2026-11-05. Checked live on Windows with two packaged builds under a test identity
+(`BochicaTest`, so the installed Bochica was untouched) and a local feed:
+
+- **Update now:** the main window hid and the update window showed the download percent, in
+  Spanish; the helper's window took over about a second later, the silent install ran for about
+  100 s and 0.3.2 opened by itself, removed the marker and the helper's window closed.
+- **Opening Bochica mid-install** exited within a second without a second copy (logged as "An
+  update is being installed"), and the helper's window came to the front. A second launch
+  outside an update exits too and focuses the open window.
+- **Later, then closing the app:** the helper's window stayed until the installer's process ended
+  (seen and waited for) and Bochica didn't reopen.
+- The helper's temporary folders were all gone afterwards; only its log stays in `%TEMP%`.
+
+Differences from the plan, and why:
+
+- **Hermes checked again before building the helper** (`updater/relaunch-waiter.ts`,
+  `updater-process.ts`, `update-gate.ts`), which changed how it starts: Windows PowerShell 5.1
+  spawned `detached` exits before running a line of `-File`, so the helper runs as
+  `cmd.exe /d /s /c powershell.exe -File …`, hidden and not detached (PowerShell, a grandchild,
+  outlives Bochica); its working folder is `%TEMP%`, since a working folder can't be removed and
+  the installer replaces the app's; main waits for a `ready.txt` the script writes once its window
+  shows (10 s) and otherwise stops the tree with `taskkill /T`; the script logs each attempt to
+  `%TEMP%\bochica-update-helper.log`, and main copies this attempt's lines into its own log when the
+  helper fails.
+- **The install is silent when the helper's window is up** (`quitAndInstall(true, true)`), so only
+  one window shows; the NSIS window remains the fallback. Install on quit was already silent.
+- **The helper owns the marker,** not the old app: it writes its own pid and start time when its
+  window shows, so the marker is alive exactly while that window is. It lives in `userData`
+  (`update-marker.json`), not the updater's cache folder: main knows that path before the app
+  is ready. The new version tells the helper it is up by removing the marker; a launch of another
+  version creates `update-marker.json.poke` to bring the helper's window forward.
+- **The update window is a renderer page of its own** (`update.html`), not a route: it starts
+  fast and loads nothing of the app. It has a taskbar entry (Bochica's) while the main window is
+  hidden; the helper's window has none, because there it showed PowerShell's icon.
+- **A task running at "Update now" keeps the main window:** `waiting` is set from the click, and
+  the update window only shows once the task has ended.
+- **The NSIS installer** already uses productName, the app's icon and Windows' language:
+  electron-builder bundles every NSIS language unless `installerLanguages` narrows them. Nothing
+  to change; electron-builder.yml says so.
+- Not checked live: a failed download bringing the main window back (covered by the
+  `showsUpdateWindow` tests and the existing error states), and a helper blocked by policy
+  (falls back to the installer's window after the 10 s handshake).

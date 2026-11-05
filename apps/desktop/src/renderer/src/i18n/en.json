@@ -24,10 +24,19 @@
     "later": "Later",
     "whatsNew": "What's new",
     "downloading": "Downloading… {{percent}}%",
-    "restarting": "Installing… Bochica closes, shows the installer's progress and opens again in a minute.",
+    "restarting": "Installing… Bochica closes and opens again by itself in a minute.",
     "waiting": "Bochica will restart to update when the current task finishes.",
     "tryAgain": "Try again",
     "dismiss": "Dismiss",
+    "window": {
+      "title": "Updating Bochica to {{version}}",
+      "preparing": "Getting ready to install…",
+      "installing": "Installing…",
+      "note": "Bochica will open by itself. You don't need to do anything.",
+      "laterNote": "This window closes by itself when the update is installed.",
+      "slow": "Bochica didn't open by itself. Open it from the Start menu; if the update didn't finish, Bochica will offer it again.",
+      "close": "Close"
+    },
     "errors": {
       "check": "Bochica couldn't check for updates.",
       "download": "The update couldn't be downloaded.",

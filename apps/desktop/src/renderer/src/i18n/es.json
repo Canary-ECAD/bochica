@@ -24,10 +24,19 @@
     "later": "Más tarde",
     "whatsNew": "Novedades",
     "downloading": "Descargando… {{percent}} %",
-    "restarting": "Instalando… Bochica se cerrará, verás el progreso del instalador y se abrirá de nuevo en un minuto.",
+    "restarting": "Instalando… Bochica se cerrará y se abrirá de nuevo sola en un minuto.",
     "waiting": "Bochica se reiniciará para actualizar cuando termine la tarea en curso.",
     "tryAgain": "Reintentar",
     "dismiss": "Cerrar",
+    "window": {
+      "title": "Actualizando Bochica a la versión {{version}}",
+      "preparing": "Preparando la instalación…",
+      "installing": "Instalando…",
+      "note": "Bochica se abrirá sola. No tienes que hacer nada.",
+      "laterNote": "Esta ventana se cerrará sola cuando la actualización esté instalada.",
+      "slow": "Bochica no se abrió sola. Ábrela desde el menú Inicio; si la actualización no terminó, Bochica te la ofrecerá de nuevo.",
+      "close": "Cerrar"
+    },
     "errors": {
       "check": "Bochica no pudo buscar actualizaciones.",
       "download": "No se pudo descargar la actualización.",

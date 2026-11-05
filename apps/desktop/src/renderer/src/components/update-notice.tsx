@@ -51,11 +51,14 @@ export function UpdateNotice() {
   const [dismissed, setDismissed] = useState(false);
   if (!status || status.deferred) return null;
   const failed = status.state === "error" && status.failedDuring !== "check";
-  if (!["available", "downloading", "ready"].includes(status.state) && !failed) return null;
+  if (!["available", "downloading", "ready", "installing"].includes(status.state) && !failed) {
+    return null;
+  }
   if (failed && dismissed) return null;
   const version = status.version ?? "";
   // Downloading, or closing to install: something is happening even if no button shows.
-  const busy = status.state === "downloading" || (status.state === "ready" && !status.waiting);
+  const installing = status.state === "installing" || (status.state === "ready" && !status.waiting);
+  const busy = status.state === "downloading" || installing;
 
   return (
     <div className="mb-1 flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
@@ -72,10 +75,13 @@ export function UpdateNotice() {
               {t("updates.downloading", { percent: status.percent ?? 0 })}
             </p>
           )}
-          {status.state === "ready" && (
+          {(status.state === "ready" || status.state === "installing") && (
             <p className="text-xs text-muted-foreground">
-              {t(status.waiting ? "updates.waiting" : "updates.restarting")}
+              {t(installing ? "updates.restarting" : "updates.waiting")}
             </p>
+          )}
+          {status.state === "downloading" && status.waiting && (
+            <p className="text-xs text-muted-foreground">{t("updates.waiting")}</p>
           )}
           {failed && <p className="text-xs text-muted-foreground">{errorText(t, status)}</p>}
         </div>
@@ -151,6 +157,9 @@ export function UpdateSettings() {
       } else {
         line = t("updates.restarting");
       }
+      break;
+    case "installing":
+      line = t("updates.restarting");
       break;
     case "error":
       line = errorText(t, status);

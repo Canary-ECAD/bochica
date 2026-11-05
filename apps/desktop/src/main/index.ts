@@ -21,8 +21,18 @@ import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { PermissionStore } from "./permissions";
 import { SettingsStore } from "./settings";
 import { BUILTIN_SKILLS, BuiltinSkills, removeStaleCaches, SkillService } from "./skills";
+import { type HelperHandle, helperStrings, startUpdateHelper } from "./update-helper";
+import {
+  helperAlive,
+  markerVerdict,
+  poke,
+  readMarker,
+  removeMarker,
+  updateMarkerPath,
+} from "./update-marker";
+import { UpdateWindow } from "./update-window";
 import { electronUpdater } from "./updater";
-import { localFeed, UpdateService } from "./updates";
+import { type Handoff, localFeed, UpdateService } from "./updates";
 
 const logger = createLogger(app.getPath("logs"));
 
@@ -67,8 +77,45 @@ function builtinSkills(): BuiltinSkills[] {
   });
 }
 
-/** @param onLoad runs each time the page (re)loads, when the renderer starts with fresh state. */
-function createWindow(onLoad: () => void): void {
+/**
+ * The update helper's files: shipped as resources\update-helper (electron-builder.yml), read from
+ * the source tree in development.
+ */
+const helperFiles = app.isPackaged
+  ? {
+      folder: join(process.resourcesPath, "update-helper"),
+      icons: [],
+    }
+  : {
+      folder: join(app.getAppPath(), "resources", "update-helper"),
+      icons: ["icon.ico", "icon.png"].map((name) => join(app.getAppPath(), "build", name)),
+    };
+
+/**
+ * One Bochica at a time, and none while an update owns the app: the update helper's window comes
+ * to the front instead. The marker is checked before taking the lock, so a launch that gives way
+ * never holds the lock against the new version the installer starts.
+ */
+const markerPath = updateMarkerPath(app.getPath("userData"));
+const marker = markerVerdict(readMarker(markerPath), app.getVersion(), (found) =>
+  helperAlive(found, process.env),
+);
+let launches = true;
+if (marker === "updating") {
+  logger.info("An update is being installed: showing its window instead of starting");
+  poke(markerPath);
+  launches = false;
+} else if (!app.requestSingleInstanceLock()) {
+  launches = false;
+} else if (marker === "stale") {
+  removeMarker(markerPath);
+}
+
+/**
+ * @param onLoad runs each time the page (re)loads, when the renderer starts with fresh state.
+ * @param onShow runs once, when the window first shows.
+ */
+function createWindow(onLoad: () => void, onShow: () => void): BrowserWindow {
   const window = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -86,7 +133,10 @@ function createWindow(onLoad: () => void): void {
     },
   });
 
-  window.once("ready-to-show", () => window.show());
+  window.once("ready-to-show", () => {
+    window.show();
+    onShow();
+  });
 
   // The renderer never navigates away or opens windows: links go to the system browser.
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -105,156 +155,206 @@ function createWindow(onLoad: () => void): void {
   } else {
     void window.loadFile(join(__dirname, "../renderer/index.html"));
   }
+  return window;
 }
 
-void app.whenReady().then(() => {
-  logger.info(`Starting Bochica ${app.getVersion()}`);
-  const credentials = new CredentialStore(
-    join(app.getPath("userData"), "credentials.json"),
-    safeStorage,
-  );
-  const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
-  const mcp = new McpService(settings, logger, runtimeRoot, join(app.getPath("logs"), "eplan-mcp"));
-  const permissions = new PermissionStore(join(app.getPath("userData"), "permissions.json"));
-  const approvals = new ApprovalService({ rules: permissions });
-  const callEplan = (tool: string, args: Record<string, unknown>) =>
-    mcp.manager.callTool(EPLAN_SERVER_ID, tool, args);
-  const backups = new BackupGuard(callEplan, join(app.getPath("documents"), "Bochica", "Backups"));
-  const devTools = !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
-  const sessions = new SessionRepository(
-    nodeSqliteDriver(join(app.getPath("userData"), "bochica.db")),
-  );
-  void sessions
-    .markInterruptedTurns()
-    .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
-  const skills = new SkillService(
-    builtinSkills(),
-    join(app.getPath("userData"), "skills", "user"),
-    settings,
-  );
-  void skills.load().then(() => {
-    logger.info(`Skills: ${skills.available().skills.length} loaded`);
-    for (const { id, findings } of skills.skipped()) {
-      const where = findings.map((f) => `${f.kind} in ${f.file} at line ${f.line}`).join(", ");
-      logger.error(`Skill ${id} not loaded: it looks like prompt injection (${where})`);
-    }
-  });
-  const folders = new FolderService(
-    app.getPath("documents"),
-    defaultPathPolicy(process.env, app.getPath("userData")),
-  );
-  const checkpoints = new CheckpointService({
-    sessions,
-    policy: folders.policy,
-    changesProject: (server, tool) =>
-      server === EPLAN_SERVER_ID && eplanToolPolicy(tool).changesProject,
-  });
-  const claudeCode = new ClaudeCodeService(
-    process.env,
-    `bochica/${app.getVersion()}`,
-    app.getPath("userData"),
-  );
-  const chat = new ChatService({
-    credentials,
-    claudeCode,
-    mcp: mcp.manager,
-    approvals,
-    backups,
-    sessions,
-    skills,
-    folders,
-    permissions,
-    checkpoints,
-    logger,
-    extraTools: devTools,
-  });
-  // Sign-in pages are the provider's own https page; nothing else is opened from here.
-  const logins = new LoginService(credentials, (url) => shell.openExternal(url), logger);
+if (!launches) app.exit(0);
+else
+  void app.whenReady().then(() => {
+    logger.info(`Starting Bochica ${app.getVersion()}`);
+    const credentials = new CredentialStore(
+      join(app.getPath("userData"), "credentials.json"),
+      safeStorage,
+    );
+    const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
+    const mcp = new McpService(
+      settings,
+      logger,
+      runtimeRoot,
+      join(app.getPath("logs"), "eplan-mcp"),
+    );
+    const permissions = new PermissionStore(join(app.getPath("userData"), "permissions.json"));
+    const approvals = new ApprovalService({ rules: permissions });
+    const callEplan = (tool: string, args: Record<string, unknown>) =>
+      mcp.manager.callTool(EPLAN_SERVER_ID, tool, args);
+    const backups = new BackupGuard(
+      callEplan,
+      join(app.getPath("documents"), "Bochica", "Backups"),
+    );
+    const devTools =
+      !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
+    const sessions = new SessionRepository(
+      nodeSqliteDriver(join(app.getPath("userData"), "bochica.db")),
+    );
+    void sessions
+      .markInterruptedTurns()
+      .then((count) => count > 0 && logger.info(`Marked ${count} interrupted turn(s) as stopped`));
+    const skills = new SkillService(
+      builtinSkills(),
+      join(app.getPath("userData"), "skills", "user"),
+      settings,
+    );
+    void skills.load().then(() => {
+      logger.info(`Skills: ${skills.available().skills.length} loaded`);
+      for (const { id, findings } of skills.skipped()) {
+        const where = findings.map((f) => `${f.kind} in ${f.file} at line ${f.line}`).join(", ");
+        logger.error(`Skill ${id} not loaded: it looks like prompt injection (${where})`);
+      }
+    });
+    const folders = new FolderService(
+      app.getPath("documents"),
+      defaultPathPolicy(process.env, app.getPath("userData")),
+    );
+    const checkpoints = new CheckpointService({
+      sessions,
+      policy: folders.policy,
+      changesProject: (server, tool) =>
+        server === EPLAN_SERVER_ID && eplanToolPolicy(tool).changesProject,
+    });
+    const claudeCode = new ClaudeCodeService(
+      process.env,
+      `bochica/${app.getVersion()}`,
+      app.getPath("userData"),
+    );
+    const chat = new ChatService({
+      credentials,
+      claudeCode,
+      mcp: mcp.manager,
+      approvals,
+      backups,
+      sessions,
+      skills,
+      folders,
+      permissions,
+      checkpoints,
+      logger,
+      extraTools: devTools,
+    });
+    // Sign-in pages are the provider's own https page; nothing else is opened from here.
+    const logins = new LoginService(credentials, (url) => shell.openExternal(url), logger);
 
-  const eplan = new EplanStatusService(
-    {
-      configured: () => mcp.eplanConfigured(),
-      installed: () => eplanInstalled(process.env),
-      serverState: () => mcp.manager.states().find((s) => s.id === EPLAN_SERVER_ID),
-      callTool: callEplan,
-      isEplanRunning,
-    },
-    (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
-  );
-  /**
-   * Stops the turns and waits for the MCP servers' processes to exit: an update replaces the
-   * files the bundled Python runs from, and Windows can't replace a file that is in use.
-   */
-  const stopChildren = async (): Promise<void> => {
-    chat.stopAll();
-    logins.cancel();
-    eplan.stop();
-    await Promise.race([
-      mcp.manager.stop(),
-      new Promise((resolve) => setTimeout(resolve, STOP_CHILDREN_MS)),
-    ]);
-  };
+    const eplan = new EplanStatusService(
+      {
+        configured: () => mcp.eplanConfigured(),
+        installed: () => eplanInstalled(process.env),
+        serverState: () => mcp.manager.states().find((s) => s.id === EPLAN_SERVER_ID),
+        callTool: callEplan,
+        isEplanRunning,
+      },
+      (status) => broadcast(ipcChannels.eplanStatusChanged, EplanStatus.parse(status)),
+    );
+    /**
+     * Stops the turns and waits for the MCP servers' processes to exit: an update replaces the
+     * files the bundled Python runs from, and Windows can't replace a file that is in use.
+     */
+    const stopChildren = async (): Promise<void> => {
+      chat.stopAll();
+      logins.cancel();
+      eplan.stop();
+      await Promise.race([
+        mcp.manager.stop(),
+        new Promise((resolve) => setTimeout(resolve, STOP_CHILDREN_MS)),
+      ]);
+    };
 
-  const feed = localFeed(process.env);
-  if (feed) logger.info(`Updates come from the local test feed ${feed}`);
-  const updates = new UpdateService({
-    updater: app.isPackaged || feed ? electronUpdater(logger, feed) : null,
-    current: app.getVersion(),
-    busy: () => chat.busy(),
-    prepareInstall: stopChildren,
-    cancelInstall: () => {
-      mcp.start();
-      eplan.start();
-    },
-    notesUrl: (version) => `${RELEASES_URL}/tag/v${version}`,
-    logger,
-    onChange: (status) => broadcast(ipcChannels.updatesChanged, UpdateStatus.parse(status)),
-  });
-  chat.onIdle(() => updates.idle());
+    let mainWindow: BrowserWindow | null = null;
+    const updateWindow = new UpdateWindow(() => mainWindow);
+    app.on("second-instance", () => updateWindow.focus());
+    /** The running update helper, until Bochica quits or the install is called off. */
+    let helper: HelperHandle | null = null;
+    const handOff = async (handoff: Handoff, wait: boolean): Promise<boolean> => {
+      helper?.stop();
+      helper = await startUpdateHelper({
+        ...helperFiles,
+        config: {
+          parentPid: process.pid,
+          ...handoff,
+          marker: markerPath,
+          strings: helperStrings(app.getLocale(), handoff.version),
+        },
+        env: process.env,
+        logger,
+        wait,
+      });
+      return helper !== null;
+    };
 
-  registerIpc({
-    credentials,
-    claudeCode,
-    logins,
-    chat,
-    mcp,
-    approvals,
-    eplan,
-    sessions,
-    folders,
-    skills,
-    permissions,
-    checkpoints,
-    settings,
-    updates,
-    logger,
-  });
+    const feed = localFeed(process.env);
+    if (feed) logger.info(`Updates come from the local test feed ${feed}`);
+    const updates = new UpdateService({
+      updater: app.isPackaged || feed ? electronUpdater(logger, feed) : null,
+      current: app.getVersion(),
+      busy: () => chat.busy(),
+      prepareInstall: stopChildren,
+      cancelInstall: () => {
+        helper?.stop();
+        helper = null;
+        mcp.start();
+        eplan.start();
+      },
+      handOff: (handoff) => handOff(handoff, true),
+      notesUrl: (version) => `${RELEASES_URL}/tag/v${version}`,
+      logger,
+      onChange: (status) => {
+        broadcast(ipcChannels.updatesChanged, UpdateStatus.parse(status));
+        updateWindow.sync(status);
+      },
+    });
+    chat.onIdle(() => updates.idle());
 
-  // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
-  // EPLAN indicator re-checks as soon as its server comes up.
-  mcp.manager.onChange(() => {
-    broadcast(ipcChannels.mcpChanged, McpServerList.parse(mcp.list()));
-    void eplan.check();
-  });
-  mcp.start();
-  eplan.start();
-  updates.start();
+    registerIpc({
+      credentials,
+      claudeCode,
+      logins,
+      chat,
+      mcp,
+      approvals,
+      eplan,
+      sessions,
+      folders,
+      skills,
+      permissions,
+      checkpoints,
+      settings,
+      updates,
+      logger,
+    });
 
-  // The first quit waits for the children to stop, then quits again for real.
-  let stopped = false;
-  let stopping: Promise<void> | null = null;
-  app.on("before-quit", (event) => {
-    if (stopped) return;
-    event.preventDefault();
-    stopping ??= stopChildren().finally(() => {
-      updates.stop();
-      sessions.close();
-      stopped = true;
-      app.quit();
+    // Every window learns about MCP status changes (connecting → ready, errors, toggles), and the
+    // EPLAN indicator re-checks as soon as its server comes up.
+    mcp.manager.onChange(() => {
+      broadcast(ipcChannels.mcpChanged, McpServerList.parse(mcp.list()));
+      void eplan.check();
+    });
+    mcp.start();
+    eplan.start();
+    updates.start();
+
+    // The first quit waits for the children to stop, then quits again for real.
+    let stopped = false;
+    let stopping: Promise<void> | null = null;
+    app.on("before-quit", (event) => {
+      if (stopped) return;
+      event.preventDefault();
+      // A downloaded update installs as the app closes: the helper's window shows it happening.
+      const onQuit = stopping ? null : updates.installsOnQuit();
+      if (onQuit) void handOff(onQuit, false);
+      stopping ??= stopChildren().finally(() => {
+        updates.stop();
+        sessions.close();
+        stopped = true;
+        app.quit();
+      });
+    });
+    // A reloaded renderer shows every session in Ask mode: main must not stay in Auto behind it.
+    // The first start after an update tells the helper it is up by removing the marker.
+    mainWindow = createWindow(
+      () => approvals.clearAuto(),
+      () => marker === "updated" && removeMarker(markerPath),
+    );
+    mainWindow.on("closed", () => {
+      mainWindow = null;
     });
   });
-  // A reloaded renderer shows every session in Ask mode: main must not stay in Auto behind it.
-  createWindow(() => approvals.clearAuto());
-});
 
 app.on("window-all-closed", () => app.quit());

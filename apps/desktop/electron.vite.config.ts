@@ -14,5 +14,14 @@ export default defineConfig({
       alias: { "@": resolve("src/renderer/src") },
     },
     plugins: [react(), tailwindcss()],
+    // The app, and the small update window (main/update-window.ts), which loads none of it.
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve("src/renderer/index.html"),
+          update: resolve("src/renderer/update.html"),
+        },
+      },
+    },
   },
 });

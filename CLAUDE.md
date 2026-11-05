@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S13b done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S13c done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -15,8 +15,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > installer that carries its own Python, eplan-mcp and built-in skills; a first-run welcome
 > guide; one-click updates from GitHub Releases, built by a tag-driven release workflow;
 > several keys per provider with failover per model call, and OpenRouter sign-in (S13);
-> Claude Agent, a Claude Pro/Max plan through the user's own Claude Code (S13b).
-> Next: an update window that bridges the install (S13c), then the eplan-mcp contract (S14).
+> Claude Agent, a Claude Pro/Max plan through the user's own Claude Code (S13b); an update
+> window from Update now until the new version opens, bridged through the install by a
+> PowerShell helper, and one Bochica at a time (S13c).
+> Next: the eplan-mcp contract (S14).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -345,17 +347,36 @@ update** covering everything:
   `components/update-notice.tsx`) with **Update now** and **Later**; Settings → General →
   Updates (`UpdateSettings`) shows the state and can check by hand. Nothing downloads or
   installs without one of those clicks. Update now downloads and restarts, waiting for a running
-  task (`ChatService.busy()` / `onIdle`); the installer is not silent (`quitAndInstall(false,
-  true)`), so its small progress window shows while the app is closed. Later downloads quietly
-  and installs on quit (`autoInstallOnAppQuit`).
+  task (`ChatService.busy()` / `onIdle`; `waiting` is set from the click on). Later downloads
+  quietly and installs on quit (`autoInstallOnAppQuit`, silent).
 - `UpdateService` (`main/updates.ts`) holds the state machine (`off` in development builds,
-  `idle`, `checking`, `available`, `downloading`, `ready`, `error`) behind an `Updater`
-  interface; `main/updater.ts` adapts electron-updater. IPC: `updates:get|check|install|later`
-  and the push `updates:changed`. A background check that fails is only logged.
+  `idle`, `checking`, `available`, `downloading`, `ready`, `installing`, `error`) behind an
+  `Updater` interface; `main/updater.ts` adapts electron-updater. IPC: `updates:get|check|
+  install|later` and the push `updates:changed`. A background check that fails is only logged.
+- **The update window** (`main/update-window.ts`, page `renderer/update.html` →
+  `src/update.tsx`, a renderer entry of its own) stands in for the main window while
+  `showsUpdateWindow(status)`: from Update now (unless a task holds it back) through the download
+  and `installing`. The main window hides behind it and comes back on an error. `installing`
+  lasts at least 2.5 s (`HANDOFF_DWELL_MS`, as in Hermes) so the window can be read.
+- **The helper** (`resources/update-helper/update-helper.ps1`, started by
+  `main/update-helper.ts`) draws the same window in WinForms while the app is gone: copied to
+  `%TEMP%\bochica-update-*`, run as `cmd.exe /d /s /c powershell.exe -File …` (hidden, not
+  detached, working folder `%TEMP%`: PowerShell 5.1 dies when spawned detached, and a working
+  folder would pin the app's), config in `config.json` (strings from `en.json`/`es.json`
+  `updates.window`), handshake through a `ready.txt` it writes once its window shows (10 s),
+  log in `%TEMP%\bochica-update-helper.log`. With the window up the install is silent
+  (`quitAndInstall(true, true)`); otherwise the NSIS window shows. It waits for Bochica's pid, then
+  for the installer's process, then (Update now) for the new version to remove the marker.
+- **One instance and the update marker** (`main/update-marker.ts`):
+  `userData\update-marker.json` (helper's pid, start time, version) is written by the helper.
+  Before `requestSingleInstanceLock`, a launch reads it: another version with a live helper
+  (pid + start time) creates `update-marker.json.poke`, which brings the helper's window to the
+  front, and exits; the new version removes it once its window shows; a dead helper's marker is
+  dropped. A second launch otherwise focuses the running window (`second-instance`).
 - Before installing, and on every quit, main stops the turns and waits for the MCP servers'
   processes to exit (`McpManager.stop()`, at most 6 s): the installer can't replace
   `resources\runtime` while the bundled `python.exe` runs. If the installer can't start, the
-  servers come back.
+  helper is stopped and the servers come back.
 - `BOCHICA_UPDATE_URL` (only `http://127.0.0.1` or `http://localhost`) points the updater at a
   local generic feed (a folder with `latest.yml` and the installer), for testing an update.
 - **Releases:** `bun run package` never publishes. A tag `vX.Y.Z` matching

@@ -61,6 +61,30 @@ The updater can be pointed at a local feed instead of GitHub:
 The notice appears 30 seconds after start; **Update now** installs into
 `%LOCALAPPDATA%\Programs\bochica` like a real update.
 
+To try it without touching an installed Bochica, package both builds under another identity,
+which installs into its own folder with its own data (`BochicaTest`):
+
+```bash
+cd apps/desktop && bunx electron-vite build
+bunx electron-builder --win --publish never -c.appId=com.canary-ecad.bochica.test -c.productName=BochicaTest -c.extraMetadata.name=bochica-test -c.extraMetadata.productName=BochicaTest -c.extraMetadata.version=0.3.1 -c.directories.output=release/old
+```
+
+Run it again with the newer version and another output folder; install the older one, serve the
+newer one's files and start the older one with the feed variable.
+
+What to look for:
+
+- **Update now** hides the main window behind the small update window, which shows the download
+  percent, then "Getting ready to install…" for at least 2.5 s.
+- The helper's window takes over at the same place ("Installing…") while the app is gone; no
+  installer window shows. The new version opens by itself and the window closes.
+- Starting the app from the Start menu during the install brings the update window to the front
+  instead of starting a copy; starting it twice otherwise focuses the open window.
+- **Later**, then closing the app: the helper's window shows until the installer ends, and the app
+  doesn't reopen.
+- The helper writes what it did to `%TEMP%\bochica-update-helper.log`; Bochica's log says when it
+  didn't start (the installer then shows its own window, as before).
+
 ## When something goes wrong
 
 - **The workflow fails before uploading:** fix it on `main`, delete the tag

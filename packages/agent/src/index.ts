@@ -20,7 +20,7 @@ export type { AgentTool, ApprovalAnswer, Approver, ToolApproval } from "./tools"
 export { deniedBy } from "./builtin/deny-rules";
 export { fileTools, findFiles } from "./builtin/files";
 export { checkPath, defaultPathPolicy, type PathPolicy } from "./builtin/paths";
-export { checkWorkingFolder, powershellTool } from "./builtin/powershell";
+export { checkWorkingFolder, powershellTool, safeEnv } from "./builtin/powershell";
 export { type InjectionFinding, scanContextFile } from "./injection";
 export { attachMentions } from "./mentions";
 export {

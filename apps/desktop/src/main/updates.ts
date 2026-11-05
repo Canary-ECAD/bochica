@@ -4,14 +4,28 @@ import type { Logger } from "./logger";
 /** The first check waits a little, so it doesn't compete with the app starting. */
 const FIRST_CHECK_MS = 30_000;
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000;
+/** How long the update window stays up before Bochica closes, so it can be read (as in Hermes). */
+const HANDOFF_DWELL_MS = 2_500;
 
 /** What the service needs from electron-updater (see `updater.ts`); tests use a fake. */
 export interface Updater {
   /** The newest version when it is newer than the installed one, else null. */
   check(): Promise<string | null>;
-  download(onProgress: (percent: number) => void): Promise<void>;
-  /** Quits, installs and starts the new version. Rejects if the installer can't start. */
-  install(): Promise<void>;
+  /** Resolves with the downloaded installer's path, when the updater says it. */
+  download(onProgress: (percent: number) => void): Promise<string | null>;
+  /**
+   * Quits, installs and starts the new version. Rejects if the installer can't start.
+   * @param silent the helper's window shows the install, so the installer needs none of its own.
+   */
+  install(silent: boolean): Promise<void>;
+}
+
+/** What the helper that bridges the install needs to know (`update-helper.ts`). */
+export interface Handoff {
+  version: string;
+  installer: string | null;
+  /** "Update now" reopens Bochica; an install on quit ("Later") doesn't. */
+  relaunch: boolean;
 }
 
 export interface UpdateDeps {
@@ -25,6 +39,10 @@ export interface UpdateDeps {
   prepareInstall: () => Promise<void>;
   /** Brings back what `prepareInstall` stopped, when the installer couldn't start. */
   cancelInstall: () => void;
+  /** Starts the helper whose window stays up while the app is gone; true once it shows. */
+  handOff: (handoff: Handoff) => Promise<boolean>;
+  /** Overrides HANDOFF_DWELL_MS (tests). */
+  dwellMs?: number;
   notesUrl: (version: string) => string;
   logger: Logger;
   onChange: (status: UpdateStatus) => void;
@@ -42,6 +60,17 @@ export function updateErrorKind(error: unknown): "offline" | "failed" {
 }
 
 /**
+ * Whether the update window stands in for the main window: from "Update now" until Bochica
+ * closes, unless a running task holds the restart back (its answers and approvals must stay
+ * visible).
+ */
+export function showsUpdateWindow(status: UpdateStatus): boolean {
+  const { state, deferred, waiting } = status;
+  if (state === "installing") return true;
+  return !deferred && !waiting && (state === "downloading" || state === "ready");
+}
+
+/**
  * The in-app updater. It checks on its own, but never downloads or installs without the user:
  * "Update now" downloads and restarts (after the running task, if any); "Later" downloads quietly
  * and the update is applied when the app closes.
@@ -51,6 +80,8 @@ export class UpdateService {
   /** "Update now" was pressed: restart as soon as the download is ready and nothing runs. */
   private wantsInstall = false;
   private downloading: Promise<void> | null = null;
+  /** The downloaded installer, when the updater said where it is. */
+  private installer: string | null = null;
   private timers: Array<ReturnType<typeof setTimeout>> = [];
 
   constructor(private readonly deps: UpdateDeps) {
@@ -84,7 +115,9 @@ export class UpdateService {
   async check(manual: boolean): Promise<UpdateStatus> {
     const updater = this.deps.updater;
     const before = this.status;
-    if (!updater || ["checking", "downloading", "ready"].includes(before.state)) return before;
+    if (!updater || ["checking", "downloading", "ready", "installing"].includes(before.state)) {
+      return before;
+    }
     if (before.state === "error" && before.failedDuring !== "check" && !manual) return before;
     this.set({ state: "checking", error: undefined, failedDuring: undefined });
     try {
@@ -123,7 +156,7 @@ export class UpdateService {
       (state === "error" && failedDuring !== "check")
     ) {
       this.wantsInstall = true;
-      this.set({ deferred: false });
+      this.set({ deferred: false, waiting: this.deps.busy() });
       void this.download();
     } else if (state === "ready") {
       this.wantsInstall = true;
@@ -145,7 +178,19 @@ export class UpdateService {
 
   /** The last running task ended: a restart that waited for it goes ahead. */
   idle(): void {
-    if (this.wantsInstall && this.status.state === "ready") void this.restart();
+    if (!this.wantsInstall) return;
+    if (this.status.state === "ready") void this.restart();
+    else if (this.status.waiting) this.set({ waiting: false });
+  }
+
+  /**
+   * What the app installs when it closes now: a downloaded update that "Update now" hasn't
+   * started (electron-updater installs it on quit).
+   */
+  installsOnQuit(): Handoff | null {
+    const { state, version } = this.status;
+    if (state !== "ready" || !version) return null;
+    return { version, installer: this.installer, relaunch: false };
   }
 
   private download(): Promise<void> {
@@ -154,7 +199,7 @@ export class UpdateService {
     this.downloading ??= (async () => {
       this.set({ state: "downloading", percent: 0, error: undefined, failedDuring: undefined });
       try {
-        await updater.download((percent) => {
+        this.installer = await updater.download((percent) => {
           if (this.status.state === "downloading") this.set({ percent: Math.floor(percent) });
         });
         this.set({ state: "ready", percent: undefined });
@@ -178,11 +223,21 @@ export class UpdateService {
       this.set({ waiting: true });
       return;
     }
-    this.set({ waiting: false });
-    this.deps.logger.info(`Installing Bochica ${this.status.version ?? "?"}`);
+    const version = this.status.version ?? "?";
+    this.set({ state: "installing", waiting: false });
+    this.deps.logger.info(`Installing Bochica ${version}`);
     try {
-      await this.deps.prepareInstall();
-      await updater.install();
+      const dwell = this.deps.dwellMs ?? HANDOFF_DWELL_MS;
+      await Promise.all([
+        this.deps.prepareInstall(),
+        dwell > 0 && new Promise((resolve) => setTimeout(resolve, dwell)),
+      ]);
+      const bridged = await this.deps.handOff({
+        version,
+        installer: this.installer,
+        relaunch: true,
+      });
+      await updater.install(bridged);
     } catch (error) {
       this.deps.logger.error("Installing the update failed", error);
       this.deps.cancelInstall();

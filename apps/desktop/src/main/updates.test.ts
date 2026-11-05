@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { UpdateStatus } from "@bochica/shared";
-import { localFeed, type Updater, updateErrorKind, UpdateService } from "./updates";
+import {
+  type Handoff,
+  localFeed,
+  showsUpdateWindow,
+  type Updater,
+  updateErrorKind,
+  UpdateService,
+} from "./updates";
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -19,12 +26,12 @@ function fakeUpdater(latest: string | null = "0.3.0") {
     download: (onProgress) => {
       calls.push("download");
       progress = onProgress;
-      return new Promise<void>((resolve, reject) => {
-        finish = (error) => (error ? reject(error) : resolve());
+      return new Promise<string | null>((resolve, reject) => {
+        finish = (error) => (error ? reject(error) : resolve("C:/cache/Bochica-Setup.exe"));
       });
     },
-    install: async () => {
-      calls.push("install");
+    install: async (silent) => {
+      calls.push(silent ? "install silently" : "install");
       if (updater.installError) throw updater.installError;
     },
   };
@@ -39,10 +46,11 @@ function fakeUpdater(latest: string | null = "0.3.0") {
   };
 }
 
-function setup(updater: Updater | null, busy = false) {
+function setup(updater: Updater | null, busy = false, bridged = true) {
   const statuses: UpdateStatus[] = [];
   const steps: string[] = [];
   const errors: string[] = [];
+  const handoffs: Handoff[] = [];
   const state = { busy };
   const service = new UpdateService({
     updater,
@@ -52,11 +60,16 @@ function setup(updater: Updater | null, busy = false) {
       steps.push("prepare");
     },
     cancelInstall: () => steps.push("cancel"),
+    handOff: async (handoff) => {
+      handoffs.push(handoff);
+      return bridged;
+    },
+    dwellMs: 0,
     notesUrl: (version) => `https://example.com/v${version}`,
     logger: { info: () => {}, error: (message) => errors.push(message) },
     onChange: (status) => statuses.push(status),
   });
-  return { service, statuses, steps, errors, state };
+  return { service, statuses, steps, errors, state, handoffs };
 }
 
 describe("UpdateService", () => {
@@ -100,7 +113,53 @@ describe("UpdateService", () => {
     expect(service.current().percent).toBe(42);
     await fake.finish();
     expect(steps).toEqual(["prepare"]);
+    expect(fake.calls).toEqual(["check", "download", "install silently"]);
+  });
+
+  test("the helper gets the version and the installer, and closing shows as installing", async () => {
+    const fake = fakeUpdater();
+    const { service, statuses, handoffs } = setup(fake.updater);
+    await service.check(false);
+    service.install();
+    await fake.finish();
+    expect(handoffs).toEqual([
+      { version: "0.3.0", installer: "C:/cache/Bochica-Setup.exe", relaunch: true },
+    ]);
+    expect(statuses.map((s) => s.state)).toContain("installing");
+  });
+
+  test("without the helper's window the installer shows its own", async () => {
+    const fake = fakeUpdater();
+    const { service } = setup(fake.updater, false, false);
+    await service.check(false);
+    service.install();
+    await fake.finish();
     expect(fake.calls).toEqual(["check", "download", "install"]);
+  });
+
+  test("Update now during a task downloads without the update window, until the task ends", async () => {
+    const fake = fakeUpdater();
+    const { service, state } = setup(fake.updater, true);
+    await service.check(false);
+    expect(showsUpdateWindow(service.install())).toBe(false);
+    state.busy = false;
+    service.idle();
+    expect(service.current()).toMatchObject({ state: "downloading", waiting: false });
+    expect(showsUpdateWindow(service.current())).toBe(true);
+  });
+
+  test("a downloaded update installs on quit, without reopening Bochica", async () => {
+    const fake = fakeUpdater();
+    const { service } = setup(fake.updater);
+    await service.check(false);
+    expect(service.installsOnQuit()).toBeNull();
+    service.later();
+    await fake.finish();
+    expect(service.installsOnQuit()).toEqual({
+      version: "0.3.0",
+      installer: "C:/cache/Bochica-Setup.exe",
+      relaunch: false,
+    });
   });
 
   test("a running task makes the restart wait until the last turn ends", async () => {
@@ -114,7 +173,7 @@ describe("UpdateService", () => {
     state.busy = false;
     service.idle();
     await settle();
-    expect(fake.calls).toContain("install");
+    expect(fake.calls).toContain("install silently");
     expect(service.current().waiting).toBe(false);
   });
 
@@ -138,7 +197,7 @@ describe("UpdateService", () => {
     await fake.finish();
     expect(service.install().deferred).toBe(false);
     await settle();
-    expect(fake.calls).toContain("install");
+    expect(fake.calls).toContain("install silently");
   });
 
   test("a later check keeps Later for the same version, not for a newer one", async () => {
@@ -204,6 +263,23 @@ describe("UpdateService", () => {
     await fake.finish(new Error("broken"));
     expect((await service.check(false)).state).toBe("error");
     expect(fake.calls.filter((c) => c === "check")).toHaveLength(1);
+  });
+});
+
+describe("showsUpdateWindow", () => {
+  const base: UpdateStatus = { state: "idle", current: "0.2.0", deferred: false, waiting: false };
+  test.each([
+    ["available", {}, false],
+    ["downloading", {}, true],
+    ["downloading", { deferred: true }, false],
+    ["downloading", { waiting: true }, false],
+    ["ready", {}, true],
+    ["ready", { deferred: true }, false],
+    ["ready", { waiting: true }, false],
+    ["installing", {}, true],
+    ["error", {}, false],
+  ] as const)("%s %o → %s", (state, extra, shows) => {
+    expect(showsUpdateWindow({ ...base, ...extra, state })).toBe(shows);
   });
 });
 

@@ -1,6 +1,6 @@
 # S14 — eplan-mcp contract
 
-**Status:** planned (after S13c)
+**Status:** active
 **Goal:** eplan-mcp says what each of its tools does, and Bochica reads it instead of guessing.
 A new eplan-mcp version arrives as a tagged release whose tool changes can be read before
 bumping, and Bochica notices that release on its own. The two repositories stay separate.
