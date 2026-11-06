@@ -154,7 +154,7 @@ questions are answered when the sprint is planned.
   running EPLAN). It works, but a version-dependent tool or message could go wrong. Since
   eplan-mcp#80 it matters more: the 2027 tools are gated on that version, so with 2027
   installed and an older EPLAN running they may run and fail.
-- **The next eplan-mcp bump, past eplan-mcp#82** (24 live tools and a pinned target project,
+- **The eplan-mcp bump past eplan-mcp#82** → done: v1.3.0 pinned, Draw lists and policies as planned here (24 live tools and a pinned target project,
   merged after v1.2.0). Already in Bochica: the backup guard follows the pinned target
   (`eplan_live_set_target_project`, forgotten when the server restarts), and `eplan_live_batch`
   needs typed confirmation when an operation removes something. At the bump:

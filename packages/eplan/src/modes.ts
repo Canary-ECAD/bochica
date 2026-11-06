@@ -18,6 +18,15 @@ const placementTools = new Set([
   "eplan_insert_device",
   "eplan_insert_symbol_reference",
   "eplan_start_ged_interaction",
+  // eplan-mcp v1.3.0's live object model (eplan-mcp#82).
+  "eplan_live_place_device",
+  "eplan_live_place_terminal",
+  "eplan_live_insert_macro",
+  "eplan_live_place_panel_item",
+  "eplan_live_place_plc_point",
+  "eplan_live_place_cable_definition",
+  "eplan_live_update_placement",
+  "eplan_live_batch",
 ]);
 
 /** Edits that drawing needs; Tasks keeps them too. */
@@ -47,6 +56,11 @@ const drawingReads = new Set([
   "eplan_live_query_pages",
   "eplan_live_query_functions",
   "eplan_live_read_check_messages",
+  "eplan_live_find_placements",
+  "eplan_live_render_page",
+  "eplan_live_check_page",
+  // Pins the project the drawing goes to, so the user can keep working in EPLAN meanwhile.
+  "eplan_live_set_target_project",
   // A call blocked by an EPLAN dialog names it; reading it lets the agent show the user.
   "eplan_list_dialogs",
 ]);
