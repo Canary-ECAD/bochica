@@ -80,9 +80,19 @@ From the enhancement issues. Each one is an outline sprint in ROADMAP.md (M4); t
 questions are answered when the sprint is planned.
 
 - **Parts database doctor** (Canary-ECAD/bochica#1) → planned as
-  [S15](sprints/S15-parts-doctor.md). Left out of it: Data Portal macros, pictures, DXF and E3D
-  downloads; configurators and selectors; a scheduled report; a view of its own for the report;
-  a built-in skill for the workflow (only if the demo shows the model needs one).
+  [S15](sprints/S15-parts-doctor.md), rules first. Left out of it, to add a piece at a time:
+  - **Importing from the Data Portal.** Two ways, both measured in S15-01: the web API's
+    download list (`/basketitems`, needs a PAT from the ePulse profile, stored like an API key)
+    or the add-in's `EDPCloudAddPartsToBasketAction` with EPLAN's own sign-in
+    (Canary-ECAD/eplan-mcp#75). Either way the user downloads in EPLAN, and the portal skips
+    parts whose number the database already has, so filling a macro or function templates on an
+    existing part needs a way to update it.
+  - Parts a project uses that the database lacks (`eplan_export_parts_list`,
+    `P_ARTICLEREF_PARTNO`; slow on large projects).
+  - The portal's lifecycle: parts no longer `Active`.
+  - Macro and picture files that don't exist once their `$(…)` variable is resolved.
+  - Rules the user writes (property, condition, severity), per product group or manufacturer.
+  - A view of its own for the report; a scheduled report; DXF and E3D downloads.
 - **PLC generator** (Canary-ECAD/bochica#2) → S16. Organise and create control schematics with
   any part number (SKU).
   - What exists: macros (`eplan_insert_device`, `eplan_generate_macros`), the live drawing tools,
