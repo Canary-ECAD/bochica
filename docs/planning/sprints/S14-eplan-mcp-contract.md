@@ -128,7 +128,8 @@ Done on 2026-11-06. eplan-mcp [v1.0.0](https://github.com/Canary-ECAD/eplan-mcp/
   printed `WARNING: eplan_renumber_devices used to change something and is now read-only`.
 - **Release watch:** run locally with the workflow's own script and `gh issue create` replaced by
   `echo`: with the pin at `v0.9.0` it would open "eplan-mcp v1.0.0 is out" with the notes and the
-  bump command; with the real pin it does nothing.
+  bump command; with the real pin it does nothing. Run by hand on GitHub after the push, it
+  logged `pinned v1.0.0, latest v1.0.0` and opened no issue.
 - eplan-mcp's own CI (`check.yml`) ran green on the PR, and `release.yml` published v1.0.0 with
   `tools.json` attached and generated notes.
 
