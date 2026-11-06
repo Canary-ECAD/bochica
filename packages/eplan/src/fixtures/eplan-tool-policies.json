@@ -31,6 +31,8 @@
   "eplan_create_installation_space": "ask + backup",
   "eplan_create_labels": "ask + backup",
   "eplan_create_model_views": "ask + backup",
+  "eplan_dataportal_add_to_download_list": "ask",
+  "eplan_dataportal_search_count": "never",
   "eplan_dc_export": "ask",
   "eplan_dc_import": "ask + backup",
   "eplan_delete_device_list": "always + backup",

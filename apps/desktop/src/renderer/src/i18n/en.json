@@ -204,7 +204,9 @@
       "search": "Searched the project",
       "other": "EPLAN: {{action}}",
       "reorganize": "Reorganized the project {{project}}",
-      "projectManagement": "Project management ({{type}}) on {{project}}"
+      "projectManagement": "Project management ({{type}}) on {{project}}",
+      "eplan_dataportal_add_to_download_list": "Added parts to the Data Portal download list in EPLAN",
+      "eplan_dataportal_search_count": "Searched the Data Portal in EPLAN"
     },
     "eplanRequest": {
       "eplan_connect": "Connect to EPLAN",
@@ -227,7 +229,9 @@
       "eplan_app_shutdown": "Close EPLAN",
       "eplan_app_restart": "Restart EPLAN",
       "reorganize": "Reorganize the project {{project}}: deleted data is purged for good",
-      "projectManagement": "Project management ({{type}}) on {{project}}"
+      "projectManagement": "Project management ({{type}}) on {{project}}",
+      "eplan_dataportal_add_to_download_list": "Add parts to your Data Portal download list in EPLAN (you download them yourself afterwards)",
+      "eplan_dataportal_search_count": "Search the Data Portal in EPLAN"
     },
     "bochicaRead": "Read a skill file: {{path}}",
     "bochica": {

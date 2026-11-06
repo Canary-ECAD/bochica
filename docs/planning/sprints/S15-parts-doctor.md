@@ -214,7 +214,7 @@ Repository: Canary-ECAD/eplan-mcp, then Bochica (`components:bump`).
       result), with their annotations and facts in `TOOL_FLAGS`, tests and `llm.md`. The PR's
       `Console.Out` change comes along: the greeting is harmless to Bochica but breaks stricter
       clients.
-- [ ] A new tag, pinned in Bochica; `eplan-tool-policies.json` reviewed for the two tools (search
+- [x] A new tag, pinned in Bochica; `eplan-tool-policies.json` reviewed for the two tools (search
       never asks; queueing asks, since it changes the user's online list).
 
 ### S15-09 · Bring the macro in

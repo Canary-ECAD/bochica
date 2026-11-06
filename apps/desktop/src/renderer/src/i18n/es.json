@@ -204,7 +204,9 @@
       "search": "Buscó en el proyecto",
       "other": "EPLAN: {{action}}",
       "reorganize": "Reorganizó el proyecto {{project}}",
-      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
+      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}",
+      "eplan_dataportal_add_to_download_list": "Añadió artículos a la lista de descarga del Data Portal en EPLAN",
+      "eplan_dataportal_search_count": "Buscó en el Data Portal desde EPLAN"
     },
     "eplanRequest": {
       "eplan_connect": "Conectarse a EPLAN",
@@ -227,7 +229,9 @@
       "eplan_app_shutdown": "Cerrar EPLAN",
       "eplan_app_restart": "Reiniciar EPLAN",
       "reorganize": "Reorganizar el proyecto {{project}}: los datos borrados se eliminan para siempre",
-      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}"
+      "projectManagement": "Gestión de proyecto ({{type}}) en {{project}}",
+      "eplan_dataportal_add_to_download_list": "Añadir artículos a tu lista de descarga del Data Portal en EPLAN (después los descargas tú)",
+      "eplan_dataportal_search_count": "Buscar en el Data Portal desde EPLAN"
     },
     "bochicaRead": "Leyó un archivo de skill: {{path}}",
     "bochica": {

@@ -33,6 +33,8 @@ const eplanSentences = new Set([
   "eplan_backup_project",
   "eplan_app_shutdown",
   "eplan_app_restart",
+  "eplan_dataportal_add_to_download_list",
+  "eplan_dataportal_search_count",
 ]);
 
 /** Built-in tools with their own sentence (`activity.bochica.<tool>`). */
