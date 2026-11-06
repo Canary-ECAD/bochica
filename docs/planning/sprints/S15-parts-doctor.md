@@ -68,19 +68,64 @@ one click in EPLAN, imported. Canary-ECAD/bochica#1.
 
 Write the answers in this file before S15-02.
 
-- [ ] `XPamExportXml` on a made-up database: its structure (parts, properties, languages),
-      whether it carries every field the report needs, and whether an update-only import (mode 1)
-      of one changed field leaves the rest of the part as it was.
-- [ ] How long the full export takes on a database of about 20,000 made-up parts.
-- [ ] The API's base URL from the spec, and one authenticated call with a PAT; what an expired
-      or wrong PAT returns; whether the API states the token's expiry.
+- [x] `XPamExportXml`: its structure, and whether it carries every field the report needs.
+- [ ] Whether an update-only import (mode 1) of one changed field leaves the rest of the part as
+      it was. Needs a made-up database selected in EPLAN.
+- [x] How long the full export takes on a large database.
+- [x] The API's base URL, what a wrong PAT returns, which endpoints need one.
+- [ ] One authenticated call with a real PAT; whether the API states the token's expiry.
 - [ ] Whether parts added through `POST /basketitems` show up in the add-in's download list in
-      EPLAN with the same account. This decides S15-08.
-- [ ] Whether the Remote Client's greeting still breaks stdio with v1.0.0 and the bundled
-      runtime (S14's demo connected fine). If it does, the `Console.Out` change goes into
-      eplan-mcp with a tag and a bump.
-- [ ] How a project's parts are listed best for "used but not in the database"
-      (`eplan_check_parts`, `eplan_export_parts_list` or a query).
+      EPLAN with the same account, and whether the add-in's actions exist on P8 2025 too. This
+      decides S15-06 and S15-08.
+- [x] Whether the Remote Client's greeting still breaks stdio with v1.0.0 and the bundled
+      runtime.
+- [x] How a project's parts are listed best for "used but not in the database".
+
+#### Findings
+
+Measured on P8 2025.0.3 with eplan-mcp v1.0.0 and the bundled runtime, driven by a script that
+starts the server as Bochica does.
+
+- **Export.** `eplan_partsmanagement_export` with `["*"]` wrote 13,739 parts (13,810 variants)
+  in 21 s, 80 MB. `eplan_parts_db_count` counts variants, not parts. The file is
+  `<partsmanagement>` with one `<part>` per part; its properties are attributes named as EPLAN's
+  (`P_ARTICLE_PARTNR`, `P_ARTICLE_DESCR1`, `P_ARTICLE_MANUFACTURER`, `P_ARTICLE_ORDERNR`,
+  `P_ARTICLE_TYPENR`, `P_ARTICLE_ERPNR`, `P_ARTICLE_PICTUREFILE`, `P_ARTICLE_MACRO`,
+  `P_ARTICLE_GROUPSYMBOLMACRO`, `P_ARTICLE_QUANTITYUNIT`, product groups…, 159 in all).
+  Children: `variant` (64 attributes), `functiontemplate`, `freeproperty`, `userproperty`,
+  `accessoryposition` and a few more. Things the report must know:
+  - an empty property is **left out**, not written as `""`;
+  - multi-language text is `xx_XX@text;` repeated (`??_??@` for language-neutral);
+  - the manufacturer is its short name;
+  - every part has a `P_ARTICLE_PICTUREFILE`, a path starting with a `$(…)` variable, so "no
+    picture" means the file is missing once the variable is resolved, not an empty field;
+  - few parts have `P_ARTICLE_MACRO`; `P_ARTICLE_GROUPSYMBOLMACRO` is the common one. Most parts
+    have neither, so "no macro" is only worth reporting for product groups that are placed.
+- **Project parts.** `eplan_export_parts_list` writes `<partsList>` with one `<part>` per use,
+  part number in `P_ARTICLEREF_PARTNO`. A large macro project took 136 s, so the report says it is
+  reading the project and runs it only when asked. `eplan_check_parts` checks the database, not a
+  project.
+- **Greeting.** The Remote Client's `Server response: …` line still reaches stdout (one or two
+  per session). The TypeScript SDK reports it to `onerror` and carries on; `McpManager` sets no
+  `onerror`, so Bochica is not affected and needs no eplan-mcp change for it.
+- **The web API** is `https://dataportal.eplan.com/api`, OpenAPI 3.0, JSON:API responses.
+  **Without a token** it answers `GET|POST /partscheck` (the POST takes `text/plain`, one number
+  per line, and returns `partscheckresult` with `partid`, `partnr`, `typenr`, `ordernr`,
+  `part_version`, `upload_date`, or `partscheckmissingresult`), `GET /parts` (search, 2.4 million
+  parts) and `GET /parts/{id}`, whose attributes include `designation` and `description` per
+  language, `lifecycle` (`Active`…), `identcode`, macro paths and relationships to manufacturer,
+  groups, picture and macros. **A token is needed** for `/basketitems` and the commercial data
+  CSV: no token gives `401 Missing JWT token`, a wrong PAT `401` with an empty body.
+  `/authorization_usage` answers 200 with or without a token, so Test uses `GET /basketitems`.
+
+What this changes:
+
+- The portal check, the lifecycle check and filling descriptions need no PAT: they use the
+  public endpoints. S15-07's read tools work for everyone and S15-09 reads `/parts/{id}`
+  instead of the commercial CSV.
+- The PAT is only for the download list. If the add-in's actions work on 2025 too, the add-in
+  route needs no PAT at all and S15-06 becomes optional.
+- A new check: parts whose portal lifecycle is not `Active`.
 
 ### S15-02 · Read and write the parts XML
 
