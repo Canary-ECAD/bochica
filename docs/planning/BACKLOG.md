@@ -143,6 +143,9 @@ questions are answered when the sprint is planned.
   repositories separate, but have eplan-mcp declare MCP annotations and EPLAN facts, publish
   tagged releases with a tool list, and let Bochica derive its policy and watch for releases.
   → S14
+- **eplan-mcp names the wrong version** (seen in S15): with only P8 2025 running,
+  `eplan_connect` answers `target_version: "2026"` (the newest installed Remote Client, not the
+  running EPLAN). It works, but a version-dependent tool or message could go wrong.
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
 - **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded

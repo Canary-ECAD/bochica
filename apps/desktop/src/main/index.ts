@@ -21,7 +21,13 @@ import { LoginService } from "./logins";
 import { EPLAN_SERVER_ID, McpService } from "./mcp-service";
 import { PermissionStore } from "./permissions";
 import { SettingsStore } from "./settings";
-import { BUILTIN_SKILLS, BuiltinSkills, removeStaleCaches, SkillService } from "./skills";
+import {
+  BUILTIN_SKILLS,
+  BuiltinSkills,
+  BUNDLED_SKILLS,
+  removeStaleCaches,
+  SkillService,
+} from "./skills";
 import { type HelperHandle, helperStrings, startUpdateHelper } from "./update-helper";
 import {
   helperAlive,
@@ -71,11 +77,16 @@ function builtinSkills(): BuiltinSkills[] {
     [keyof typeof BUILTIN_SKILLS, readonly string[]]
   >;
   removeStaleCaches(cache, local ? [] : repositories.map(([name]) => componentsLock[name].commit));
-  return repositories.map(([name, dirs]) => {
+  const pinned = repositories.map(([name, dirs]) => {
     if (local) return new BuiltinSkills(join(local, name, "skills"), dirs, null);
-    const pinned = componentsLock[name];
-    return new BuiltinSkills(join(cache, pinned.commit), dirs, pinned);
+    const lock = componentsLock[name];
+    return new BuiltinSkills(join(cache, lock.commit), dirs, lock);
   });
+  // Skills that ship with the app: resources\skills (electron-builder.yml), or the source tree.
+  const own = app.isPackaged
+    ? join(process.resourcesPath, "skills")
+    : join(app.getAppPath(), "resources", "skills");
+  return [...pinned, new BuiltinSkills(own, BUNDLED_SKILLS, null, fetch, false)];
 }
 
 /**

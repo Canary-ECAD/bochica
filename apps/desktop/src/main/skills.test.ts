@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { BuiltinSkills, removeStaleCaches, SkillService, type SkillSwitches } from "./skills";
+import {
+  BuiltinSkills,
+  BUNDLED_SKILLS,
+  removeStaleCaches,
+  SkillService,
+  type SkillSwitches,
+} from "./skills";
 
 const skillMd = `---
 name: eplan-scripting
@@ -101,6 +107,28 @@ describe("BuiltinSkills", () => {
     );
     const entries = await new BuiltinSkills(root, dirs, source, offline).load();
     expect(entries.map((e) => e.load.status)).toEqual(["missing"]);
+  });
+});
+
+describe("skills bundled with the app", () => {
+  const own = join(import.meta.dir, "..", "..", "resources", "skills");
+
+  test("every bundled skill loads and passes the injection scan", async () => {
+    const entries = await new BuiltinSkills(own, BUNDLED_SKILLS, null, fetch, false).load();
+    expect(entries.map((e) => [e.id, e.load.status])).toEqual(
+      BUNDLED_SKILLS.map((id) => [id, "ok"]),
+    );
+  });
+
+  test("they are listed, but not put whole into Consult's prompt", async () => {
+    const skillService = new SkillService(
+      [new BuiltinSkills(own, BUNDLED_SKILLS, null, fetch, false)],
+      join(root, "user"),
+      memorySwitches(),
+    );
+    await skillService.load();
+    expect(skillService.available().find("parts-doctor")).toBeDefined();
+    expect(skillService.guides()).toEqual([]);
   });
 });
 

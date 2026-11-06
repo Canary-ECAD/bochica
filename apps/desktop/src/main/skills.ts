@@ -34,11 +34,19 @@ interface Source {
   commit: string;
 }
 
+/**
+ * Skills that ship inside Bochica (resources\skills): they name Bochica's own tools and change
+ * with them, so they are not pinned from another repository. Listed with the built-in ones.
+ */
+export const BUNDLED_SKILLS = ["parts-doctor"] as const;
+
 /** A loaded (or refused) skill and where it came from; built-in ones may be missing. */
 interface SkillEntry {
   id: string;
   source: SkillInfo["source"];
   load: SkillLoad | { status: "missing" };
+  /** Consult puts the scripting guides in the prompt whole; bundled workflow skills stay out. */
+  guide?: boolean;
 }
 
 /** The built-in skills of one repository: downloaded at the pinned commit, or a local checkout. */
@@ -53,6 +61,8 @@ export class BuiltinSkills {
     private readonly dirs: readonly string[],
     private readonly source: Source | null,
     private readonly fetchImpl: typeof fetch = fetch,
+    /** False for skills bundled with the app, which are not Consult's scripting guides. */
+    private readonly guide = true,
   ) {}
 
   /**
@@ -69,6 +79,7 @@ export class BuiltinSkills {
     return this.dirs.map((dir) => ({
       id: dir,
       source: "builtin",
+      guide: this.guide,
       load: existsSync(join(this.root, dir, "SKILL.md"))
         ? loadSkill(join(this.root, dir), dir)
         : { status: "missing" },
@@ -199,7 +210,9 @@ export class SkillService {
   /** Built-in skills that loaded: Consult puts their guides in the system prompt. */
   guides(): Skill[] {
     return this.entries.flatMap((entry) =>
-      entry.source === "builtin" && entry.load.status === "ok" ? [entry.load.skill] : [],
+      entry.source === "builtin" && entry.guide !== false && entry.load.status === "ok"
+        ? [entry.load.skill]
+        : [],
     );
   }
 
@@ -225,7 +238,10 @@ export class SkillService {
       return report;
     }
     // The composer's app commands are typed like skills (`/tasks`), so their names are taken.
-    const takenNames = new Set([...APP_COMMANDS, ...this.guides().map((skill) => skill.name)]);
+    const builtinNames = this.entries.flatMap((entry) =>
+      entry.source === "builtin" && entry.load.status === "ok" ? [entry.load.skill.name] : [],
+    );
+    const takenNames = new Set([...APP_COMMANDS, ...builtinNames]);
     mkdirSync(this.userRoot, { recursive: true });
     for (const dir of dirs) {
       const source = dir ? join(folder, dir) : folder;

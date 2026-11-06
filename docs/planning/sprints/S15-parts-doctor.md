@@ -209,7 +209,7 @@ Packages: agent or desktop (main), eplan.
 
 Repository: Canary-ECAD/eplan-mcp, then Bochica (`components:bump`).
 
-- [ ] `eplan_dataportal_add_to_download_list` and `eplan_dataportal_search_count` from
+- [x] `eplan_dataportal_add_to_download_list` and `eplan_dataportal_search_count` from
       Canary-ECAD/eplan-mcp#75 (the add-in's actions through a fixed script, `userAction` in the
       result), with their annotations and facts in `TOOL_FLAGS`, tests and `llm.md`. The PR's
       `Console.Out` change comes along: the greeting is harmless to Bochica but breaks stricter
@@ -235,18 +235,18 @@ Packages: eplan, desktop.
 
 Packages: desktop (main `skills.ts`), a bundled skill folder.
 
-- [ ] `SkillService` loads skills bundled with the app (`resources\skills` packaged), listed with
+- [x] `SkillService` loads skills bundled with the app (`resources\skills` packaged), listed with
       the built-in ones and on by default.
-- [ ] `parts-doctor/SKILL.md`: when to use it, the rules and severities, the order (report,
+- [x] `parts-doctor/SKILL.md`: when to use it, the rules and severities, the order (report,
       serious first, batches the user approves, the portal by part number, macros through the
       download list), what never to do
       (invent an ERP number, write descriptions in another language, skip the report before a
       fix), and how to read a failed smoke test.
-- [ ] A test that the bundled skill loads and passes the injection scan.
+- [x] A test that the bundled skill loads and passes the injection scan.
 
 ### S15-11 · Docs
 
-- [ ] CLAUDE.md (parts tools, bundled skills, parts guardrails), README and README.es (one
+- [x] CLAUDE.md (parts tools, bundled skills, parts guardrails), README and README.es (one
       feature line), BACKLOG.
 
 ## Demo

@@ -26,6 +26,10 @@ API key from the AI provider of your choice, and describe what you want in your 
     (typicals, formulas, Job Server, generation).
   - [eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags) — searches the
     EPLAN documentation (P8 2027 always on; P8 2026 and EEC Pro optional).
+- A parts database doctor: a report of the parts missing an ERP number, a manufacturer, a
+  description, a schematic macro, a picture or function templates; fixes in batches you approve,
+  with a backup and a check after each; descriptions and macros looked up on the EPLAN Data
+  Portal.
 - Undo: rewind to an earlier message and the files the agent changed go back as they were.
 - Plan first, or let it work: ask for a plan to approve before anything changes, decide what is
   always allowed or never allowed, or switch a session to Auto.

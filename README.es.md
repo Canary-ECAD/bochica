@@ -30,6 +30,10 @@ lo que quieres con tus propias palabras.
     (típicos, fórmulas, Job Server, generación).
   - [eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags): busca en la
     documentación de EPLAN (P8 2027 siempre activo; P8 2026 y EEC Pro opcionales).
+- Un doctor de la base de artículos: un informe de los artículos sin número ERP, fabricante,
+  descripción, macro de esquema, imagen o plantillas de funciones; correcciones por lotes que tú
+  apruebas, con copia de seguridad y comprobación después de cada uno; descripciones y macros
+  buscadas en el EPLAN Data Portal.
 - Deshacer: vuelve a un mensaje anterior y los archivos que cambió el agente quedan como
   estaban.
 - Primero un plan, o que trabaje solo: pide un plan para aprobarlo antes de cambiar nada, decide

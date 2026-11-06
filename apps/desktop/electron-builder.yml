@@ -17,6 +17,9 @@ extraResources:
   # The window that stays up while the installer replaces the app (src/main/update-helper.ts).
   - from: resources/update-helper
     to: update-helper
+  # Skills that ship with the app (src/main/skills.ts, BUNDLED_SKILLS).
+  - from: resources/skills
+    to: skills
   - from: build/icon.ico
     to: update-helper/icon.ico
   - from: build/icon.png

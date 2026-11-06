@@ -220,7 +220,9 @@ How the pieces fit:
   `SkillService` (`main/skills.ts`) has two sources: built in (eplan-scripting-skill and
   eec-pro-skill, `BUILTIN_SKILLS`, each downloaded at the commit pinned in `components.lock.json`
   into `userData\skills\<commit>`, or read from checkouts side by side in `BOCHICA_SKILLS_DIR`) and added by the user (copied into `userData\skills\user\<name>`, on/off
-  in `settings.json`). Added skills are listed by name and description in every mode; a
+  in `settings.json`). Skills that name Bochica's own tools ship inside the app
+  (`BUNDLED_SKILLS`, `apps/desktop/resources/skills`, packaged as `resources\skills`): listed
+  with the built-in ones, never put whole into Consult's prompt. Added skills are listed by name and description in every mode; a
   `/skill …` message is expanded by `expandSkillCommands` in main. The composer's app commands
   (`/new`, `/tasks`…) are reserved names, listed in `composer.tsx` and `APP_COMMANDS`.
 - **Context and compaction:** `ChatService` estimates each turn (`estimateContext`, window from
@@ -248,7 +250,23 @@ How the pieces fit:
 - **Typed confirmation** (guardrails layer 6): `eplanConfirmation` (`packages/eplan/src/confirmation.ts`)
   decides which calls are destructive and what to type (project name, or DELETE / ELIMINAR).
   Such calls always ask; main re-checks the text with `confirmationMatches`, so the renderer's
-  button state is never trusted. Add new destructive cases there, with a test.
+  button state is never trusted. Add new destructive cases there, with a test. A server's
+  `block` (`eplanBlock`, `packages/eplan/src/parts-guard.ts`) refuses calls outright, e.g. EPLAN
+  scripts that remove parts.
+- **Parts database doctor** (S15): the logic is in `packages/eplan/src/parts/` (a streaming
+  reader of EPLAN's `XPamExportXml` export, `rules.ts` with one row per rule and its property
+  number, the report, the import file that rewrites whole parts, and the Data Portal's public
+  API client); the tools are in `main/parts.ts` (`PartsService`, Tasks mode only):
+  `bochica__parts_report` (export, rules, CSV in the working folder, a `PartsReport` card),
+  `bochica__parts_fix` (batches of at most 100 parts; `preview` reads the current values for the
+  card's table; a full export to `userData\backups\parts` before a session's first batch; a mode
+  1 import, then a smoke test that stops the session's batches on any difference) and
+  `bochica__parts_lookup` (the portal by part number, macros found under `$(MD_MACROS)`). The
+  workflow is the bundled `parts-doctor` skill. A tool result can carry a `card` (`ToolCard`,
+  shown after its call) and an approval a `preview` (`ApprovalPreview`, from
+  `AgentTool.preview`). `ChatSendRequest.language` is the app's language, for what Bochica
+  writes into EPLAN. Only the Data Portal's documented API and the add-in's actions are used,
+  never the webview's internal calls.
 - **Activity log:** assistant messages are ordered `parts` (text and tool calls).
   `message-list.tsx` groups consecutive tool calls into one `ActivityGroup`; labels come from
   `lib/activity.ts` (add a sentence there for each new kind of tool, in en and es: past tense under
