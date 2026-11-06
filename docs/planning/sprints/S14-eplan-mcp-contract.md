@@ -1,6 +1,6 @@
 # S14 — eplan-mcp contract
 
-**Status:** active
+**Status:** done
 **Goal:** eplan-mcp says what each of its tools does, and Bochica reads it instead of guessing.
 A new eplan-mcp version arrives as a tagged release whose tool changes can be read before
 bumping, and Bochica notices that release on its own. The two repositories stay separate.
@@ -43,59 +43,60 @@ bumping, and Bochica notices that release on its own. The two repositories stay 
 
 Repository: Canary-ECAD/eplan-mcp.
 
-- [ ] Every tool declares the four MCP annotations and the `canary-ecad/eplan` facts above,
+- [x] Every tool declares the four MCP annotations and the `canary-ecad/eplan` facts above,
       seeded from Bochica's `tool-policy.ts`. Check that the pinned Python SDK (`mcp<2`) can set
       `_meta` on a tool; if it can't, say so in this file and find another place for the facts
-      before going on.
-- [ ] A test in eplan-mcp fails when a tool has no annotations or no facts.
-- [ ] `llm.md` and the README document the annotations and the `_meta` key for other clients.
+      before going on. It can from mcp 1.19.0 (`FastMCP.tool(meta=…)`, sent as `_meta`);
+      eplan-mcp now requires `mcp>=1.19.0,<2`.
+- [x] A test in eplan-mcp fails when a tool has no annotations or no facts.
+- [x] `llm.md` and the README document the annotations and the `_meta` key for other clients.
 
 ### S14-02 · Tagged releases of eplan-mcp
 
 Repository: Canary-ECAD/eplan-mcp.
 
-- [ ] A script dumps `tools.json` (name, annotations, facts) from the server's tool list; CI
+- [x] A script dumps `tools.json` (name, annotations, facts) from the server's tool list; CI
       fails when the committed file is out of date.
-- [ ] A tag `vX.Y.Z` creates a GitHub release with `tools.json` attached and notes listing added,
+- [x] A tag `vX.Y.Z` creates a GitHub release with `tools.json` attached and notes listing added,
       removed and re-annotated tools, generated from the diff with the previous tag.
-- [ ] The first tag is the first annotated version.
+- [x] The first tag is the first annotated version.
 
 ### S14-03 · Bochica reads the contract
 
 Packages: agent (`mcp.ts`), eplan, desktop (scripts).
 
-- [ ] `McpManager` gives a server's `policy` the tool's annotations and `_meta` along with its
+- [x] `McpManager` gives a server's `policy` the tool's annotations and `_meta` along with its
       name.
-- [ ] `eplanToolPolicy` derives approval and `changesProject` from the facts; the lists in
+- [x] `eplanToolPolicy` derives approval and `changesProject` from the facts; the lists in
       `tool-policy.ts` become overrides with reasons; `eplanConfirmation` uses
       `projectArgument` where it is given.
-- [ ] `prepare-runtime --lock` writes `fixtures/eplan-mcp-tools.json` (name, annotations,
+- [x] `prepare-runtime --lock` writes `fixtures/eplan-mcp-tools.json` (name, annotations,
       facts) in place of the plain name list; `tool-policy.test.ts` reads it.
-- [ ] A test proves that, for the pinned version, every tool gets the same policy as before the
+- [x] A test proves that, for the pinned version, every tool gets the same policy as before the
       switch, or lists the agreed differences.
-- [ ] Tests: no annotations → ask + backup; an override wins over the facts.
+- [x] Tests: no annotations → ask + backup; an override wins over the facts.
 
 ### S14-04 · Bump by tag
 
 Packages: eplan (`ComponentsLock`), desktop (scripts), docs.
 
-- [ ] `components:bump eplan-mcp vX.Y.Z` records the tag next to the commit (optional `tag` in
+- [x] `components:bump eplan-mcp vX.Y.Z` records the tag next to the commit (optional `tag` in
       the lock schema, so the skills stay as they are) and prints the release notes link.
-- [ ] The bump prints which tools were added, removed or re-annotated, and warns in its own
+- [x] The bump prints which tools were added, removed or re-annotated, and warns in its own
       line for every tool that went from changing something to read-only.
-- [ ] `docs/releasing.md` describes the bump by tag.
+- [x] `docs/releasing.md` describes the bump by tag.
 
 ### S14-05 · Release watch
 
 Packages: CI.
 
-- [ ] `.github/workflows/components-watch.yml`, weekly and by hand: when eplan-mcp's latest
+- [x] `.github/workflows/components-watch.yml`, weekly and by hand: when eplan-mcp's latest
       release is newer than the pin, it opens an issue (one per version, never twice) with the
       release notes link and the bump command.
 
 ### S14-06 · Docs
 
-- [ ] CLAUDE.md: tool policy from annotations, the fixture, bump by tag, release watch. Backlog.
+- [x] CLAUDE.md: tool policy from annotations, the fixture, bump by tag, release watch. Backlog.
 
 ## Demo
 
@@ -106,3 +107,49 @@ a card, a write tool asks and backs up the project, and deleting a project asks 
 name, as before. Comparing the fixture with a copy where one write tool is re-annotated as
 read-only prints the warning. The release watch, run by hand, opens an
 issue for a newer release and opens none a second time.
+
+## Outcome
+
+Done on 2026-11-06. eplan-mcp [v1.0.0](https://github.com/Canary-ECAD/eplan-mcp/releases/tag/v1.0.0)
+(Canary-ECAD/eplan-mcp#77) is the first annotated release; Bochica pins it by tag.
+
+- **Bump:** `components:bump eplan-mcp` without a ref took the latest release, recorded `v1.0.0`
+  next to its commit and printed the release notes link; the contract showed 0 added, 0 removed,
+  0 re-annotated against the build from the PR branch, and no tool became read-only. The fixture
+  is now `eplan-mcp-tools.json` (217 tools, every one with its four hints and its facts).
+- **Same policies:** `tool-policy.test.ts` checks every pinned tool against
+  `eplan-tool-policies.json`, the pre-S14 classification with the one difference below; it passes,
+  as does `bun run check` (654 tests).
+- **In the app** (built app, Tasks mode, the bundled server connected to EPLAN 2026, a scripted
+  model): `eplan_ping` ran without a card; `eplan_set_project_property` asked with
+  "Allow for this session" (ask, with a backup after approval); `eplan_delete_device_list` asked
+  for the project name typed, `Demo`, with no session allowance. Both cards were denied.
+- **Warning:** a copy of the contract with `eplan_renumber_devices` re-annotated as read-only
+  printed `WARNING: eplan_renumber_devices used to change something and is now read-only`.
+- **Release watch:** run locally with the workflow's own script and `gh issue create` replaced by
+  `echo`: with the pin at `v0.9.0` it would open "eplan-mcp v1.0.0 is out" with the notes and the
+  bump command; with the real pin it does nothing.
+- eplan-mcp's own CI (`check.yml`) ran green on the PR, and `release.yml` published v1.0.0 with
+  `tools.json` attached and generated notes.
+
+Differences from the plan, and why:
+
+- **`eplan_run_project_action` now always asks** (was ask) and needs typed confirmation when its
+  input deletes something: it runs any action against a project, so its fact is `runsCode`, like
+  `eplan_action_run`. The one agreed policy difference.
+- **One override:** `eplan_lock_unlock_all_objects` keeps `always` + backup although its facts
+  give ask; upstream marks it deprecated and never verified, and it acts on every object at once.
+- **Facts are flags in one table** (`TOOL_FLAGS` in `tool_annotations.py`, one line per tool:
+  `read`, `project`, `code`, `eplan`, `destructive`, `idempotent`) rather than decorators on each
+  action, since eplan-mcp registers its actions dynamically from `__all__`. `projectArgument` is
+  read from each function's signature (`project_name`, `project_path` or `project`), so it can't
+  drift. Extension modules may declare their own `TOOL_FLAGS`.
+- **Typed confirmation keeps its lists** (`alwaysDestructive`, `runsAnything`) and only reads
+  `projectArgument`: `destructiveHint` also covers closing EPLAN, which must ask but not need a
+  typed name.
+- **The policy reads only explicit hints:** `readOnlyHint` and `destructiveHint` must be set, and
+  all three facts present, or the tool is unknown (ask + backup). MCP's defaults are not facts.
+- **Discovery mode's meta-tools are annotated too** (`eplan_tools_call` carries the worst case);
+  Bochica runs full mode, so they are not in its fixture.
+- **eplan-mcp needs `mcp>=1.19.0`** (first SDK whose `FastMCP.tool` takes `meta`), and the
+  watch issue's "never twice" relies on GitHub's issue search, checked only with no issue yet.

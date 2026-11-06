@@ -104,34 +104,48 @@ What to look for:
 ## Bumping an EPLAN component
 
 The EPLAN components are pinned to exact commits in `components.lock.json`, so a change on
-another repository's `main` never reaches users by itself. Taking a newer one is a normal
-release:
+another repository's `main` never reaches users by itself. eplan-mcp publishes tagged releases
+(`vX.Y.Z`) whose notes list the tools added, removed or re-annotated; the skills publish none and
+are pinned by commit. A scheduled workflow (`.github/workflows/components-watch.yml`, weekly, or
+by hand from the Actions tab) opens an issue when eplan-mcp has a release newer than the pin.
+Taking a newer version is a normal release:
 
-1. Pin it (the head of its default branch, or a given commit, branch or tag):
+1. Pin it. eplan-mcp by its release tag (without one, its latest release); the lock records the
+   tag next to the commit it names. The skills by commit (without one, the head of their default
+   branch):
 
    ```bash
-   bun run components:bump eplan-mcp
+   bun run components:bump eplan-mcp v1.2.3
    ```
 
-   The script prints the GitHub link that compares the old commit with the new one: read it.
+   The script prints the release notes and the GitHub link that compares the old version with
+   the new one: read them.
 
 2. **eplan-mcp only.** The script rebuilds the runtime with `--lock`, which regenerates
    `packages/eplan/requirements.lock.txt` (dependencies with hashes) and
-   `packages/eplan/src/fixtures/eplan-mcp-tools.txt` (the tools the new server lists).
-   `git diff packages/eplan/src/fixtures` shows every added and removed tool. eplan-mcp has no
-   safety annotations, so Bochica classifies its tools in `packages/eplan/src/tool-policy.ts`:
-   - a new tool that only reads goes to the read tools (runs without asking);
-   - one that deletes, closes or restarts things goes to the tools that always ask;
-   - anything else can stay unlisted: it asks and makes a backup first, the safe default;
-   - a tool the policy names that no longer exists must be removed from its list.
-     If a new tool deletes projects or does other bulk-destructive work, add its case to
-     `packages/eplan/src/confirmation.ts` (typed confirmation), with a test. Also check whether
-     it belongs to the Draw or Tasks mode (`packages/eplan/src/modes.ts`).
+   `packages/eplan/src/fixtures/eplan-mcp-tools.json` (the tool contract: every tool the new
+   server lists, with its MCP annotations and EPLAN facts). It then prints which tools were
+   added, removed or re-annotated, and a `WARNING` line for every tool that used to change
+   something and is now read-only: such a tool would run without asking, so check it upstream
+   before going on. Bochica decides the policy from the facts (`packages/eplan/src/tool-policy.ts`):
+   - read-only and changing nothing → runs without asking;
+   - destructive, running code or changing EPLAN itself → asks every time;
+   - anything else asks, with a backup first when it changes the project;
+   - a tool without annotations asks and gets a backup, the safe default.
+
+   A fact that looks wrong is fixed in eplan-mcp (`mcp_server/tool_annotations.py`) and comes
+   with its next release. Only where Bochica deliberately wants something else does a tool go to
+   `eplanOverrides`, with its reason. If a new tool deletes projects or does other
+   bulk-destructive work, add its case to `packages/eplan/src/confirmation.ts` (typed
+   confirmation), with a test. Also check whether it belongs to the Draw or Tasks mode
+   (`packages/eplan/src/modes.ts`).
+
 3. **Skills.** Nothing else to regenerate; open the app and try a question that uses the skill.
-4. `bun run check`. The tool policy tests fail until the lists match the new fixture; update the
-   snapshot of how the tools split once the classification is right.
-5. Commit the lock with everything it changed (`Bump eplan-mcp to <short sha>`), then make a
-   release as above.
+4. `bun run check`. `tool-policy.test.ts` compares the policy of every pinned tool with
+   `packages/eplan/src/fixtures/eplan-tool-policies.json`, reviewed by hand: when a bump changes
+   one, check that the change is wanted and update that file in the same commit.
+5. Commit the lock with everything it changed (`Bump eplan-mcp to vX.Y.Z`), then make a release
+   as above. Close the watch's issue with the commit.
 
 Grep the regenerated files for local paths before committing: tools sometimes write absolute
 paths into comments.

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { confirmationMatches } from "@bochica/shared";
 import { eplanConfirmation } from "./confirmation";
+import { EPLAN_META_KEY } from "./tool-policy";
 
 // Made-up project paths.
 const demo = "C:\\Projects\\Demo.elk";
@@ -56,13 +57,40 @@ describe("eplanConfirmation", () => {
       { type: "word" },
     ],
     [
+      "an action run against a project",
+      "eplan_run_project_action",
+      { action: "XPrjActionProjectDelete", project_name: demo },
+      { type: "name", value: "Demo" },
+    ],
+    [
       "a catalog action with a purge",
       "eplan_action_run",
       { action_id: "PurgeUnusedData", project_name: demo },
       { type: "name", value: "Demo" },
     ],
   ] as const)("%s", (_case, tool, input, expected) => {
-    expect(eplanConfirmation(tool, input)).toEqual(expected);
+    expect(eplanConfirmation({ name: tool }, input)).toEqual(expected);
+  });
+
+  test("the tool's projectArgument is read first", () => {
+    const meta = {
+      [EPLAN_META_KEY]: {
+        changesProject: true,
+        runsCode: false,
+        changesEplan: false,
+        projectArgument: "project_path",
+      },
+    };
+    const input = { project_name: "C:\\Projects\\Other.elk", project_path: demo };
+    expect(eplanConfirmation({ name: "eplan_delete_device_list", meta }, input)).toEqual({
+      type: "name",
+      value: "Demo",
+    });
+    // Without the fact, the usual order applies.
+    expect(eplanConfirmation({ name: "eplan_delete_device_list" }, input)).toEqual({
+      type: "name",
+      value: "Other",
+    });
   });
 
   test.each([
@@ -77,7 +105,7 @@ describe("eplanConfirmation", () => {
     ["reading", "eplan_get_current_project", {}],
     ["exports", "eplan_export_pdf_project", { project_name: demo }],
   ] as const)("not for %s", (_case, tool, input) => {
-    expect(eplanConfirmation(tool, input)).toBeNull();
+    expect(eplanConfirmation({ name: tool }, input)).toBeNull();
   });
 });
 

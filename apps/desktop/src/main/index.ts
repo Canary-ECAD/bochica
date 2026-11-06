@@ -209,7 +209,8 @@ else
       sessions,
       policy: folders.policy,
       changesProject: (server, tool) =>
-        server === EPLAN_SERVER_ID && eplanToolPolicy(tool).changesProject,
+        server === EPLAN_SERVER_ID &&
+        eplanToolPolicy(mcp.manager.toolInfo(server, tool) ?? { name: tool }).changesProject,
     });
     const claudeCode = new ClaudeCodeService(
       process.env,

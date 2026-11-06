@@ -101,8 +101,10 @@ it and suggests "Always allow". Calls allowed without a card say why in the acti
 
 Specific to Bochica:
 
-- eplan-mcp tools are classified read-only vs. writing. Writing tools need approval by default;
-  a session-level "allow EPLAN changes for this session" exists.
+- eplan-mcp tools are classified read-only vs. writing, from the facts each tool states (MCP
+  annotations plus `_meta["canary-ecad/eplan"]`, S14); a tool that states none is treated as
+  writing. Writing tools need approval by default; a session-level "allow EPLAN changes for this
+  session" exists.
 - Before the first writing tool call on a project in a session, Bochica makes a project backup
   and tells the user where it is. No backup, no write.
 - Closing or restarting EPLAN (`eplan_app_shutdown`, `eplan_app_restart`) and deleting pages or

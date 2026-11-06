@@ -1,12 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { contractTools, ToolContract } from "./contract";
 import { eplanToolInMode, modeListedTools } from "./modes";
 import { eplanToolPolicy } from "./tool-policy";
 
-const pinnedTools = readFileSync(join(import.meta.dir, "fixtures", "eplan-mcp-tools.txt"), "utf8")
-  .split(/\r?\n/)
-  .filter(Boolean);
+const pinned = contractTools(
+  ToolContract.parse(
+    JSON.parse(readFileSync(join(import.meta.dir, "fixtures", "eplan-mcp-tools.json"), "utf8")),
+  ),
+);
+const pinnedTools = pinned.map((tool) => tool.name);
+const policyOf = (name: string) => eplanToolPolicy(pinned.find((t) => t.name === name) ?? { name });
 
 const toolsIn = (mode: "consult" | "tasks" | "draw") =>
   pinnedTools.filter((tool) => eplanToolInMode(tool, mode));
@@ -40,7 +45,7 @@ describe("tools per mode", () => {
   });
 
   test("Draw changes nothing project-wide: every change it can make is a drawing tool", () => {
-    const writers = toolsIn("draw").filter((t) => eplanToolPolicy(t).approval !== "never");
+    const writers = toolsIn("draw").filter((t) => policyOf(t).approval !== "never");
     for (const tool of writers)
       expect(
         tool.startsWith("eplan_live_") ||

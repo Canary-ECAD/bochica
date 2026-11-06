@@ -1,4 +1,5 @@
 export { componentsLock, ComponentsLock } from "./components";
+export { contractChanges, ToolContract, toolContract } from "./contract";
 export { defaultMcpServers, type McpServerConfig } from "./mcp-servers";
 export { eplanConfirmation } from "./confirmation";
 export { eplanToolInMode } from "./modes";

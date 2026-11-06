@@ -13,14 +13,23 @@ export interface ToolPolicy {
   changesProject: boolean;
 }
 
+/** What a server says about one of its tools: the policy is decided from this. */
+export interface McpToolInfo {
+  name: string;
+  /** The standard MCP annotations (readOnlyHint, destructiveHint…), as the server sent them. */
+  annotations?: Record<string, unknown>;
+  /** The tool's `_meta`, where a server puts facts of its own. */
+  meta?: Record<string, unknown>;
+}
+
 interface ServerBase {
   id: string;
   /** Required servers are always on. */
   required: boolean;
   /** How each of this server's tools is guarded. */
-  policy: (toolName: string) => ToolPolicy;
+  policy: (tool: McpToolInfo) => ToolPolicy;
   /** Which calls are destructive enough to need typed confirmation. */
-  confirm?: (toolName: string, input: unknown) => Confirmation | null;
+  confirm?: (tool: McpToolInfo, input: unknown) => Confirmation | null;
 }
 
 export type McpServerConfig = ServerBase &
@@ -46,6 +55,8 @@ interface RemoteTool {
   name: string;
   description?: string | undefined;
   inputSchema: Record<string, unknown>;
+  annotations?: Record<string, unknown> | undefined;
+  _meta?: Record<string, unknown> | undefined;
 }
 
 export interface ToolResult {
@@ -79,6 +90,8 @@ interface Entry {
   error?: string;
   connection?: McpConnection;
   tools: AgentTool[];
+  /** What the server last listed, kept while it is disconnected. */
+  known: Map<string, McpToolInfo>;
   attempt: number;
   retryTimer?: ReturnType<typeof setTimeout>;
   /** Bumped on every (re)connect or disable, so stale async results are dropped. */
@@ -105,6 +118,7 @@ export class McpManager {
         enabled: false,
         state: "disabled" as const,
         tools: [],
+        known: new Map(),
         attempt: 0,
         generation: 0,
       };
@@ -134,6 +148,17 @@ export class McpManager {
   /** Tools of every server that is ready right now. */
   tools(): AgentTool[] {
     return [...this.entries.values()].filter((e) => e.state === "ready").flatMap((e) => e.tools);
+  }
+
+  /** What a server last said about one of its tools, even while it is disconnected. */
+  toolInfo(serverId: string, tool: string): McpToolInfo | undefined {
+    return this.entries.get(serverId)?.known.get(tool);
+  }
+
+  /** Everything a server last listed, sorted by name. */
+  toolInfos(serverId: string): McpToolInfo[] {
+    const known = this.entries.get(serverId)?.known;
+    return [...(known?.values() ?? [])].toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   isReady(serverId: string): boolean {
@@ -192,6 +217,7 @@ export class McpManager {
         return;
       }
       entry.connection = connection;
+      entry.known = new Map(remote.map((tool) => [tool.name, toolInfo(tool)]));
       entry.tools = remote.map((tool) => this.toAgentTool(entry, tool));
       entry.state = "ready";
       entry.attempt = 0;
@@ -223,7 +249,8 @@ export class McpManager {
   }
 
   private toAgentTool(entry: Entry, tool: RemoteTool): AgentTool {
-    const policy = entry.config.policy(tool.name);
+    const info = toolInfo(tool);
+    const policy = entry.config.policy(info);
     return {
       name: qualifiedName(entry.config.id, tool.name),
       server: entry.config.id,
@@ -233,7 +260,7 @@ export class McpManager {
       approval: policy.approval,
       changesProject: policy.changesProject,
       ...(entry.config.confirm
-        ? { confirmation: (input: unknown) => entry.config.confirm?.(tool.name, input) ?? null }
+        ? { confirmation: (input: unknown) => entry.config.confirm?.(info, input) ?? null }
         : {}),
       execute: async (input, signal) => {
         const connection = entry.connection;
@@ -246,6 +273,16 @@ export class McpManager {
   private notify(): void {
     for (const listener of this.listeners) listener();
   }
+}
+
+function toolInfo(tool: RemoteTool): McpToolInfo {
+  // MCP names the field `_meta` on the wire.
+  const meta = tool["_meta"];
+  return {
+    name: tool.name,
+    ...(tool.annotations ? { annotations: tool.annotations } : {}),
+    ...(meta ? { meta } : {}),
+  };
 }
 
 async function connect(

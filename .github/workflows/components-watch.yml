@@ -1,0 +1,57 @@
+# Notices a new eplan-mcp release on its own: weekly (and by hand), when eplan-mcp's latest
+# release is newer than the tag pinned in components.lock.json, it opens an issue with the release
+# notes and the bump command. One issue per version, never twice, even after it is closed. It only
+# reads eplan-mcp's public releases: no token crosses repositories.
+name: Components watch
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  eplan-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare the latest release with the pin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repository=$(jq -r '."eplan-mcp".repository' components.lock.json | sed 's#^https://github.com/##')
+          pinned=$(jq -r '."eplan-mcp".tag // "v0.0.0"' components.lock.json)
+          latest=$(gh api "repos/$repository/releases/latest" --jq .tag_name 2>/dev/null || true)
+          echo "pinned $pinned, latest ${latest:-none}"
+          if [ -z "$latest" ] || [ "$latest" = "$pinned" ]; then exit 0; fi
+          newest=$(printf '%s\n%s\n' "${pinned#v}" "${latest#v}" | sort -V | tail -n 1)
+          if [ "$newest" != "${latest#v}" ]; then exit 0; fi
+
+          title="eplan-mcp $latest is out"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" \
+            --json title --jq "map(select(.title == \"$title\")) | length")
+          if [ "$existing" != "0" ]; then
+            echo "An issue for $latest already exists."
+            exit 0
+          fi
+
+          {
+            echo "eplan-mcp published [$latest](https://github.com/$repository/releases/tag/$latest); Bochica pins $pinned."
+            echo
+            echo "- Release notes (tools added, removed or re-annotated): https://github.com/$repository/releases/tag/$latest"
+            echo "- Every change: https://github.com/$repository/compare/$pinned...$latest"
+            echo
+            echo "To bump (docs/releasing.md):"
+            echo
+            echo '```bash'
+            echo "bun run components:bump eplan-mcp $latest"
+            echo "bun run check"
+            echo '```'
+            echo
+            echo "The bump prints every tool whose annotations changed and warns for any that became read-only."
+          } > body.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file body.md

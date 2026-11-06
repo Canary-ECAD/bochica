@@ -1,10 +1,12 @@
 import type { Confirmation } from "@bochica/shared";
+import { eplanFacts, type EplanToolInfo } from "./tool-policy";
 
 // Guardrails layer 6: destructive EPLAN actions need the user to type a confirmation, every
 // time. Destroying work must stay possible but never be one click away. This decides which
 // calls need it and what the user must type.
 
 const PROJECT_EXTENSION = /\.(elk|elp|els|elx|ell|elr|elt|ema|elm)$/i;
+/** Where the project is named when the tool doesn't say (`projectArgument` comes first). */
 const PROJECT_ARGUMENTS = ["project_name", "project_path", "project", "PROJECT"];
 
 /**
@@ -27,6 +29,7 @@ const alwaysDestructive = new Set([
 const runsAnything = new Set([
   "eplan_execute_raw_action",
   "eplan_action_run",
+  "eplan_run_project_action",
   "eplan_execute_script",
   "eplan_execute_custom_script",
 ]);
@@ -38,8 +41,12 @@ function field(input: unknown, name: string): string | undefined {
 }
 
 /** The project's name when the call names one: what the user types to confirm. */
-function byProjectName(input: unknown): Confirmation {
-  for (const key of PROJECT_ARGUMENTS) {
+function byProjectName(tool: EplanToolInfo, input: unknown): Confirmation {
+  const stated = eplanFacts(tool)?.projectArgument;
+  const keys = stated
+    ? [stated, ...PROJECT_ARGUMENTS.filter((k) => k !== stated)]
+    : PROJECT_ARGUMENTS;
+  for (const key of keys) {
     const path = field(input, key)?.trim();
     if (path && PROJECT_EXTENSION.test(path)) {
       const name = path.split(/[\\/]/).at(-1)?.replace(PROJECT_EXTENSION, "");
@@ -50,15 +57,15 @@ function byProjectName(input: unknown): Confirmation {
 }
 
 /** What the user must type before this call runs, or null if it isn't destructive. */
-export function eplanConfirmation(tool: string, input: unknown): Confirmation | null {
-  if (tool === "eplan_project_management") {
+export function eplanConfirmation(tool: EplanToolInfo, input: unknown): Confirmation | null {
+  if (tool.name === "eplan_project_management") {
     return field(input, "type")?.trim().toUpperCase() === "REORGANIZE"
-      ? byProjectName(input)
+      ? byProjectName(tool, input)
       : null;
   }
-  if (alwaysDestructive.has(tool)) return byProjectName(input);
-  if (runsAnything.has(tool) && DESTRUCTIVE.test(JSON.stringify(input ?? {}))) {
-    return byProjectName(input);
+  if (alwaysDestructive.has(tool.name)) return byProjectName(tool, input);
+  if (runsAnything.has(tool.name) && DESTRUCTIVE.test(JSON.stringify(input ?? {}))) {
+    return byProjectName(tool, input);
   }
   return null;
 }

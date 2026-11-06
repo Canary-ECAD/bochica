@@ -4,6 +4,7 @@ import {
   type McpConnection,
   McpManager,
   type McpServerConfig,
+  type McpToolInfo,
   readOnlyPolicy,
   type ToolPolicy,
 } from "./mcp";
@@ -11,7 +12,7 @@ import {
 const http = (
   id: string,
   required: boolean,
-  policy: (tool: string) => ToolPolicy = readOnlyPolicy,
+  policy: (tool: McpToolInfo) => ToolPolicy = readOnlyPolicy,
 ): McpServerConfig => ({
   id,
   transport: "http",
@@ -22,7 +23,7 @@ const http = (
 const docs = http("docs", true);
 const extra = http("extra", false);
 const writer = http("writer", false, (tool) => ({
-  approval: tool.startsWith("delete") ? "always" : "ask",
+  approval: tool.name.startsWith("delete") ? "always" : "ask",
   changesProject: true,
 }));
 
@@ -96,6 +97,41 @@ describe("McpManager", () => {
       "writer/search": ["ask", true],
       "writer/delete_page": ["always", true],
     });
+  });
+
+  test("the policy and confirmation see the tool's annotations and _meta", async () => {
+    const seen: McpToolInfo[] = [];
+    const annotations = { readOnlyHint: true, destructiveHint: false };
+    const meta = { "example/facts": { changesProject: false } };
+    manager = new McpManager(async () => ({
+      ...fakeConnection([]),
+      listTools: async () => [
+        { name: "read", inputSchema: { type: "object" }, annotations, _meta: meta },
+        { name: "bare", inputSchema: { type: "object" } },
+      ],
+    }));
+    manager.configure([
+      {
+        config: {
+          ...http("facts", true),
+          policy: (tool) => {
+            seen.push(tool);
+            return readOnlyPolicy();
+          },
+          confirm: (tool) => (tool.meta ? { type: "word" } : null),
+        },
+        enabled: true,
+      },
+    ]);
+    await settle();
+    expect(seen).toEqual([{ name: "read", annotations, meta }, { name: "bare" }]);
+    const [read, bare] = manager.tools();
+    expect(read?.confirmation?.({})).toEqual({ type: "word" });
+    expect(bare?.confirmation?.({})).toBeNull();
+    // What was listed stays known after the server goes away.
+    await manager.stop();
+    expect(manager.toolInfo("facts", "read")).toEqual({ name: "read", annotations, meta });
+    expect(manager.toolInfos("facts").map((t) => t.name)).toEqual(["bare", "read"]);
   });
 
   test("callTool reaches a ready server directly and redacts its output", async () => {

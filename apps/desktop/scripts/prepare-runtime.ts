@@ -6,8 +6,9 @@
 //   bun scripts/prepare-runtime.ts          build (or check) the runtime
 //   bun scripts/prepare-runtime.ts --lock   after bumping eplan-mcp: regenerate
 //                                           packages/eplan/requirements.lock.txt first, and
-//                                           packages/eplan/src/fixtures/eplan-mcp-tools.txt from
-//                                           the tools the new server lists
+//                                           packages/eplan/src/fixtures/eplan-mcp-tools.json from
+//                                           the tools the new server lists (names, annotations and
+//                                           EPLAN facts)
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -32,6 +33,7 @@ import {
   RuntimeManifest,
   runtimePaths,
   skillRepositories,
+  toolContract,
   uvPin,
 } from "@bochica/eplan";
 
@@ -43,7 +45,7 @@ const repoRoot = resolve(desktop, "..", "..");
 const eplanPackage = join(repoRoot, "packages", "eplan");
 const lockFile = join(eplanPackage, "requirements.lock.txt");
 const constraintsFile = join(eplanPackage, "requirements.constraints.txt");
-const toolsFixture = join(eplanPackage, "src", "fixtures", "eplan-mcp-tools.txt");
+const toolsFixture = join(eplanPackage, "src", "fixtures", "eplan-mcp-tools.json");
 /** The build's own uv, kept in the cache next to its download. */
 const uv = join(cache, "uv", uvPin.version, "uv.exe");
 /** Windows' own bsdtar: unlike Git's tar it also reads zip files and drive-letter paths. */
@@ -239,10 +241,10 @@ async function preparePython(): Promise<void> {
 }
 
 /**
- * Starts the bundled server as the app does and checks that it lists its tools. Returns their
- * names, sorted.
+ * Starts the bundled server as the app does and checks that it lists its tools. Returns what it
+ * said about each one (name, annotations, `_meta`), sorted by name.
  */
-async function smokeTest(): Promise<string[]> {
+async function smokeTest(): Promise<ReturnType<McpManager["toolInfos"]>> {
   const logDir = mkdtempSync(join(tmpdir(), "bochica-runtime-logs-"));
   // Only the bundled server: a developer's checkout in the environment must not stand in for it.
   const { BOCHICA_EPLAN_MCP_DIR: _dir, ...env } = process.env;
@@ -273,10 +275,7 @@ async function smokeTest(): Promise<string[]> {
     });
     if (tools < MIN_TOOLS) throw new Error(`The server listed only ${tools} tools.`);
     log(`the bundled server lists ${tools} tools`);
-    return manager
-      .tools()
-      .map((tool) => tool.tool)
-      .toSorted();
+    return manager.toolInfos("eplan");
   } finally {
     await manager.close();
     rmSync(logDir, { recursive: true, force: true });
@@ -309,7 +308,7 @@ async function main(): Promise<void> {
   await prepareSkills();
   const tools = await smokeTest();
   if (relock) {
-    writeFileSync(toolsFixture, `${tools.join("\n")}\n`);
+    writeFileSync(toolsFixture, `${JSON.stringify(toolContract(tools), null, 2)}\n`);
     log(`wrote ${relative(repoRoot, toolsFixture)}`);
   }
   // Written last: a build cut short is redone from scratch next time.

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint: [S14](sprints/S14-eplan-mcp-contract.md) — eplan-mcp contract**
+**Active sprint:** none. S14 is done; the next is S15 (M4), to be planned.
 
 Each milestone ends with something a non-technical user could try.
 
@@ -43,7 +43,7 @@ The agent drives a running EPLAN safely, and conversations survive a restart.
 | [S13](sprints/S13-keys-sign-in.md)        | Several keys per provider with failover; OpenRouter sign-in (OAuth PKCE)                    | Done   |
 | [S13b](sprints/S13b-claude-agent.md)      | Claude Agent: a Claude Pro/Max plan through the user's Claude Code                          | Done   |
 | [S13c](sprints/S13c-update-window.md)     | An update you can see: update window, install bridge, one instance at a time                | Done   |
-| [S14](sprints/S14-eplan-mcp-contract.md)  | eplan-mcp contract: tool annotations upstream, tagged releases, policy from facts, watch    | Active |
+| [S14](sprints/S14-eplan-mcp-contract.md)  | eplan-mcp contract: tool annotations upstream, tagged releases, policy from facts, watch    | Done   |
 
 ## M4 — EPLAN workflows
 

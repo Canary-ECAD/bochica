@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S13c done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S14 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -17,8 +17,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > several keys per provider with failover per model call, and OpenRouter sign-in (S13);
 > Claude Agent, a Claude Pro/Max plan through the user's own Claude Code (S13b); an update
 > window from Update now until the new version opens, bridged through the install by a
-> PowerShell helper, and one Bochica at a time (S13c).
-> Next: the eplan-mcp contract (S14).
+> PowerShell helper, and one Bochica at a time (S13c); eplan-mcp's tools state what they do
+> (MCP annotations and EPLAN facts), Bochica pins its release tags, decides policy from those
+> facts and watches for new releases (S14).
+> Next: M4, EPLAN workflows (S15).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -167,10 +169,16 @@ How the pieces fit:
   `McpManager` (`mcp.ts`) owns HTTP and stdio connections and gives each tool its server's
   `policy`; `McpService` in main (`mcp-service.ts`) builds the server list from
   `@bochica/eplan` (docs RAGs use `readOnlyPolicy`, the local server uses `eplanToolPolicy`).
-- **EPLAN tool policy** (`packages/eplan/src/tool-policy.ts`): eplan-mcp has no safety
-  annotations, so Bochica classifies its tools. Unknown tools default to `ask` + backup. When
-  bumping eplan-mcp in `components.lock.json`, regenerate `fixtures/eplan-mcp-tools.txt` and fix
-  what `tool-policy.test.ts` reports.
+- **EPLAN tool policy** (`packages/eplan/src/tool-policy.ts`): eplan-mcp states facts, Bochica
+  decides policy. Every eplan-mcp tool carries the MCP annotations (`readOnlyHint`,
+  `destructiveHint`…) and EPLAN facts in `_meta["canary-ecad/eplan"]` (`changesProject`,
+  `runsCode`, `changesEplan`, `projectArgument`); `McpManager` hands them to the server's
+  `policy` and `confirm` as an `McpToolInfo`. `policyFromFacts`: read-only → never; destructive,
+  runs code or changes EPLAN → always; else ask; `changesProject` → backup. No annotations or
+  facts → ask + backup. `eplanOverrides` holds the few tools where Bochica wants something else,
+  each with its reason. `fixtures/eplan-mcp-tools.json` is the pinned contract (written by
+  `prepare-runtime --lock`, helpers in `contract.ts`); `tool-policy.test.ts` checks every tool
+  against `fixtures/eplan-tool-policies.json`, reviewed by hand on each bump.
 - **Local EPLAN server:** `eplanServerLaunch` (`packages/eplan/src/runtime.ts`) picks
   `BOCHICA_EPLAN_MCP_DIR` (+ `BOCHICA_PYTHON`) for development, else the bundled runtime
   (`resources\runtime` packaged, `apps\desktop\runtime` in dev once `bun run runtime` made it),
@@ -325,10 +333,13 @@ it works offline and behind corporate proxies.
   builds the runtime (from `apps/desktop/.cache`) and doesn't ship. eplan-mcp's dependencies come
   from `packages/eplan/requirements.lock.txt` (hashes, wheels only), made from its
   `requirements.txt` plus `requirements.constraints.txt` (`mcp<2`: 2.x dropped FastMCP).
-- **Bumping a component:** `bun run components:bump <name> [commit]` pins it in
-  `components.lock.json`; for eplan-mcp it runs `prepare-runtime --lock`, which regenerates the
-  requirements lock and `fixtures/eplan-mcp-tools.txt`. Then classify new tools in
-  `tool-policy.ts` and commit everything together. Full procedure: `docs/releasing.md`.
+- **Bumping a component:** `bun run components:bump eplan-mcp vX.Y.Z` pins eplan-mcp's release
+  tag and its commit in `components.lock.json` (no tag: its latest release; the skills are pinned
+  by commit) and runs `prepare-runtime --lock`, which regenerates the requirements lock and
+  `fixtures/eplan-mcp-tools.json`; it prints the release notes link, the tools added, removed or
+  re-annotated, and a warning for any that became read-only. Review `eplan-tool-policies.json`
+  and commit everything together. `components-watch.yml` (weekly) opens an issue when eplan-mcp
+  has a newer release than the pin. Full procedure: `docs/releasing.md`.
 - Dependencies are installed into the bundled Python itself (a venv stores absolute paths) and
   bytecode is compiled with unchecked hashes, so nothing is written next to the app. The server
   gets `PYTHONNOUSERSITE=1`, `PYTHONUTF8=1` and `EPLAN_MCP_LOG_DIR` (logs\eplan-mcp).
@@ -387,7 +398,7 @@ update** covering everything:
 - One click updates the UI, the agent and the EPLAN components together. The user never has to
   know there are separate parts.
 - **The EPLAN components** (MCP server and skills) are **pinned** to exact commits in
-  `components.lock.json`. Each Bochica release ships versions tested together; bumping one
+  `components.lock.json` (eplan-mcp also by its release tag). Each Bochica release ships versions tested together; bumping one
   means editing the lock, testing and publishing a release, so a change on another repository's
   `main` can never break a user's app.
 - If an update fails, the previous version keeps working and the user gets a plain message with
