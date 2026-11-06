@@ -56,9 +56,11 @@ counting and the writing; you explain, propose and ask. Never guess what a tool 
      stop there and tell the user which folder and how to point it elsewhere; queueing would
      only end in an error inside EPLAN;
    - queue those parts with `eplan_dataportal_add_to_download_list`. In EPLAN 2025 this opens
-     the Data Portal window and the call may not come back while it is open: if it fails or
-     times out, the parts are usually queued anyway, so ask the user to look at the window
-     instead of queueing again;
+     the Data Portal window: the result then has `status` `dataportal_window_open` and
+     `executed` null, the parts are usually queued, and EPLAN takes no other command until the
+     window is closed. Pass on its `userAction` (check the list in that window, download, close
+     it) and don't queue the same parts again; the next call reports what happened under
+     `earlierResults`;
    - tell the user exactly what to do in EPLAN: in the Data Portal, open the download list,
      tick the parts and download them. Suggest switching on "Delete parts after import /
      download" there once, so the list doesn't keep old parts;

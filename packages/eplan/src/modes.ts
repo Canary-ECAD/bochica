@@ -47,6 +47,8 @@ const drawingReads = new Set([
   "eplan_live_query_pages",
   "eplan_live_query_functions",
   "eplan_live_read_check_messages",
+  // A call blocked by an EPLAN dialog names it; reading it lets the agent show the user.
+  "eplan_list_dialogs",
 ]);
 
 export function eplanToolInMode(tool: string, mode: ChatMode): boolean {

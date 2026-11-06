@@ -88,10 +88,6 @@ questions are answered when the sprint is planned.
   - Clearing the download list after a download: the add-in's own "Delete parts after import /
     download" switch (the skill suggests it), or in the next doctor run `DELETE /basketitems`
     for parts already in the database, which needs a Data Portal PAT stored like an API key.
-  - eplan-mcp: on P8 2025, `eplan_dataportal_add_to_download_list` opens the Data Portal window
-    and the call doesn't return while it is open (the part is queued; the connection closed
-    after two minutes in S15). Return as soon as the action has run, or say that the window is
-    open.
   - Part numbers the portal stores differently (Rittal's `3239.200` as `RIT.3239200`, Lapp):
     try the order and type numbers, and the manufacturer's spelling, before saying "not found".
   - Parts a project uses that the database lacks (`eplan_export_parts_list`,

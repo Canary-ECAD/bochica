@@ -39,6 +39,7 @@ describe("tools per mode", () => {
       "eplan_live_create_page",
       "eplan_live_place_symbol",
       "eplan_live_connect_pins",
+      "eplan_list_dialogs",
     ]) {
       expect(draw).toContain(tool);
     }
