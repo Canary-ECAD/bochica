@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BackupGuard } from "./backup";
+import { BackupGuard, pinnedTarget } from "./backup";
 
 // Made-up projects; nothing here touches EPLAN.
 const demo = "C:\\Projects\\Demo.elk";
@@ -29,6 +29,7 @@ const fakeEplan = async (tool: string, args: Record<string, unknown>) => {
 };
 
 const backups = () => calls.filter((c) => c.tool === "eplan_backup_project");
+const answer = (body: unknown) => ({ ok: true, text: JSON.stringify(body) });
 const guard = () => new BackupGuard(fakeEplan, root, () => new Date(2026, 9, 27, 14, 5, 9));
 
 beforeEach(() => {
@@ -69,6 +70,29 @@ describe("BackupGuard", () => {
     await g.ensure("s1", { project_name: other, page: "1" });
     expect(backups()[0]?.args["project_name"]).toBe(other);
     expect(calls.some((c) => c.tool === "eplan_get_current_project")).toBe(false);
+  });
+
+  test("a pinned target project is backed up, not the current one", async () => {
+    const g = guard();
+    g.setTarget(other);
+    const result = await g.ensure("s1", { page: "=A+B/1" });
+    expect(result).toMatchObject({ status: "done", project: "Other" });
+    expect(backups()[0]?.args["project_name"]).toBe(other);
+    expect(calls.some((c) => c.tool === "eplan_get_current_project")).toBe(false);
+    // A project named in the call still wins, as in eplan-mcp.
+    await g.ensure("s1", { project_name: demo });
+    expect(backups()[1]?.args["project_name"]).toBe(demo);
+    // Cleared: back to the current project.
+    g.setTarget("");
+    expect(await g.ensure("s2", {})).toMatchObject({ project: "Demo" });
+  });
+
+  test("the pinned target is read from eplan_live_set_target_project's answer", () => {
+    expect(pinnedTarget(answer({ success: true, target: other, previous: "" }))).toBe(other);
+    expect(pinnedTarget(answer({ success: true, target: "", previous: other }))).toBe("");
+    expect(pinnedTarget(answer({ success: false, error: "not open" }))).toBeUndefined();
+    expect(pinnedTarget({ ok: false, text: "boom" })).toBeUndefined();
+    expect(pinnedTarget({ ok: true, text: "not json" })).toBeUndefined();
   });
 
   test("another project in the same session gets its own backup", async () => {

@@ -151,7 +151,23 @@ questions are answered when the sprint is planned.
   → S14
 - **eplan-mcp names the wrong version** (seen in S15): with only P8 2025 running,
   `eplan_connect` answers `target_version: "2026"` (the newest installed Remote Client, not the
-  running EPLAN). It works, but a version-dependent tool or message could go wrong.
+  running EPLAN). It works, but a version-dependent tool or message could go wrong. Since
+  eplan-mcp#80 it matters more: the 2027 tools are gated on that version, so with 2027
+  installed and an older EPLAN running they may run and fail.
+- **The next eplan-mcp bump, past eplan-mcp#82** (24 live tools and a pinned target project,
+  merged after v1.2.0). Already in Bochica: the backup guard follows the pinned target
+  (`eplan_live_set_target_project`, forgotten when the server restarts), and `eplan_live_batch`
+  needs typed confirmation when an operation removes something. At the bump:
+  - Draw gets the placement tools (`eplan_live_place_device`, `_place_terminal`,
+    `_insert_macro`, `_place_panel_item`, `_place_plc_point`, `_place_cable_definition`,
+    `_update_placement`, `_batch`) in `placementTools`, and `_find_placements`,
+    `_render_page`, `_check_page` and `_set_target_project` in `drawingReads`; everything
+    else (cables, terminal strips, reports, project creation, copying pages) stays in Tasks.
+  - Review `eplan-tool-policies.json`: `eplan_live_set_target_project` comes as idempotent,
+    so it asks; `_batch` and `_copy_pages_to_structure` are destructive, so they always ask.
+  - `allow_real_project` (eplan-mcp's scratch guard, already on the drawing tools in v1.2.0) is
+    not a typed confirmation in Bochica: Draw works on the user's project by design, and the
+    card plus the project backup cover it.
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
 - **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded

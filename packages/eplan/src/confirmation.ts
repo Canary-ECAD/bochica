@@ -37,6 +37,8 @@ const runsAnything = new Set([
   "eplan_run_project_action",
   "eplan_execute_script",
   "eplan_execute_custom_script",
+  // Runs a list of page operations; one of them may remove placements (eplan-mcp#82).
+  "eplan_live_batch",
 ]);
 
 function field(input: unknown, name: string): string | undefined {

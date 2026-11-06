@@ -188,7 +188,10 @@ How the pieces fit:
   never a system Python. Without either the indicator says the connection is missing; without
   EPLAN (`eplanInstalled`) it says "not installed". `EplanStatusService` connects on its own and re-checks every 15 s;
   `BackupGuard` (`backup.ts`) backs a project up before its first change in a session, and
-  `ChatService.withBackup` applies it to every `changesProject` tool after approval.
+  `ChatService.withBackup` applies it to every `changesProject` tool after approval. The project
+  is the one the call names, else eplan-mcp's pinned target (learned from
+  `eplan_live_set_target_project`'s answer by `ChatService.withTargetTracking`, forgotten when
+  the server isn't ready), else EPLAN's current one.
 - **Approvals:** a tool with `needsApproval` makes `ApprovalService` (main) send
   `approval:request`; the renderer attaches it to the turn's message and shows `ApprovalCard`;
   the answer comes back on `approval:respond`. No answer in 5 minutes, or Stop, means deny.

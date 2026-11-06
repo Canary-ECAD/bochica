@@ -193,6 +193,10 @@ else
       callEplan,
       join(app.getPath("documents"), "Bochica", "Backups"),
     );
+    // eplan-mcp holds the pinned target project in its process: a restart forgets it.
+    mcp.manager.onChange(() => {
+      if (!mcp.manager.isReady(EPLAN_SERVER_ID)) backups.setTarget("");
+    });
     const devTools =
       !app.isPackaged && process.env["BOCHICA_DEV_TOOLS"] === "1" ? [devEchoTool] : [];
     const sessions = new SessionRepository(

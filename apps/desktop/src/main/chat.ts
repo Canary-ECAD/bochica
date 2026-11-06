@@ -42,7 +42,7 @@ import {
 } from "@bochica/shared";
 import type { WebContents } from "electron";
 import type { ApprovalService, Judge } from "./approvals";
-import type { BackupGuard } from "./backup";
+import { type BackupGuard, pinnedTarget, TARGET_TOOL } from "./backup";
 import type { CheckpointService } from "./checkpoints";
 import type { ClaudeCodeService } from "./claude-code";
 import type { CredentialStore } from "./credentials";
@@ -335,6 +335,7 @@ export class ChatService {
           system,
           abortSignal: controller.signal,
           tools: tools
+            .map((tool) => this.withTargetTracking(tool))
             .map((tool) =>
               tool.changesProject ? this.withBackup(tool, request.sessionId, emit) : tool,
             )
@@ -444,6 +445,24 @@ export class ChatService {
           };
         }
         return tool.execute(input, signal);
+      },
+    };
+  }
+
+  /**
+   * eplan-mcp's pinned target project (`eplan_live_set_target_project`) decides which project
+   * a call without a project changes, so the backup guard must back that one up. Learned from
+   * the call's own answer, which says what is pinned now.
+   */
+  private withTargetTracking(tool: AgentTool): AgentTool {
+    if (tool.server !== EPLAN_SERVER_ID || tool.tool !== TARGET_TOOL) return tool;
+    return {
+      ...tool,
+      execute: async (input, signal) => {
+        const result = await tool.execute(input, signal);
+        const target = pinnedTarget(result);
+        if (target !== undefined) this.backups.setTarget(target);
+        return result;
       },
     };
   }

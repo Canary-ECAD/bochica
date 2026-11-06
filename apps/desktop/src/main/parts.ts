@@ -415,20 +415,54 @@ export class PartsService {
         const folder = this.sessionFolder(context.sessionId);
         const importFile = join(folder, `import-${stamp(this.now())}.xml`);
         writeFileSync(importFile, updateDocument(before, expected), "utf8");
-        const imported = await this.deps.call(
-          "eplan_partsmanagement_import",
-          { import_file: importFile, format: "XPamImportXml", mode: 1 },
-          AbortSignal.any([signal, AbortSignal.timeout(EXPORT_TIMEOUT_MS)]),
-        );
+        const imported = await this.deps
+          .call(
+            "eplan_partsmanagement_import",
+            { import_file: importFile, format: "XPamImportXml", mode: 1 },
+            AbortSignal.any([signal, AbortSignal.timeout(EXPORT_TIMEOUT_MS)]),
+          )
+          .catch((error: unknown) => ({
+            ok: false,
+            text: error instanceof Error ? error.message : String(error),
+          }));
+        // A failed or timed-out import may still have changed some parts (eplan-mcp says
+        // `timed_out` when it gave up on a call EPLAN was still running), so the session stops
+        // here as after a failed check.
+        const restore = [
+          `The whole database as it was before this session's first change is in ${backup};`,
+          "importing it with eplan_partsmanagement_import, mode 1 (update existing), puts the values back. Do that only if the user asks.",
+        ];
         if (failed(imported)) {
+          const timedOut = parseJson(imported.text)?.["timed_out"] === true;
+          this.halted.set(context.sessionId, "a batch's import did not finish cleanly");
           return {
             ok: false,
-            text: `EPLAN did not import the batch: ${imported.text.slice(0, 300)}. Check the parts before trying again. Backup: ${backup}`,
+            text: [
+              timedOut
+                ? "EPLAN did not finish importing the batch in time, so it is not known which parts changed."
+                : `EPLAN reported a problem importing the batch, and some parts may have changed: ${imported.text.slice(0, 300)}`,
+              "Bochica stops changing parts in this session.",
+              `Run parts_report with these part numbers to see where they stand, and tell the user: ${numbers.join(", ")}.`,
+              ...restore,
+            ].join("\n"),
           };
         }
 
         // The smoke test: the changed parts again, field by field, and the count.
-        const after = await this.exportDocument(context, numbers, signal);
+        let after: PartsDocument;
+        try {
+          after = await this.exportDocument(context, numbers, signal);
+        } catch (error) {
+          this.halted.set(context.sessionId, "a batch could not be checked");
+          return {
+            ok: false,
+            text: [
+              `The batch was imported, but Bochica could not export the parts again to check it (${error instanceof Error ? error.message : String(error)}).`,
+              "Bochica stops changing parts in this session. Run parts_report on those parts once EPLAN answers, and tell the user.",
+              ...restore,
+            ].join("\n"),
+          };
+        }
         const problems = smokeTest(before, expected, after);
         const countAfter = await this.count(signal);
         if (countBefore !== undefined && countAfter !== undefined && countBefore !== countAfter) {
@@ -443,8 +477,8 @@ export class PartsService {
             text: [
               "The batch was imported but its check FAILED, so Bochica stops changing parts in this session.",
               ...problems.slice(0, 20).map((p) => `- ${p}`),
-              `Tell the user what went wrong. The whole database as it was before this session's first change is in ${backup};`,
-              "importing it with eplan_partsmanagement_import, mode 1 (update existing), puts the values back. Do that only if the user asks.",
+              "Tell the user what went wrong.",
+              ...restore,
             ].join("\n"),
           };
         }

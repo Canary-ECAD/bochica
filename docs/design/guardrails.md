@@ -134,7 +134,8 @@ Specific to Bochica:
 - After every batch, a smoke test: the changed parts are exported again and compared attribute
   by attribute with what was asked (EPLAN's own change stamps aside), and the database's entry
   count before and after. Any difference stops every further batch in that session; the result
-  names the backup and how to restore it.
+  names the backup and how to restore it. So does an import that fails or times out (eplan-mcp
+  then can't say what EPLAN did), and a batch that can't be exported again to check it.
 - Typed confirmation for replacing parts on import (`eplan_partsmanagement_import` mode 3),
   pointing EPLAN at another parts database (`eplan_set_parts_data_source`) and restoring master
   data.

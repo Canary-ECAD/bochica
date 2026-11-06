@@ -30,7 +30,13 @@ function tempDir(): string {
 
 /** A made-up EPLAN: a parts database in memory that exports and imports like the real one. */
 function fakeEplan(
-  options: { macros?: string; folders?: Record<string, string>; sabotage?: boolean } = {},
+  options: {
+    macros?: string;
+    folders?: Record<string, string>;
+    sabotage?: boolean;
+    /** What the import answers instead of importing: a timeout, or a thrown error. */
+    importFails?: "timeout" | "throw";
+  } = {},
 ) {
   let db: PartsDocument = parsePartsDocument(readFileSync(sample, "utf8"));
   const calls: string[] = [];
@@ -49,6 +55,18 @@ function fakeEplan(
     }
     if (tool === "eplan_partsmanagement_import") {
       expect(args["mode"]).toBe(1);
+      if (options.importFails === "throw") throw new Error("The eplan server is not connected.");
+      if (options.importFails === "timeout") {
+        return {
+          ok: true,
+          text: JSON.stringify({
+            success: false,
+            error_type: "EplanActionTimeout",
+            timed_out: true,
+            message: "EPLAN did not finish this call within 600s.",
+          }),
+        };
+      }
       const incoming = parsePartsDocument(readFileSync(String(args["import_file"]), "utf8"));
       db = {
         root: db.root,
@@ -195,6 +213,19 @@ describe("parts_fix", () => {
     expect(result.ok).toBe(false);
     expect(result.text).toContain("DEMO.NOPE");
     expect(eplan.calls).not.toContain("eplan_partsmanagement_import");
+  });
+
+  test.each([
+    ["times out", "timeout", "not known which parts changed"],
+    ["throws", "throw", "some parts may have changed"],
+  ] as const)("an import that %s stops further batches", async (_case, importFails, says) => {
+    const { tool } = service(fakeEplan({ importFails }));
+    const batch = fix([{ partNumber: "DEMO.CT-200", field: "erp", value: "100002" }]);
+    const result = await tool("parts_fix").execute(batch, signal);
+    expect(result.ok).toBe(false);
+    expect(result.text).toContain(says);
+    expect(result.text).toContain("Run parts_report with these part numbers");
+    expect(tool("parts_fix").assess?.(batch)).toMatchObject({ block: "parts-halted" });
   });
 
   test("a failed smoke test stops further batches in the session", async () => {

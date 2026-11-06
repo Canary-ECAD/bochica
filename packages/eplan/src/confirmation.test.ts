@@ -69,6 +69,18 @@ describe("eplanConfirmation", () => {
       { type: "name", value: "Demo" },
     ],
     [
+      "a batch of page operations that removes placements",
+      "eplan_live_batch",
+      {
+        page: "=A+B/1",
+        operations: [
+          { op: "place", symbol: "K" },
+          { op: "remove", ref: "p1" },
+        ],
+      },
+      { type: "word" },
+    ],
+    [
       "an import that replaces parts",
       "eplan_partsmanagement_import",
       { import_file: "C:\\Work\\parts.xml", mode: 3 },
@@ -123,6 +135,11 @@ describe("eplanConfirmation", () => {
     ["reading", "eplan_get_current_project", {}],
     ["exports", "eplan_export_pdf_project", { project_name: demo }],
     ["an import that updates", "eplan_partsmanagement_import", { import_file: "x.xml", mode: 1 }],
+    [
+      "a batch that only places",
+      "eplan_live_batch",
+      { page: "=A+B/1", operations: [{ op: "place", symbol: "K" }] },
+    ],
     ["an import that appends", "eplan_partsmanagement_import", { import_file: "x.xml" }],
   ] as const)("not for %s", (_case, tool, input) => {
     expect(eplanConfirmation({ name: tool }, input)).toBeNull();

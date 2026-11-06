@@ -53,9 +53,32 @@ function timestamp(date: Date): string {
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
+/** eplan-mcp's tool that pins the project later calls act on. */
+export const TARGET_TOOL = "eplan_live_set_target_project";
+
+/** The project a successful `eplan_live_set_target_project` pinned ("" cleared), or undefined. */
+export function pinnedTarget(result: { ok: boolean; text: string }): string | undefined {
+  if (!result.ok) return undefined;
+  const json = parseJson(result.text);
+  return json?.["success"] === true && typeof json["target"] === "string"
+    ? json["target"]
+    : undefined;
+}
+
 export class BackupGuard {
   /** session id + project path (lower case) */
   private readonly backedUp = new Set<string>();
+  /**
+   * The project eplan-mcp writes to when a call names none: set with
+   * `eplan_live_set_target_project`, held by the server process, so it is forgotten when the
+   * server restarts. Empty: EPLAN's current project.
+   */
+  private target = "";
+
+  /** What `eplan_live_set_target_project` pinned ("" when it cleared it). */
+  setTarget(path: string): void {
+    this.target = path.trim();
+  }
 
   constructor(
     private readonly call: CallTool,
@@ -72,7 +95,9 @@ export class BackupGuard {
     input: unknown,
     onStart: (project: string) => void = () => {},
   ): Promise<BackupResult> {
-    const project = projectFromInput(input) ?? (await this.currentProject());
+    // The project the call will change: the one it names, else the pinned target, else the
+    // current one, in the order eplan-mcp picks them.
+    const project = projectFromInput(input) ?? (this.target || (await this.currentProject()));
     if (!project) return { status: "no-project" };
     const name = projectBaseName(project);
     const key = `${sessionId}\u0000${project.toLowerCase()}`;
