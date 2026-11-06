@@ -90,7 +90,7 @@ for every rule except the ERP number, which is the user's own.
 - [x] The Data Portal API's base URL and which endpoints need a token.
 - [x] Whether the Remote Client's greeting still breaks stdio with v1.0.0.
 - [x] How a project's parts are listed (for the backlog item).
-- [ ] Whether an update-only import (mode 1) of one field leaves the rest of the part as it was,
+- [x] Whether an update-only import (mode 1) of one field leaves the rest of the part as it was,
       and the smallest import file that does it. Run on a dummy database during the demo, never
       on a real one.
 - [x] The EPLAN API calls that remove parts, for the script hardline.

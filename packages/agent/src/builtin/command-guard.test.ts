@@ -52,6 +52,7 @@ const blocked: Array<[string, CommandBlock]> = [
   ['$c.CommandText = "DELETE TOP (100) FROM [tblPart]"', "sql-destroy"],
   ["Remove-Item C:\\Data\\Parts\\Demo\\ESS_part001.mdb", "parts-db-delete"],
   ["del .\\parts.accdb", "parts-db-delete"],
+  ["Remove-Item 'D:\\Data\\Parts\\Demo\\part.alk' -Force", "parts-db-delete"],
   ["[System.IO.File]::Delete('D:\\EPLAN\\parts.mdb')", "parts-db-delete"],
   // Recursive deletes of the system or the user's profile.
   ["Remove-Item C:\\ -Recurse", "system-delete"],

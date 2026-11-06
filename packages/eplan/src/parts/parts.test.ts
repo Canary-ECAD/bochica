@@ -191,5 +191,18 @@ describe("rules and report", () => {
     expect(csv).toContain('"DEMO.LINE""2""";function-templates');
     const text = reportText(result, "C:\\Work\\report.csv", "es_ES");
     expect(text).toContain("erp-number (property 22056), serious: 1 parts");
+    // A description of several lines stays on one.
+    expect(text).not.toContain("First line\r\nsecond");
+  });
+
+  test("long descriptions are cut in the model's text", () => {
+    const long = {
+      partNumber: "P1",
+      properties: { P_ARTICLE_NOTE: `??_??@${"x".repeat(200)};` },
+      variants: 1,
+      functionTemplates: 0,
+    };
+    const text = reportText(runReport([long], { rules: ["function-templates"] }), "c.csv", "es_ES");
+    expect(text).toContain(`P1: ${"x".repeat(79)}…`);
   });
 });

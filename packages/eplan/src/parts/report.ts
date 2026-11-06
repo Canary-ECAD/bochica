@@ -107,7 +107,9 @@ export function reportText(
     const property = rule.propertyId ? ` (property ${rule.propertyId})` : "";
     lines.push(`${rule.id}${property}, ${rule.severity}: ${parts.length} parts`);
     for (const part of parts.slice(0, examples)) {
-      const description = textIn(part.properties["P_ARTICLE_NOTE"], language);
+      // One line per part: descriptions can run to several lines of specifications.
+      const full = textIn(part.properties["P_ARTICLE_NOTE"], language).replace(/\s+/g, " ").trim();
+      const description = full.length > 80 ? `${full.slice(0, 79)}…` : full;
       const manufacturer = part.properties["P_ARTICLE_MANUFACTURER"] ?? "";
       lines.push(
         `  - ${part.partNumber}${manufacturer ? ` [${manufacturer}]` : ""}${description ? `: ${description}` : ""}`,

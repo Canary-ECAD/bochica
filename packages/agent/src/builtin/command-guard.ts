@@ -138,8 +138,11 @@ const SQL_DESTROY = [
   // DELETE FROM a table with nothing after it but the end of the statement: no WHERE.
   /\bdelete (top \(?\d+\)? )?from [\w.[\]"]+ ?(;|"|'|\)|$)/,
 ];
-/** Access files: EPLAN keeps parts (and macros, projects, translations) databases in them. */
-const DATABASE_FILE = /\.(mdb|accdb)\b/;
+/**
+ * Database files: EPLAN's own parts database (.alk) and Access files, where EPLAN keeps parts,
+ * macros, projects and translations databases.
+ */
+const DATABASE_FILE = /\.(alk|mdb|accdb)\b/;
 const FILE_DELETE_API = /::delete\(|\.delete\(\)/;
 
 interface Findings {

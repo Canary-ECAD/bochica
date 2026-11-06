@@ -49,7 +49,7 @@ Refused regardless of approvals, "always allow" or YOLO mode. Windows-first list
 - Killing Bochica itself (`Stop-Process -Name Bochica`, `taskkill /IM Bochica.exe`).
 - Destroying a database (S15): SQL `DROP DATABASE|TABLE|SCHEMA`, `TRUNCATE TABLE` and
   `DELETE FROM` without `WHERE`, whatever sends it (`sqlcmd`, `osql`, `Invoke-Sqlcmd`, ADO.NET);
-  deleting an Access database file (`.mdb`, `.accdb`), where EPLAN keeps parts, macros and
+  deleting an EPLAN parts database (`.alk`) or Access database file (`.mdb`, `.accdb`), where EPLAN keeps parts, macros and
   projects databases. Hermes only asks for SQL `DROP`; Bochica refuses it, since a parts
   database is shared by a team and has no undo.
 - EPLAN scripts that remove master data from the parts database (S15): code passed to

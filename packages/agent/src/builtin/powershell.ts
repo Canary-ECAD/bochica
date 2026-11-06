@@ -86,7 +86,7 @@ const commandBlockReasons: Record<CommandBlock, string> = {
   "sql-destroy":
     "dropping, truncating or emptying a database is never allowed: EPLAN's parts databases are shared and have no undo.",
   "parts-db-delete":
-    "deleting an Access database file (where EPLAN keeps parts, macros and projects) is never allowed.",
+    "deleting an EPLAN parts database or an Access database file (where EPLAN keeps parts, macros and projects) is never allowed.",
 };
 
 /** Layer 1 for the terminal: the folder it runs in must be absolute, real and not a device. */
