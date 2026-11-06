@@ -76,7 +76,7 @@ export class ApprovalService {
     send: (request: ApprovalRequest) => void,
     judge?: Judge,
   ): Approver {
-    return async ({ server, tool, input, approval, fixed, confirm, risks }) => {
+    return async ({ server, tool, input, approval, fixed, confirm, risks, preview }) => {
       // Auto mode skips layer 5 only: typed confirmations (layer 6) and tools whose policy says
       // they always ask (closing EPLAN, deleting pages) still ask. Checked on every call, so
       // turning it off applies at once.
@@ -113,6 +113,7 @@ export class ApprovalService {
           ...(allowAlways ? { allowedBefore: this.rules.allowedCount(server, tool, input) } : {}),
           ...(confirm ? { confirm } : {}),
           ...(risks ? { risks } : {}),
+          ...(preview ? { preview } : {}),
         });
       });
     };

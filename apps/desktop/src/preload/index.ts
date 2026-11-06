@@ -118,6 +118,9 @@ const api: BochicaApi = {
   files: {
     search: async (request) =>
       z.array(z.string()).parse(await ipcRenderer.invoke(ipcChannels.filesSearch, request)),
+    openReport: async (path) => {
+      await ipcRenderer.invoke(ipcChannels.filesOpenReport, z.string().max(2_000).parse(path));
+    },
   },
   skills: {
     list: async () => SkillList.parse(await ipcRenderer.invoke(ipcChannels.skillsList)),

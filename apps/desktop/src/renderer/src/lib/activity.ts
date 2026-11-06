@@ -117,6 +117,22 @@ export function describeCall(
       description: field(input, "description") || field(input, "command"),
     });
   }
+  if (
+    server === "bochica" &&
+    (tool === "parts_report" || tool === "parts_lookup" || tool === "parts_fix")
+  ) {
+    const changes = (input as { changes?: unknown } | null)?.changes;
+    const numbers = (input as { partNumbers?: unknown } | null)?.partNumbers;
+    const parts = new Set(
+      Array.isArray(changes)
+        ? changes.map((c) => (c as { partNumber?: unknown } | null)?.partNumber)
+        : Array.isArray(numbers)
+          ? numbers
+          : [],
+    ).size;
+    const key = { parts_report: "report", parts_lookup: "lookup", parts_fix: "fix" }[tool];
+    return t(`activity.parts.${key}${mode === "request" ? "Request" : ""}`, { count: parts });
+  }
   if (server === "bochica" && tool === "backup_project") {
     return t("activity.backup", { project: field(input, "project") });
   }

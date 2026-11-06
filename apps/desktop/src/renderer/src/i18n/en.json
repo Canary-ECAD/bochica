@@ -278,6 +278,18 @@
       "rule": "Allowed by your “Always allow” rule",
       "smart": "Allowed by smart approval: it only reads",
       "auto": "Allowed by Auto mode"
+    },
+    "parts": {
+      "report": "Checked the parts database",
+      "reportRequest": "Check the parts database",
+      "lookup_one": "Looked a part up on the Data Portal",
+      "lookup_other": "Looked {{count}} parts up on the Data Portal",
+      "lookupRequest_one": "Look a part up on the Data Portal",
+      "lookupRequest_other": "Look {{count}} parts up on the Data Portal",
+      "fix_one": "Changed a part in the parts database",
+      "fix_other": "Changed {{count}} parts in the parts database",
+      "fixRequest_one": "Change a part in the parts database",
+      "fixRequest_other": "Change {{count}} parts in the parts database"
     }
   },
   "approval": {
@@ -413,7 +425,12 @@
     "invalid-path": "the path isn't a valid file path.",
     "protected-path": "that folder is protected (passwords, browser data, Bochica's own data, or Windows).",
     "secret-file": "files like .env hold passwords and keys.",
-    "user-rule": "one of your “Never allow” rules in Settings forbids it."
+    "user-rule": "one of your “Never allow” rules in Settings forbids it.",
+    "parts-halted": "an earlier batch failed its check, so no more parts are changed in this session.",
+    "parts-invalid": "the batch of part changes isn't valid.",
+    "sql-destroy": "it would drop, empty or wipe a database.",
+    "parts-db-delete": "it would delete a parts database file.",
+    "parts-remove": "the script would remove parts from the parts database."
   },
   "folder": {
     "choose": "Working folder: {{folder}}. Click to choose another.",
@@ -575,6 +592,46 @@
       "question": "What is a macro in EPLAN Electric P8, and how do I insert one into a page?",
       "ask": "Ask it",
       "noModel": "Connect a model first (go back one step) to ask it."
+    }
+  },
+  "partsReport": {
+    "title": "Parts database report",
+    "total_one": "{{total}} part checked",
+    "total_other": "{{total}} parts checked",
+    "allGood": "Every part passes every rule.",
+    "passing": "Nothing missing: {{rules}}.",
+    "more_one": "and {{count}} more",
+    "more_other": "and {{count}} more",
+    "openCsv": "Open the full list",
+    "severity": {
+      "serious": "Serious",
+      "medium": "Medium",
+      "minor": "Minor"
+    },
+    "rule": {
+      "part-number": "No part number",
+      "erp-number": "No ERP number",
+      "manufacturer": "No manufacturer",
+      "description": "No description",
+      "schematic-macro": "No schematic macro",
+      "picture": "No picture",
+      "function-templates": "No function templates"
+    }
+  },
+  "partsFix": {
+    "summary_one": "{{count}} part will change. The whole database is backed up before the first change and each batch is checked afterwards.",
+    "summary_other": "{{count}} parts will change. The whole database is backed up before the first change and each batch is checked afterwards.",
+    "part": "Part",
+    "field": "Field",
+    "current": "Now",
+    "new": "New",
+    "empty": "(empty)",
+    "fields": {
+      "erp": "ERP number",
+      "manufacturer": "Manufacturer",
+      "description": "Description",
+      "schematicMacro": "Schematic macro",
+      "picture": "Picture"
     }
   }
 }

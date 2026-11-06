@@ -23,7 +23,12 @@ const alwaysDestructive = new Set([
   "eplan_remove_language",
   "eplan_restore_project",
   "eplan_restore_masterdata",
+  // Points EPLAN at another parts database: every later part lookup and change goes there.
+  "eplan_set_parts_data_source",
 ]);
+
+/** Import modes that overwrite: 3 replaces existing parts. */
+const REPLACING_IMPORT = new Set([3, "3"]);
 
 /** Tools that run whatever they are given: destructive when their input says so. */
 const runsAnything = new Set([
@@ -62,6 +67,10 @@ export function eplanConfirmation(tool: EplanToolInfo, input: unknown): Confirma
     return field(input, "type")?.trim().toUpperCase() === "REORGANIZE"
       ? byProjectName(tool, input)
       : null;
+  }
+  if (tool.name === "eplan_partsmanagement_import") {
+    const mode = (input as Record<string, unknown> | null)?.["mode"];
+    return REPLACING_IMPORT.has(mode as never) ? { type: "word" } : null;
   }
   if (alwaysDestructive.has(tool.name)) return byProjectName(tool, input);
   if (runsAnything.has(tool.name) && DESTRUCTIVE.test(JSON.stringify(input ?? {}))) {

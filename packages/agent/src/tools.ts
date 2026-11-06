@@ -1,4 +1,11 @@
-import type { AutoApproval, Confirmation, FileDiff, ToolStatus } from "@bochica/shared";
+import type {
+  ApprovalPreview,
+  AutoApproval,
+  Confirmation,
+  FileDiff,
+  ToolCard,
+  ToolStatus,
+} from "@bochica/shared";
 import { dynamicTool, jsonSchema, type ToolSet } from "ai";
 import { redactSecrets } from "./redact";
 
@@ -34,6 +41,11 @@ export interface AgentTool {
    * path is refused. Lets Bochica save a checkpoint of the file before it changes.
    */
   writes?: (input: unknown) => string | null;
+  /**
+   * What the approval card shows about this call, read before anyone is asked (e.g. the current
+   * values a parts batch would replace). A failure only leaves the card without it.
+   */
+  preview?: (input: unknown, signal: AbortSignal) => Promise<ApprovalPreview | undefined>;
   execute(input: unknown, signal: AbortSignal): Promise<ToolRunResult>;
 }
 
@@ -41,6 +53,8 @@ export interface ToolRunResult {
   ok: boolean;
   text: string;
   diff?: FileDiff;
+  /** A card the result shows in the chat, besides its text. */
+  card?: ToolCard;
 }
 
 export type ToolApproval = "never" | "ask" | "always";
@@ -65,6 +79,7 @@ export type Approver = (call: {
   fixed: boolean;
   confirm?: Confirmation;
   risks?: string[];
+  preview?: ApprovalPreview;
 }) => Promise<ApprovalAnswer>;
 
 /** What a tool call produced, as the loop and the UI see it. */
@@ -73,6 +88,7 @@ export interface ToolOutcome {
   text: string;
   blocked?: string;
   diff?: FileDiff;
+  card?: ToolCard;
   auto?: AutoApproval;
 }
 
@@ -118,6 +134,9 @@ export async function runTool(
     // Destructive and risky calls ask every time, even on an otherwise read-only tool.
     const approval =
       confirm || risks.length > 0 || tool.approval === "never" ? "always" : tool.approval;
+    const preview = approve
+      ? await tool.preview?.(input, signal).catch(() => undefined)
+      : undefined;
     const answer = approve
       ? await approve({
           callId,
@@ -128,6 +147,7 @@ export async function runTool(
           fixed: tool.approval === "always",
           ...(confirm ? { confirm } : {}),
           ...(risks.length > 0 ? { risks } : {}),
+          ...(preview ? { preview } : {}),
         })
       : "deny";
     if (answer === "deny") {
@@ -144,6 +164,7 @@ export async function runTool(
       status: result.ok ? "ok" : "error",
       text: truncate(redactSecrets(result.text), MODEL_OUTPUT_LIMIT),
       ...(result.diff ? { diff: { ...result.diff, patch: redactSecrets(result.diff.patch) } } : {}),
+      ...(result.card ? { card: result.card } : {}),
       ...(auto ? { auto } : {}),
     };
   } catch (error) {

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<partsmanagement version="2.9.4" build="0" type="1" length-unit="mm" weight-unit="kg" count="5">
+ <part P_ARTICLE_PARTNR="DEMO.CT-100" P_ARTICLE_ERPNR="100001" P_ARTICLE_DISCONTINUED="0" P_ARTICLE_MANUFACTURER="DEMO" P_ARTICLE_NOTE="??_??@Contactor 3 kW &amp; 1 NO;" P_ARTICLE_GROUPSYMBOLMACRO="$(MD_MACROS)\Demo\CT-100.ema" P_ARTICLE_PICTUREFILE="$(MD_IMG)\Demo\CT-100.jpg" P_ARTICLE_PRODUCTGROUP="2" P_PART_LASTCHANGE="sample">
+  <freeproperty pos="1" P_ARTICLE_FREE_DATA_DESCRIPTION="??_??@Coil 24 V DC;" />
+  <variant P_ARTICLE_VARIANT="0">
+   <functiontemplate pos="1" functiondefcategory="1" functiondefgroup="1" functiondefid="1" />
+   <functiontemplate pos="2" functiondefcategory="1" functiondefgroup="1" functiondefid="2" />
+  </variant>
+ </part>
+ <part P_ARTICLE_PARTNR="DEMO.CT-200" P_ARTICLE_DISCONTINUED="0" P_ARTICLE_MANUFACTURER="DEMO" P_ARTICLE_PICTUREFILE="$(MD_IMG)\Demo\CT-200.jpg" P_ARTICLE_PRODUCTGROUP="2">
+  <variant P_ARTICLE_VARIANT="0">
+   <functiontemplate pos="1" functiondefcategory="1" functiondefgroup="1" functiondefid="1" />
+  </variant>
+ </part>
+ <part P_ARTICLE_PARTNR="DEMO.CT-300" P_ARTICLE_DISCONTINUED="1" P_ARTICLE_MANUFACTURER="DEMO" P_ARTICLE_NOTE="es_ES@Contactor antiguo;en_US@Old contactor;" P_ARTICLE_GROUPSYMBOLMACRO="$(MD_MACROS)\Demo\CT-300.ema" P_ARTICLE_PICTUREFILE="$(MD_IMG)\Demo\CT-300.jpg" P_ARTICLE_PRODUCTGROUP="2">
+  <variant P_ARTICLE_VARIANT="0" />
+ </part>
+ <part P_ARTICLE_PARTNR="DEMO.TB-10" P_ARTICLE_ERPNR="200010" P_ARTICLE_DISCONTINUED="0" P_ARTICLE_NOTE="??_??@;" P_ARTICLE_PICTUREFILE="$(MD_IMG)\Demo\TB-10.jpg" P_ARTICLE_PRODUCTGROUP="7">
+  <variant P_ARTICLE_VARIANT="0">
+   <functiontemplate pos="1" functiondefcategory="5" functiondefgroup="1" functiondefid="1" />
+  </variant>
+  <variant P_ARTICLE_VARIANT="1">
+   <functiontemplate pos="1" functiondefcategory="5" functiondefgroup="1" functiondefid="1" />
+  </variant>
+ </part>
+ <part P_ARTICLE_PARTNR="DEMO.LINE&quot;2&quot;" P_ARTICLE_ERPNR="200020" P_ARTICLE_DISCONTINUED="0" P_ARTICLE_MANUFACTURER="DEMO" P_ARTICLE_NOTE="??_??@First line&#xD;&#xA;second line;" P_ARTICLE_GROUPSYMBOLMACRO="$(MD_MACROS)\Demo\LINE.ema" P_ARTICLE_PICTUREFILE="$(MD_IMG)\Demo\LINE.jpg" P_ARTICLE_PRODUCTGROUP="7" />
+</partsmanagement>

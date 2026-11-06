@@ -13,7 +13,9 @@ export type CommandBlock =
   | "system-delete"
   | "boot"
   | "download-exec"
-  | "kill-bochica";
+  | "kill-bochica"
+  | "sql-destroy"
+  | "parts-db-delete";
 
 /** Why a command must ask every time; each one is explained to the user on the card. */
 export type CommandRisk =
@@ -125,6 +127,21 @@ const ITEM_CMDLETS = new Set([
 const SECRET_TEXT =
   /\$\{?env:\w*(key|token|secret|pass|pwd|credential|auth)|%\w*(key|token|secret|pass)\w*%|\.ssh|\.aws|\.azure|\.kube|\.netrc|\.git-credentials|id_(rsa|ed25519|ecdsa)|\.env\b|credentials|\.pem\b|\.pfx\b|get-credential|convertfrom-securestring/;
 
+/**
+ * SQL that drops, empties or wipes a database or table, sent from PowerShell (sqlcmd, osql,
+ * Invoke-Sqlcmd, ADO.NET…). Matched on the lower-cased command with single spaces. Hermes asks
+ * for these; Bochica blocks them, since EPLAN's parts databases are shared and have no undo.
+ */
+const SQL_DESTROY = [
+  /\bdrop (database|table|schema)\b/,
+  /\btruncate table\b/,
+  // DELETE FROM a table with nothing after it but the end of the statement: no WHERE.
+  /\bdelete (top \(?\d+\)? )?from [\w.[\]"]+ ?(;|"|'|\)|$)/,
+];
+/** Access files: EPLAN keeps parts (and macros, projects, translations) databases in them. */
+const DATABASE_FILE = /\.(mdb|accdb)\b/;
+const FILE_DELETE_API = /::delete\(|\.delete\(\)/;
+
 interface Findings {
   block?: CommandBlock;
   risks: Set<CommandRisk>;
@@ -150,6 +167,16 @@ export function assessCommand(command: string, context: CommandContext): Command
   };
   analyze(command, context, 0, findings);
   if (findings.block) return { block: findings.block };
+  // A parts database is shared and has no undo: destroying one is never one approval away.
+  const plain = command
+    .toLowerCase()
+    .replace(INVISIBLE, "")
+    .replace(/[`^]/g, "")
+    .replace(/\s+/g, " ");
+  if (SQL_DESTROY.some((pattern) => pattern.test(plain))) return { block: "sql-destroy" };
+  if (DATABASE_FILE.test(plain) && (findings.delete || FILE_DELETE_API.test(plain))) {
+    return { block: "parts-db-delete" };
+  }
 
   const env = lowerKeys(context.env);
   if (findings.download && findings.sink) return { block: "download-exec" };

@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { basename, dirname, isAbsolute } from "node:path";
 import { findFiles, getProvider, listModels, testConnection } from "@bochica/agent";
 import {
   AppInfo,
@@ -33,7 +35,7 @@ import {
   SkillList,
   UpdateStatus,
 } from "@bochica/shared";
-import { app, BrowserWindow, dialog, ipcMain, type WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, type WebContents } from "electron";
 import { z } from "zod";
 import type { ApprovalService } from "./approvals";
 import { type ChatService, keyFor } from "./chat";
@@ -242,6 +244,15 @@ export function registerIpc({
       return null;
     }
     return picked;
+  });
+
+  // Only report files the parts doctor wrote, in a folder a session could work in.
+  handle(ipcChannels.filesOpenReport, async (arg) => {
+    const path = z.string().max(2_000).parse(arg);
+    if (!isAbsolute(path) || !/^parts-report-\d{8}-\d{6}\.csv$/.test(basename(path))) return;
+    if (!folders.usable(dirname(path)) || !existsSync(path)) return;
+    const error = await shell.openPath(path);
+    if (error) logger.error("Opening the parts report failed", error);
   });
 
   // The renderer names the folder (its session's); it must be one a session could work in.

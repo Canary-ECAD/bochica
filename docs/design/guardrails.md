@@ -47,6 +47,16 @@ Refused regardless of approvals, "always allow" or YOLO mode. Windows-first list
 - Download-and-execute: `iwr … | iex`, `Invoke-Expression` over downloaded content,
   `curl … | powershell`, `Start-Process` on a just-downloaded file.
 - Killing Bochica itself (`Stop-Process -Name Bochica`, `taskkill /IM Bochica.exe`).
+- Destroying a database (S15): SQL `DROP DATABASE|TABLE|SCHEMA`, `TRUNCATE TABLE` and
+  `DELETE FROM` without `WHERE`, whatever sends it (`sqlcmd`, `osql`, `Invoke-Sqlcmd`, ADO.NET);
+  deleting an Access database file (`.mdb`, `.accdb`), where EPLAN keeps parts, macros and
+  projects databases. Hermes only asks for SQL `DROP`; Bochica refuses it, since a parts
+  database is shared by a team and has no undo.
+- EPLAN scripts that remove master data from the parts database (S15): code passed to
+  `eplan_execute_custom_script`, or the file given to `eplan_execute_script` /
+  `eplan_register_script`, that calls `RemovePart`, `RemoveDatabase`, `RemoveManufacturer`,
+  `RemoveCustomer` or `RemoveAllTranslations` (comments ignored; a file too large to read is
+  refused). `eplanBlock` in `packages/eplan/src/parts-guard.ts`.
 
 ### 3. User deny rules
 
@@ -113,6 +123,22 @@ Specific to Bochica:
   card has a text box and the action only runs after the user types the exact phrase it asks
   for (the project name, or a fixed word for bulk actions). Never allowed for the session, not
   skippable in YOLO mode.
+
+**The parts database** (S15) gets the same care as a project:
+
+- Changes go through `bochica__parts_fix` only, at most 100 parts a batch, with the batch shown
+  as a table (current value next to the new one) on its card. It asks, with "Allow for this
+  session", so a user in Auto can let batches run; the next two points hold in every mode.
+- Before the first batch of a session, the whole database is exported to
+  `userData\backups\parts\parts-<time>.xml`. No backup, no write.
+- After every batch, a smoke test: the changed parts are exported again and compared attribute
+  by attribute with what was asked (EPLAN's own change stamps aside), and the database's entry
+  count before and after. Any difference stops every further batch in that session; the result
+  names the backup and how to restore it.
+- Typed confirmation for replacing parts on import (`eplan_partsmanagement_import` mode 3),
+  pointing EPLAN at another parts database (`eplan_set_parts_data_source`) and restoring master
+  data.
+- Removing parts or databases is a hardline block (layer 2 above).
 
 ### 7. Secret isolation
 

@@ -16,7 +16,7 @@ export { LoginError, type LoginFailure, pkceLogin } from "./oauth";
 export { type PromptOptions, type PromptSkill, systemPrompt } from "./prompts";
 export { getProvider, providerIds, providers, type Provider } from "./providers";
 export { maskSecret, redactSecrets } from "./redact";
-export type { AgentTool, ApprovalAnswer, Approver, ToolApproval } from "./tools";
+export type { AgentTool, ApprovalAnswer, Approver, ToolApproval, ToolRunResult } from "./tools";
 export { deniedBy } from "./builtin/deny-rules";
 export { fileTools, findFiles } from "./builtin/files";
 export { checkPath, defaultPathPolicy, type PathPolicy } from "./builtin/paths";

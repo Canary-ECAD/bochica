@@ -25,6 +25,7 @@
   --secondary-foreground: oklch(0.3 0.01 60);
   --destructive: oklch(0.58 0.2 27);
   --success: oklch(0.55 0.13 150);
+  --warning: oklch(0.55 0.13 70);
   --code: oklch(0.965 0.005 85);
   --code-keyword: oklch(0.5 0.17 330);
   --code-string: oklch(0.5 0.13 150);
@@ -55,6 +56,7 @@
   --secondary-foreground: oklch(0.9 0.006 85);
   --destructive: oklch(0.65 0.19 25);
   --success: oklch(0.72 0.14 150);
+  --warning: oklch(0.78 0.13 75);
   --code: oklch(0.17 0.004 60);
   --code-keyword: oklch(0.75 0.13 330);
   --code-string: oklch(0.78 0.12 150);
@@ -84,6 +86,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-code: var(--code);
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);

@@ -1,4 +1,9 @@
-import { type ApprovalRequest, type Confirmation, confirmationMatches } from "@bochica/shared";
+import {
+  type ApprovalRequest,
+  type Confirmation,
+  confirmationMatches,
+  type PartsFixPreview,
+} from "@bochica/shared";
 import { ShieldAlert, ShieldQuestion } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -158,6 +163,7 @@ function changedLines(text: string, sign: "-" | "+") {
  */
 function CallPreview({ request }: { request: ApprovalRequest }) {
   const { t } = useTranslation();
+  if (request.preview?.kind === "parts-fix") return <PartsFixTable preview={request.preview} />;
   if (request.server !== "bochica") return null;
   const block = "max-h-48 overflow-auto rounded-md border bg-code p-2 font-mono text-xs";
   if (request.tool === "powershell") {
@@ -189,6 +195,44 @@ function CallPreview({ request }: { request: ApprovalRequest }) {
     );
   }
   return null;
+}
+
+/** A parts batch: every field it fills, with what the part holds now next to the new value. */
+function PartsFixTable({ preview }: { preview: PartsFixPreview }) {
+  const { t } = useTranslation();
+  return (
+    <div>
+      <p className="mb-1 text-xs text-muted-foreground">
+        {t("partsFix.summary", { count: preview.parts })}
+      </p>
+      <div className="max-h-64 overflow-auto rounded-md border">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-muted text-left">
+            <tr>
+              <th className="px-2 py-1 font-medium">{t("partsFix.part")}</th>
+              <th className="px-2 py-1 font-medium">{t("partsFix.field")}</th>
+              <th className="px-2 py-1 font-medium">{t("partsFix.current")}</th>
+              <th className="px-2 py-1 font-medium">{t("partsFix.new")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {preview.rows.map((row) => (
+              <tr key={`${row.partNumber}\u0000${row.field}`} className="border-t align-top">
+                <td className="px-2 py-1 font-mono break-all">{row.partNumber}</td>
+                <td className="px-2 py-1">
+                  {t(`partsFix.fields.${row.field}`, { defaultValue: row.field })}
+                </td>
+                <td className="px-2 py-1 break-all text-muted-foreground">
+                  {row.current || t("partsFix.empty")}
+                </td>
+                <td className="px-2 py-1 break-all text-success">{row.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function ConfirmField({

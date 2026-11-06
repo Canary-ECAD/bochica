@@ -1,3 +1,4 @@
+import type { ToolCard } from "@bochica/shared";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, CircleAlert, History, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -5,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ActivityGroup } from "@/components/activity-log";
 import { ApprovalCard } from "@/components/approval-card";
 import { Markdown } from "@/components/markdown";
+import { PartsReportCard } from "@/components/parts-report-card";
 import { PlanCard } from "@/components/plan-card";
 import { Button } from "@/components/ui/button";
 import type { Message, MessagePart, ToolPart } from "@/state/sessions";
@@ -145,6 +147,8 @@ function AssistantMessage({
                 : undefined
             }
           />
+        ) : group.type === "card" ? (
+          <PartsReportCard key={group.key} report={group.card} />
         ) : (
           <ActivityGroup key={group.key} parts={group.parts} />
         ),
@@ -219,7 +223,8 @@ function ErrorNotice({
 type PartGroup =
   | { type: "text"; key: string; text: string }
   | { type: "tools"; key: string; parts: ToolPart[] }
-  | { type: "plan"; key: string; part: ToolPart };
+  | { type: "plan"; key: string; part: ToolPart }
+  | { type: "card"; key: string; card: ToolCard };
 
 const isPlan = (part: ToolPart) =>
   part.server === "bochica" && part.tool === "propose_plan" && part.status === "ok";
@@ -240,6 +245,10 @@ function groupParts(parts: MessagePart[]): PartGroup[] {
       previous.parts.push(part);
     } else {
       groups.push({ type: "tools", key: part.callId, parts: [part] });
+    }
+    // A result with a card of its own (the parts report) shows it right after its call.
+    if (part.type === "tool" && part.card) {
+      groups.push({ type: "card", key: `card-${part.callId}`, card: part.card });
     }
   }
   return groups;

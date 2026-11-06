@@ -31,7 +31,6 @@ import {
   assistantPlaceholder,
   ChatEvent,
   type ChatMessage,
-  type ChatMode,
   type ChatSendRequest,
   type ConversationMessage,
   ipcChannels,
@@ -51,6 +50,7 @@ import type { SessionRepository } from "./db/repository";
 import { builtinTools, type FolderService } from "./folders";
 import type { Logger } from "./logger";
 import { EPLAN_SERVER_ID } from "./mcp-service";
+import type { PartsService } from "./parts";
 import type { PermissionStore } from "./permissions";
 import type { SkillService } from "./skills";
 
@@ -71,6 +71,8 @@ export interface ChatDeps {
   folders: FolderService;
   permissions: PermissionStore;
   checkpoints: CheckpointService;
+  /** The parts database doctor's tools (Tasks mode). */
+  parts?: PartsService;
   logger: Logger;
   /** Tools that don't come from MCP servers (e.g. the dev-only approval test tool). */
   extraTools?: AgentTool[];
@@ -92,6 +94,7 @@ export class ChatService {
   private readonly folders: FolderService;
   private readonly permissions: PermissionStore;
   private readonly checkpoints: CheckpointService;
+  private readonly parts: PartsService | undefined;
   private readonly logger: Logger;
   private readonly extraTools: AgentTool[];
 
@@ -106,6 +109,7 @@ export class ChatService {
     this.folders = deps.folders;
     this.permissions = deps.permissions;
     this.checkpoints = deps.checkpoints;
+    this.parts = deps.parts;
     this.logger = deps.logger;
     this.extraTools = deps.extraTools ?? [];
   }
@@ -117,12 +121,13 @@ export class ChatService {
    * read-only tools. In plan mode, only what reads, plus propose_plan.
    */
   private toolsFor(
-    mode: ChatMode,
+    request: Pick<ChatSendRequest, "mode" | "sessionId" | "language">,
     folder: string,
     skills: SkillSet,
     model: Model,
     plan: boolean,
   ): AgentTool[] {
+    const { mode } = request;
     const mcpTools = this.mcp
       .tools()
       .filter((tool) => tool.server !== EPLAN_SERVER_ID || eplanToolInMode(tool.tool, mode));
@@ -133,7 +138,16 @@ export class ChatService {
       process.env,
       this.permissions.denyRules(),
     );
-    const own = [...mcpTools, ...skills.tools(), ...builtin, ...this.extraTools];
+    // The parts doctor works on EPLAN's database: Tasks mode only, like the EPLAN tools.
+    const parts =
+      mode === "tasks" && this.parts
+        ? this.parts.tools({
+            sessionId: request.sessionId,
+            folder,
+            language: request.language ?? "en",
+          })
+        : [];
+    const own = [...mcpTools, ...skills.tools(), ...builtin, ...parts, ...this.extraTools];
     const files = builtin.length > 0 ? `The user's working folder is ${folder}.` : undefined;
     const helper = subagentTool({ model, tools: own, ...(files ? { context: files } : {}) });
     const all = [...own, todoTool, helper];
@@ -258,7 +272,7 @@ export class ChatService {
         const plan = request.plan ?? false;
         const folder = await this.folderOf(request.sessionId);
         const skills = this.skills.available();
-        const tools = this.toolsFor(request.mode, folder, skills, model, plan);
+        const tools = this.toolsFor(request, folder, skills, model, plan);
         const find = (name: string) => tools.find((t) => t.server === "bochica" && t.tool === name);
         const guides = request.mode === "consult" ? this.skills.guides() : [];
         const messages = expandSkillCommands(request.messages, (name) => skills.find(name));

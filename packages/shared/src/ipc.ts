@@ -44,6 +44,8 @@ export const ipcChannels = {
   foldersDefault: "folders:default",
   foldersPick: "folders:pick",
   filesSearch: "files:search",
+  /** Opens a parts report CSV in the program Windows uses for it. */
+  filesOpenReport: "files:open-report",
   skillsList: "skills:list",
   skillsInstall: "skills:install",
   skillsRemove: "skills:remove",
@@ -200,6 +202,8 @@ export const ChatSendRequest = z.object({
   contextWindow: z.number().int().positive().max(100_000_000).optional(),
   /** Plan mode: only tools that read, and the model proposes a plan instead of acting. */
   plan: z.boolean().optional(),
+  /** The app's language ("es"), for what Bochica writes into EPLAN on the user's behalf. */
+  language: z.string().min(2).max(20).optional(),
 });
 export type ChatSendRequest = z.infer<typeof ChatSendRequest>;
 
@@ -230,6 +234,53 @@ export const FileDiff = z.object({
   patch: z.string(),
 });
 export type FileDiff = z.infer<typeof FileDiff>;
+
+export const PartsSeverity = z.enum(["serious", "medium", "minor"]);
+export type PartsSeverity = z.infer<typeof PartsSeverity>;
+
+/** The parts database report, as its card shows it: counts and a few part numbers per rule. */
+export const PartsReport = z.object({
+  kind: z.literal("parts-report"),
+  total: z.number().int().nonnegative(),
+  /** The CSV with every finding, in the working folder. */
+  csv: z.string(),
+  rules: z
+    .array(
+      z.object({
+        id: z.string(),
+        severity: PartsSeverity,
+        count: z.number().int().nonnegative(),
+        examples: z.array(z.string()).max(10),
+      }),
+    )
+    .max(50),
+});
+export type PartsReport = z.infer<typeof PartsReport>;
+
+/** Something a tool result shows as a card of its own, besides its text. */
+export const ToolCard = z.discriminatedUnion("kind", [PartsReport]);
+export type ToolCard = z.infer<typeof ToolCard>;
+
+/** A batch of parts database changes, as its approval card shows it. */
+export const PartsFixPreview = z.object({
+  kind: z.literal("parts-fix"),
+  parts: z.number().int().nonnegative(),
+  rows: z
+    .array(
+      z.object({
+        partNumber: z.string(),
+        field: z.string(),
+        current: z.string(),
+        value: z.string(),
+      }),
+    )
+    .max(500),
+});
+export type PartsFixPreview = z.infer<typeof PartsFixPreview>;
+
+/** What an approval card shows about the call besides its sentence. */
+export const ApprovalPreview = z.discriminatedUnion("kind", [PartsFixPreview]);
+export type ApprovalPreview = z.infer<typeof ApprovalPreview>;
 
 /**
  * Why a call ran without a card: one of the user's "Always allow" rules, smart approval (the
@@ -297,6 +348,8 @@ export const TurnEvent = z.discriminatedUnion("type", [
     blocked: z.string().optional(),
     /** What a file write changed. */
     diff: FileDiff.optional(),
+    /** A card the result shows, such as the parts report. */
+    card: ToolCard.optional(),
     /** Set when the call was allowed without asking the user. */
     auto: AutoApproval.optional(),
   }),
@@ -363,6 +416,8 @@ export const ApprovalRequest = z.object({
   confirm: Confirmation.optional(),
   /** Why Bochica flagged this call, e.g. "recursive-delete"; the card explains each one. */
   risks: z.array(z.string()).optional(),
+  /** What exactly will change, when the tool can say, e.g. a parts batch as a table. */
+  preview: ApprovalPreview.optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
@@ -657,6 +712,8 @@ export interface BochicaApi {
   files: {
     /** Files of a working folder whose path contains the query, as relative paths. */
     search(request: FileSearchRequest): Promise<string[]>;
+    /** Opens a parts report CSV (only those, inside a usable working folder). */
+    openReport(path: string): Promise<void>;
   };
   skills: {
     list(): Promise<SkillInfo[]>;

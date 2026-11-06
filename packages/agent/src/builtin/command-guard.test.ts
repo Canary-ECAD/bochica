@@ -43,6 +43,16 @@ const blocked: Array<[string, CommandBlock]> = [
   ["format D: /q", "disk"],
   ["cipher /w:C:\\", "disk"],
   ["Get-Disk 1 | Clear-Disk", "disk"],
+  // Destroying a database (EPLAN's parts databases are shared and have no undo).
+  ['sqlcmd -S srv\\EPLAN -Q "DROP DATABASE Parts"', "sql-destroy"],
+  ["Invoke-Sqlcmd -Query 'drop   table tblPart' -ServerInstance srv", "sql-destroy"],
+  ['osql -E -Q "TRUNCATE TABLE tblPart"', "sql-destroy"],
+  ['Invoke-Sqlcmd -Query "DELETE FROM tblPart" -ServerInstance srv', "sql-destroy"],
+  ['Invoke-Sqlcmd -Query "DELETE FROM dbo.tblPart;"', "sql-destroy"],
+  ['$c.CommandText = "DELETE TOP (100) FROM [tblPart]"', "sql-destroy"],
+  ["Remove-Item C:\\Data\\Parts\\Demo\\ESS_part001.mdb", "parts-db-delete"],
+  ["del .\\parts.accdb", "parts-db-delete"],
+  ["[System.IO.File]::Delete('D:\\EPLAN\\parts.mdb')", "parts-db-delete"],
   // Recursive deletes of the system or the user's profile.
   ["Remove-Item C:\\ -Recurse", "system-delete"],
   ["Remove-Item -Path C:\\* -Recurse -Force", "system-delete"],
@@ -149,6 +159,9 @@ const risky: Array<[string, CommandRisk[]]> = [
 ];
 
 const allowed = [
+  'Invoke-Sqlcmd -Query "SELECT COUNT(*) FROM tblPart" -ServerInstance srv',
+  'Invoke-Sqlcmd -Query "DELETE FROM tblTemp WHERE id = 3"',
+  "Copy-Item .\\parts.mdb .\\parts-copy.mdb",
   "Get-ChildItem -Recurse",
   "Get-ChildItem C:\\ -Recurse -Filter *.elk",
   "Get-ChildItem -Path . -Recurse | Select-String 'macro'",

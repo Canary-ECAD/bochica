@@ -6,6 +6,7 @@ import { EplanStatus, ipcChannels, McpServerList, UpdateStatus } from "@bochica/
 import { app, BrowserWindow, safeStorage, shell } from "electron";
 import { ApprovalService } from "./approvals";
 import { BackupGuard } from "./backup";
+import { PartsService } from "./parts";
 import { ChatService, devEchoTool } from "./chat";
 import { CheckpointService } from "./checkpoints";
 import { ClaudeCodeService } from "./claude-code";
@@ -217,6 +218,12 @@ else
       `bochica/${app.getVersion()}`,
       app.getPath("userData"),
     );
+    const parts = new PartsService({
+      call: (tool, args, signal) => mcp.manager.callTool(EPLAN_SERVER_ID, tool, args, signal),
+      workRoot: join(app.getPath("userData"), "parts"),
+      backupRoot: join(app.getPath("userData"), "backups", "parts"),
+      fetch: (url, init) => fetch(url, init),
+    });
     const chat = new ChatService({
       credentials,
       claudeCode,
@@ -228,6 +235,7 @@ else
       folders,
       permissions,
       checkpoints,
+      parts,
       logger,
       extraTools: devTools,
     });

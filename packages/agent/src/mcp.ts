@@ -30,6 +30,8 @@ interface ServerBase {
   policy: (tool: McpToolInfo) => ToolPolicy;
   /** Which calls are destructive enough to need typed confirmation. */
   confirm?: (tool: McpToolInfo, input: unknown) => Confirmation | null;
+  /** Which calls are refused outright (guardrails layer 1), with the reason. */
+  block?: (tool: McpToolInfo, input: unknown) => { block: string; reason: string } | null;
 }
 
 export type McpServerConfig = ServerBase &
@@ -261,6 +263,9 @@ export class McpManager {
       changesProject: policy.changesProject,
       ...(entry.config.confirm
         ? { confirmation: (input: unknown) => entry.config.confirm?.(info, input) ?? null }
+        : {}),
+      ...(entry.config.block
+        ? { assess: (input: unknown) => entry.config.block?.(info, input) ?? { risks: [] } }
         : {}),
       execute: async (input, signal) => {
         const connection = entry.connection;

@@ -93,7 +93,7 @@ for every rule except the ERP number, which is the user's own.
 - [ ] Whether an update-only import (mode 1) of one field leaves the rest of the part as it was,
       and the smallest import file that does it. Run on a dummy database during the demo, never
       on a real one.
-- [ ] The EPLAN API calls that remove parts, for the script hardline.
+- [x] The EPLAN API calls that remove parts, for the script hardline.
 - [ ] On the dummy database, during the demo: the add-in's actions exist on P8 2025; downloading a
       part the database already has puts its macro in the macros folder, and whether it changes
       the part. This decides whether S15-09 needs its fallback.
@@ -134,75 +134,75 @@ starts the server as Bochica does.
 
 Packages: eplan (`src/parts/`).
 
-- [ ] `readPartsXml(path)` streams the export into typed parts (Zod): the rules' properties,
+- [x] `readPartsXml(path)` streams the export into typed parts (Zod): the rules' properties,
       multi-language values parsed, variants with their function template count.
-- [ ] `writePartsUpdateXml(changes)` writes an import file with only the changed parts and
+- [x] `writePartsUpdateXml(changes)` writes an import file with only the changed parts and
       fields; multi-language values keep their other languages.
-- [ ] A made-up fixture export (`fixtures/parts-sample.xml`) with tests for both, including a
+- [x] A made-up fixture export (`fixtures/parts-sample.xml`) with tests for both, including a
       round trip.
 
 ### S15-03 · Rules and report
 
 Packages: eplan (`parts/rules.ts`, `parts/report.ts`), desktop (tool wiring).
 
-- [ ] The rules table above, each rule with a sentence in en/es.
-- [ ] Tool `bochica__parts_report` (Tasks mode, never asks; calls the export through
+- [x] The rules table above, each rule with a sentence in en/es.
+- [x] Tool `bochica__parts_report` (Tasks mode, never asks; calls the export through
       `McpManager`): optional `rules`, product group and manufacturer filters; writes
       `parts-report-<date>.csv` (part, rule, severity) in the working folder and returns counts
       per rule and severity plus up to 10 examples each.
-- [ ] A table test per rule on the fixture, the ERP exception included.
+- [x] A table test per rule on the fixture, the ERP exception included.
 
 ### S15-04 · Report card
 
 Packages: desktop (renderer), shared.
 
-- [ ] The tool's part renders as `PartsReportCard`: total parts, rules grouped by severity with
+- [x] The tool's part renders as `PartsReportCard`: total parts, rules grouped by severity with
       their counts, expandable to examples, and "Open CSV". Rules with nothing to report are
       folded away.
-- [ ] Activity sentences for both tools (`activity.*`), strings in en/es.
+- [x] Activity sentences for both tools (`activity.*`), strings in en/es.
 
 ### S15-05 · Fixes with backup and smoke test
 
 Packages: eplan, desktop (main, renderer).
 
-- [ ] Tool `bochica__parts_fix`: a batch of `{ partNumber, field, value }`, at most 100 parts,
+- [x] Tool `bochica__parts_fix`: a batch of `{ partNumber, field, value }`, at most 100 parts,
       only the rules' fields; asks, with "Allow for this session".
-- [ ] Its approval card shows the batch as a table, current value next to the new one, read from
+- [x] Its approval card shows the batch as a table, current value next to the new one, read from
       the latest export.
-- [ ] Before the first write of a session, in every mode, a full export to
+- [x] Before the first write of a session, in every mode, a full export to
       `userData\backups\parts\<time>.xml` (`PartsBackupGuard`); a failed backup stops the write.
-- [ ] One mode 1 import per batch, then the smoke test: changed parts exported again and
+- [x] One mode 1 import per batch, then the smoke test: changed parts exported again and
       compared field by field, part count before and after. Any difference stops further batches
       in the session until the user says so, and the result names the backup.
-- [ ] Tests: the card's table, one backup per session, a failed smoke test blocks the next batch,
+- [x] Tests: the card's table, one backup per session, a failed smoke test blocks the next batch,
       Auto still backs up and checks.
 
 ### S15-06 · Guardrails for the parts database
 
 Packages: agent (`builtin/command-guard.ts`), eplan (`confirmation.ts`, `tool-policy.ts`), docs.
 
-- [ ] Typed confirmation for `eplan_partsmanagement_import` with mode 3,
+- [x] Typed confirmation for `eplan_partsmanagement_import` with mode 3,
       `eplan_set_parts_data_source` and `eplan_restore_masterdata`, with tests.
-- [ ] Hardline patterns in `assessCommand`: SQL `DROP DATABASE|TABLE`, `TRUNCATE`, `DELETE FROM`
+- [x] Hardline patterns in `assessCommand`: SQL `DROP DATABASE|TABLE`, `TRUNCATE`, `DELETE FROM`
       without `WHERE` through `sqlcmd`, `Invoke-Sqlcmd`, `osql` or `-Query`; deleting `.mdb` or
       `.accdb` parts database files. A row each in the table test and a sentence in en/es.
-- [ ] `eplan_execute_custom_script` and `eplan_execute_script` are blocked when their code calls
+- [x] `eplan_execute_custom_script` and `eplan_execute_script` are blocked when their code calls
       the parts removal API found in S15-01.
-- [ ] `docs/design/guardrails.md` lists the parts database protections.
+- [x] `docs/design/guardrails.md` lists the parts database protections.
 
 ### S15-07 · Look parts up on the Data Portal
 
 Packages: agent or desktop (main), eplan.
 
-- [ ] `bochica__parts_lookup`: part numbers (22001), given by the user or taken from the report's
+- [x] `bochica__parts_lookup`: part numbers (22001), given by the user or taken from the report's
       flagged parts, in chunks through `POST /partscheck`, then `GET /parts/{id}` for each hit.
       Public endpoints, no token, never asks, read-only. Returns per part: found or not, the
       portal's id and page, description per language, manufacturer, schematic macro path,
       whether it has function templates and a picture. A hit whose manufacturer differs from the
       database's is reported as not a match.
-- [ ] Description and manufacturer become `parts_fix` batches, the description in the user's
+- [x] Description and manufacturer become `parts_fix` batches, the description in the user's
       language when the portal has it, else English.
-- [ ] Errors (429, the portal down) become sentences that say what to do; nothing retries in a
+- [x] Errors (429, the portal down) become sentences that say what to do; nothing retries in a
       loop. Tests with a fake HTTP server.
 
 ### S15-08 · Data Portal tools in eplan-mcp
@@ -224,7 +224,7 @@ Packages: eplan, desktop.
 - [ ] For parts whose schematic macro is missing and the portal has one, the agent queues them
       with `eplan_dataportal_add_to_download_list`, tells the user what to click in EPLAN, and
       waits for them to say it's done.
-- [ ] Then the portal's macro path is looked for under the macros folder (`$(MD_MACROS)`
+- [x] Then the portal's macro path is looked for under the macros folder (`$(MD_MACROS)`
       resolved through EPLAN's settings); where the file is there, `parts_fix` proposes 22145
       with that path. Parts still without a file are listed.
 - [ ] Fallback, only if S15-01 shows the add-in route fails: a Data Portal PAT in Settings

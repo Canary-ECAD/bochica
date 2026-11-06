@@ -68,6 +68,24 @@ describe("eplanConfirmation", () => {
       { action_id: "PurgeUnusedData", project_name: demo },
       { type: "name", value: "Demo" },
     ],
+    [
+      "an import that replaces parts",
+      "eplan_partsmanagement_import",
+      { import_file: "C:\\Work\\parts.xml", mode: 3 },
+      { type: "word" },
+    ],
+    [
+      "switching the parts database",
+      "eplan_set_parts_data_source",
+      { data_source: "1" },
+      { type: "word" },
+    ],
+    [
+      "restoring master data",
+      "eplan_restore_masterdata",
+      { archive: "C:\\Backups\\parts.zw9" },
+      { type: "word" },
+    ],
   ] as const)("%s", (_case, tool, input, expected) => {
     expect(eplanConfirmation({ name: tool }, input)).toEqual(expected);
   });
@@ -104,6 +122,8 @@ describe("eplanConfirmation", () => {
     ["setting a property", "eplan_set_project_property", { project_name: demo, value: "removed?" }],
     ["reading", "eplan_get_current_project", {}],
     ["exports", "eplan_export_pdf_project", { project_name: demo }],
+    ["an import that updates", "eplan_partsmanagement_import", { import_file: "x.xml", mode: 1 }],
+    ["an import that appends", "eplan_partsmanagement_import", { import_file: "x.xml" }],
   ] as const)("not for %s", (_case, tool, input) => {
     expect(eplanConfirmation({ name: tool }, input)).toBeNull();
   });

@@ -83,6 +83,10 @@ const commandBlockReasons: Record<CommandBlock, string> = {
   boot: "changing boot settings or deleting backups and restore points is never allowed.",
   "download-exec": "downloading something and running it is never allowed.",
   "kill-bochica": "stopping Bochica itself is never allowed.",
+  "sql-destroy":
+    "dropping, truncating or emptying a database is never allowed: EPLAN's parts databases are shared and have no undo.",
+  "parts-db-delete":
+    "deleting an Access database file (where EPLAN keeps parts, macros and projects) is never allowed.",
 };
 
 /** Layer 1 for the terminal: the folder it runs in must be absolute, real and not a device. */

@@ -12,6 +12,7 @@ import {
   toHistory,
   userMessage,
 } from "@bochica/shared";
+import i18n from "i18next";
 import { create } from "zustand";
 import { useMode } from "./mode";
 import { permissionOf } from "./permission";
@@ -228,6 +229,7 @@ export function sendMessage(sessionId: string, text: string, choice: ModelChoice
       ...(session.folder ? { folder: session.folder } : {}),
       ...(choice.contextWindow ? { contextWindow: choice.contextWindow } : {}),
       ...(permissionOf(sessionId) === "plan" ? { plan: true } : {}),
+      ...(i18n.resolvedLanguage ? { language: i18n.resolvedLanguage } : {}),
     })
     .catch((error: unknown) =>
       useSessions.getState().applyEvent({

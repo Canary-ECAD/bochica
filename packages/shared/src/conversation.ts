@@ -6,6 +6,7 @@ import {
   Compaction,
   ContextUsage,
   FileDiff,
+  ToolCard,
   ToolStatus,
   type TurnEvent,
 } from "./ipc";
@@ -24,6 +25,7 @@ export const ToolPart = z.object({
   output: z.string().optional(),
   blocked: z.string().optional(),
   diff: FileDiff.optional(),
+  card: ToolCard.optional(),
   /** Why it ran without asking, when it did. */
   auto: AutoApproval.optional(),
 });
@@ -129,6 +131,7 @@ export function applyTurnEvent(
                 output: event.output,
                 ...(event.blocked ? { blocked: event.blocked } : {}),
                 ...(event.diff ? { diff: event.diff } : {}),
+                ...(event.card ? { card: event.card } : {}),
                 ...(event.auto ? { auto: event.auto } : {}),
               }
             : p,

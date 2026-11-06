@@ -88,6 +88,7 @@ export async function* runTurn({
             output: truncate(outcome.text, DISPLAY_OUTPUT_LIMIT),
             ...(outcome.blocked ? { blocked: outcome.blocked } : {}),
             ...(outcome.diff ? { diff: outcome.diff } : {}),
+            ...(outcome.card ? { card: outcome.card } : {}),
             ...(outcome.auto ? { auto: outcome.auto } : {}),
           };
           break;

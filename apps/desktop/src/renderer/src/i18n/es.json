@@ -278,6 +278,18 @@
       "rule": "Permitido por tu regla «Permitir siempre»",
       "smart": "Permitido por la aprobación inteligente: solo lee",
       "auto": "Permitido por el modo Auto"
+    },
+    "parts": {
+      "report": "Revisó la base de artículos",
+      "reportRequest": "Revisar la base de artículos",
+      "lookup_one": "Buscó un artículo en el Data Portal",
+      "lookup_other": "Buscó {{count}} artículos en el Data Portal",
+      "lookupRequest_one": "Buscar un artículo en el Data Portal",
+      "lookupRequest_other": "Buscar {{count}} artículos en el Data Portal",
+      "fix_one": "Cambió un artículo de la base de artículos",
+      "fix_other": "Cambió {{count}} artículos de la base de artículos",
+      "fixRequest_one": "Cambiar un artículo de la base de artículos",
+      "fixRequest_other": "Cambiar {{count}} artículos de la base de artículos"
     }
   },
   "approval": {
@@ -413,7 +425,12 @@
     "invalid-path": "la ruta no es una ruta de archivo válida.",
     "protected-path": "esa carpeta está protegida (contraseñas, datos del navegador, datos de Bochica o Windows).",
     "secret-file": "los archivos como .env guardan contraseñas y claves.",
-    "user-rule": "lo prohíbe una de tus reglas «No permitir nunca» de Ajustes."
+    "user-rule": "lo prohíbe una de tus reglas «No permitir nunca» de Ajustes.",
+    "parts-halted": "un lote anterior no pasó la comprobación, así que en esta sesión no se cambian más artículos.",
+    "parts-invalid": "el lote de cambios de artículos no es válido.",
+    "sql-destroy": "borraría, vaciaría o eliminaría una base de datos.",
+    "parts-db-delete": "borraría un archivo de base de artículos.",
+    "parts-remove": "el script borraría artículos de la base de artículos."
   },
   "folder": {
     "choose": "Carpeta de trabajo: {{folder}}. Haz clic para elegir otra.",
@@ -575,6 +592,46 @@
       "question": "¿Qué es una macro en EPLAN Electric P8 y cómo inserto una en una página?",
       "ask": "Preguntar",
       "noModel": "Conecta antes un modelo (vuelve un paso atrás) para hacerla."
+    }
+  },
+  "partsReport": {
+    "title": "Informe de la base de artículos",
+    "total_one": "{{total}} artículo revisado",
+    "total_other": "{{total}} artículos revisados",
+    "allGood": "Todos los artículos cumplen todas las reglas.",
+    "passing": "Sin huecos: {{rules}}.",
+    "more_one": "y {{count}} más",
+    "more_other": "y {{count}} más",
+    "openCsv": "Abrir la lista completa",
+    "severity": {
+      "serious": "Grave",
+      "medium": "Medio",
+      "minor": "Leve"
+    },
+    "rule": {
+      "part-number": "Sin número de artículo",
+      "erp-number": "Sin número ERP",
+      "manufacturer": "Sin fabricante",
+      "description": "Sin descripción",
+      "schematic-macro": "Sin macro de esquema",
+      "picture": "Sin imagen",
+      "function-templates": "Sin plantillas de funciones"
+    }
+  },
+  "partsFix": {
+    "summary_one": "Cambiará {{count}} artículo. Antes del primer cambio se hace una copia de toda la base y cada lote se comprueba después.",
+    "summary_other": "Cambiarán {{count}} artículos. Antes del primer cambio se hace una copia de toda la base y cada lote se comprueba después.",
+    "part": "Artículo",
+    "field": "Campo",
+    "current": "Ahora",
+    "new": "Nuevo",
+    "empty": "(vacío)",
+    "fields": {
+      "erp": "Número ERP",
+      "manufacturer": "Fabricante",
+      "description": "Descripción",
+      "schematicMacro": "Macro de esquema",
+      "picture": "Imagen"
     }
   }
 }

@@ -1,6 +1,7 @@
 import { McpManager, type McpServerConfig, readOnlyPolicy } from "@bochica/agent";
 import {
   defaultMcpServers,
+  eplanBlock,
   eplanConfirmation,
   type EplanServerLaunch,
   eplanServerLaunch,
@@ -35,6 +36,7 @@ function toConfig(
     required: true,
     policy: eplanToolPolicy,
     confirm: eplanConfirmation,
+    block: eplanBlock,
   };
 }
 
