@@ -4,9 +4,10 @@
 **Goal:** a user asks "check my parts database" and gets a report graded by severity: parts
 without an ERP number, a manufacturer, a description, a schematic macro, a picture or function
 templates. Fixes come in batches; the database is backed up before the first write and checked
-after every batch, in every permission mode, and nothing can destroy it. Where the Data Portal
-has the part, Bochica suggests what is missing from there. The checks are a table that grows a
-rule at a time. Canary-ECAD/bochica#1.
+after every batch, in every permission mode, and nothing can destroy it. Bochica finds a flagged
+part on the Data Portal by its part number, suggests its description, and brings its macro
+through EPLAN's own Data Portal. The checks are a table that grows a rule at a time.
+Canary-ECAD/bochica#1.
 
 ## Rules
 
@@ -32,8 +33,8 @@ for every rule except the ERP number, which is the user's own.
 
 - **eplan-mcp v1.0.0** (pinned) reads and writes the parts database through EPLAN's own API, so
   the backend (Access, SQL Server…) doesn't matter: `eplan_partsmanagement_export` (`XPamExportXml`,
-  `["*"]` for every part) and `_import` (modes 0 append, 1 update, 2 update + append, 3 replace
-  - append), `eplan_parts_db_*`, `eplan_set_parts_data_source`, `eplan_restore_masterdata`.
+  `["*"]` for every part) and `_import` (modes 0 append, 1 update, 2 update and append, 3
+  replace and append), `eplan_parts_db_*`, `eplan_set_parts_data_source`, `eplan_restore_masterdata`.
 - **The Data Portal web API** (`https://dataportal.eplan.com/api`) answers part checks, search
   and part details without a token.
 
@@ -63,13 +64,22 @@ for every rule except the ERP number, which is the user's own.
     `DROP DATABASE|TABLE`, `TRUNCATE`, `DELETE FROM` without `WHERE`); deleting a parts database
     file; EPLAN scripts that remove parts from the database. Hermes only asks for SQL `DROP`;
     Bochica blocks it, since a parts database is shared and has no undo.
-- **The Data Portal only suggests.** Public endpoints, no token: for a flagged part found on the
-  portal, its description (in the user's language when the portal has it) and manufacturer go
-  into a `parts_fix` batch for the user to approve; for a missing macro, picture or function
-  templates the report links the portal page. Never the ERP number.
-- **Out of this sprint** (BACKLOG.md): importing from the portal (download list, PAT, the add-in);
-  parts a project uses that the database lacks; the portal's lifecycle check; whether macro and
-  picture files exist on disk; rules the user writes; a view of its own for the report.
+- **The Data Portal, by part number.** A flagged part is looked up by its 22001 part number
+  (`partscheck`, public, no token); a hit whose manufacturer differs is not a match. Its
+  description (in the user's language when the portal has it) and manufacturer go into a
+  `parts_fix` batch for the user to approve. Never the ERP number.
+- **Macros come through EPLAN's Data Portal.** Bochica queues the parts in the download list with
+  the add-in's own action and EPLAN's sign-in (the tools of Canary-ECAD/eplan-mcp#75, brought
+  into eplan-mcp and pinned by a new tag); the user downloads in EPLAN. The portal skips the part
+  data of parts the database already has, so once the macro file is in the macros folder,
+  `parts_fix` sets 22145 to it. Only supported surfaces: the documented API and the add-in,
+  never the webview's internal calls, which carry the EPLAN licence.
+- **The web API's download list is the fallback**, only if the add-in route fails on the dummy
+  database: `POST /basketitems` with a PAT the user makes in their ePulse profile and pastes like
+  an API key.
+- **Out of this sprint** (BACKLOG.md): parts a project uses that the database lacks; the portal's
+  lifecycle check; whether picture files exist on disk; rules the user writes; a view of its own
+  for the report.
 
 ## Tasks
 
@@ -84,6 +94,9 @@ for every rule except the ERP number, which is the user's own.
       and the smallest import file that does it. Run on a dummy database during the demo, never
       on a real one.
 - [ ] The EPLAN API calls that remove parts, for the script hardline.
+- [ ] On the dummy database, during the demo: the add-in's actions exist on P8 2025; downloading a
+      part the database already has puts its macro in the macros folder, and whether it changes
+      the part. This decides whether S15-09 needs its fallback.
 
 #### Findings
 
@@ -177,46 +190,82 @@ Packages: agent (`builtin/command-guard.ts`), eplan (`confirmation.ts`, `tool-po
       the parts removal API found in S15-01.
 - [ ] `docs/design/guardrails.md` lists the parts database protections.
 
-### S15-07 · Suggestions from the Data Portal
+### S15-07 · Look parts up on the Data Portal
 
 Packages: agent or desktop (main), eplan.
 
-- [ ] `dataportal_check` (part numbers, in chunks) and `dataportal_part` (details): public
-      endpoints, no token, never ask, read-only.
-- [ ] For flagged parts found on the portal, the report offers description and manufacturer as
-      `parts_fix` batches, the description in the user's language when the portal has it, else
-      English; for macro, picture and function templates it gives the portal link.
+- [ ] `bochica__parts_lookup`: part numbers (22001), given by the user or taken from the report's
+      flagged parts, in chunks through `POST /partscheck`, then `GET /parts/{id}` for each hit.
+      Public endpoints, no token, never asks, read-only. Returns per part: found or not, the
+      portal's id and page, description per language, manufacturer, schematic macro path,
+      whether it has function templates and a picture. A hit whose manufacturer differs from the
+      database's is reported as not a match.
+- [ ] Description and manufacturer become `parts_fix` batches, the description in the user's
+      language when the portal has it, else English.
 - [ ] Errors (429, the portal down) become sentences that say what to do; nothing retries in a
       loop. Tests with a fake HTTP server.
 
-### S15-08 · The parts-doctor skill
+### S15-08 · Data Portal tools in eplan-mcp
+
+Repository: Canary-ECAD/eplan-mcp, then Bochica (`components:bump`).
+
+- [ ] `eplan_dataportal_add_to_download_list` and `eplan_dataportal_search_count` from
+      Canary-ECAD/eplan-mcp#75 (the add-in's actions through a fixed script, `userAction` in the
+      result), with their annotations and facts in `TOOL_FLAGS`, tests and `llm.md`. The PR's
+      `Console.Out` change comes along: the greeting is harmless to Bochica but breaks stricter
+      clients.
+- [ ] A new tag, pinned in Bochica; `eplan-tool-policies.json` reviewed for the two tools (search
+      never asks; queueing asks, since it changes the user's online list).
+
+### S15-09 · Bring the macro in
+
+Packages: eplan, desktop.
+
+- [ ] For parts whose schematic macro is missing and the portal has one, the agent queues them
+      with `eplan_dataportal_add_to_download_list`, tells the user what to click in EPLAN, and
+      waits for them to say it's done.
+- [ ] Then the portal's macro path is looked for under the macros folder (`$(MD_MACROS)`
+      resolved through EPLAN's settings); where the file is there, `parts_fix` proposes 22145
+      with that path. Parts still without a file are listed.
+- [ ] Fallback, only if S15-01 shows the add-in route fails: a Data Portal PAT in Settings
+      (stored with `safeStorage` like an API key, Test with `GET /basketitems`, 401 explained) and
+      queueing through `POST /basketitems`.
+
+### S15-10 · The parts-doctor skill
 
 Packages: desktop (main `skills.ts`), a bundled skill folder.
 
 - [ ] `SkillService` loads skills bundled with the app (`resources\skills` packaged), listed with
       the built-in ones and on by default.
 - [ ] `parts-doctor/SKILL.md`: when to use it, the rules and severities, the order (report,
-      serious first, batches the user approves, the portal for suggestions), what never to do
+      serious first, batches the user approves, the portal by part number, macros through the
+      download list), what never to do
       (invent an ERP number, write descriptions in another language, skip the report before a
       fix), and how to read a failed smoke test.
 - [ ] A test that the bundled skill loads and passes the injection scan.
 
-### S15-09 · Docs
+### S15-11 · Docs
 
 - [ ] CLAUDE.md (parts tools, bundled skills, parts guardrails), README and README.es (one
       feature line), BACKLOG.
 
 ## Demo
 
-On a **dummy** parts database selected in EPLAN (made-up parts with planted gaps: no ERP on two,
-one of them discontinued; no description; no schematic macro; no function templates), in Tasks
-mode: "check my parts database" shows the report card grouped by severity, the discontinued part
-not counted for ERP, and writes the CSV. "Fix the descriptions" shows one card with the table;
-approving it backs the database up once, the smoke test passes and the report shows them fixed.
-In Auto, a second batch runs without a card, still checked. A part found on the Data Portal gets
-its description suggested in Spanish. Asking to "delete the parts database" is blocked, and so is
-a `sqlcmd … DROP DATABASE`. The mode 1 round trip from S15-01 is checked here. `bun run check`
-passes.
+On a **dummy** parts database selected in EPLAN: a few public catalog parts with planted gaps (no
+ERP on two, one of them discontinued; no description; no schematic macro; no function
+templates). In Tasks mode:
+
+- "check my parts database" shows the report card grouped by severity, the discontinued part not
+  counted for ERP, and writes the CSV;
+- "fix the descriptions" shows one card with the table; approving it backs the database up once,
+  the smoke test passes and the report shows them fixed; in Auto, a second batch runs without a
+  card, still checked;
+- "look up these part numbers on the Data Portal and find their macros and descriptions" finds
+  them, suggests the descriptions in Spanish, queues the parts in EPLAN's download list, and after
+  the user downloads, proposes the schematic macro paths;
+- asking to "delete the parts database" is blocked, and so is a `sqlcmd … DROP DATABASE`.
+
+The open S15-01 checks are run here. `bun run check` passes.
 
 ## Outcome
 
