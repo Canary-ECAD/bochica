@@ -29,7 +29,9 @@ function tempDir(): string {
 }
 
 /** A made-up EPLAN: a parts database in memory that exports and imports like the real one. */
-function fakeEplan(options: { macros?: string; sabotage?: boolean } = {}) {
+function fakeEplan(
+  options: { macros?: string; folders?: Record<string, string>; sabotage?: boolean } = {},
+) {
   let db: PartsDocument = parsePartsDocument(readFileSync(sample, "utf8"));
   const calls: string[] = [];
   const call: CallEplan = async (tool, args) => {
@@ -69,10 +71,12 @@ function fakeEplan(options: { macros?: string; sabotage?: boolean } = {}) {
       };
     }
     if (tool === "eplan_pathmap_substitute") {
-      return options.macros
+      const variable = String(args["path_with_variables"]);
+      const folder = options.folders?.[variable] ?? options.macros;
+      return folder
         ? {
             ok: true,
-            text: JSON.stringify({ success: true, results: { substituted: options.macros } }),
+            text: JSON.stringify({ success: true, results: { substituted: folder } }),
           }
         : { ok: false, text: "not connected" };
     }
@@ -264,6 +268,33 @@ describe("parts_lookup", () => {
     expect(result.text).toContain("dataportal_id 10");
     expect(result.text).toContain("DEMO.TB-10 manufacturer: DEMO");
     expect(result.text).toContain("DEMO.NOPE: not on the Data Portal");
+  });
+
+  test("a read-only master data folder is reported before anything is queued", async () => {
+    const macros = tempDir();
+    const eplan = fakeEplan({
+      macros,
+      // A pictures folder that can't be written to (here: one that doesn't exist).
+      folders: { "$(MD_IMG)": join(macros, "missing", "pictures") },
+    });
+    const { tool } = service(eplan, portal);
+    const result = await tool("parts_lookup").execute({ partNumbers: ["DEMO.TB-10"] }, signal);
+    expect(result.text).toContain("A download from the Data Portal will FAIL");
+    expect(result.text).toContain(`pictures folder ${join(macros, "missing", "pictures")}`);
+    // The macros folder is writable, so it isn't listed.
+    expect(result.text).not.toContain(`macros folder ${macros}`);
+    // The check leaves nothing behind.
+    expect(readdirSync(macros)).toEqual([]);
+  });
+
+  test("no download needed: the folders aren't checked", async () => {
+    const macros = tempDir();
+    mkdirSync(join(macros, "Demo"));
+    writeFileSync(join(macros, "Demo", "CT-200.ema"), "");
+    const eplan = fakeEplan({ macros, folders: { "$(MD_IMG)": join(macros, "missing") } });
+    const { tool } = service(eplan, portal);
+    const result = await tool("parts_lookup").execute({ partNumbers: ["DEMO.CT-200"] }, signal);
+    expect(result.text).not.toContain("will FAIL");
   });
 
   test("the portal being down is a sentence, not a crash", async () => {

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Status: S14 done.** Streaming chat with any provider in three modes (Consult: docs, the
+> **Status: S15 done.** Streaming chat with any provider in three modes (Consult: docs, the
 > scripting skills and file tools; Tasks: EPLAN over MCP, file tools and PowerShell; Draw:
 > experimental drawing tools); a working folder per session; skills added by the user (Settings),
 > `/` commands and `@file` mentions in the composer; context compaction with a usage ring;
@@ -19,8 +19,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > window from Update now until the new version opens, bridged through the install by a
 > PowerShell helper, and one Bochica at a time (S13c); eplan-mcp's tools state what they do
 > (MCP annotations and EPLAN facts), Bochica pins its release tags, decides policy from those
-> facts and watches for new releases (S14).
-> Next: M4, EPLAN workflows (S15).
+> facts and watches for new releases (S14); a parts database doctor: a report graded by
+> severity, fixes in approved batches with a backup and a smoke test in every mode, the Data
+> Portal by part number and macros through EPLAN's download list, guided by a bundled skill,
+> with hardline blocks against destroying a parts database (S15).
+> Next: M4, PLC generator (S16).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new

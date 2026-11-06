@@ -60,6 +60,9 @@ const builtinKinds: Record<string, string> = {
   todo_write: "todo",
   task: "helper",
   compact_context: "compacted",
+  parts_report: "partsReport",
+  parts_lookup: "partsLookup",
+  parts_fix: "partsFix",
 };
 
 function field(input: unknown, name: string): string {

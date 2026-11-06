@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint:** [S15](sprints/S15-parts-doctor.md) (M4).
+**Active sprint:** none. S15 is done; the next is S16 (M4), to be planned.
 
 Each milestone ends with something a non-technical user could try.
 
@@ -53,7 +53,7 @@ knows the workflow, and the app pieces it needs. Details in [BACKLOG.md](BACKLOG
 
 | Sprint                             | Goal                                                                                                                                | Status  |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S15](sprints/S15-parts-doctor.md) | Parts database doctor (Canary-ECAD/bochica#1): health report, fixes in approved batches, Data Portal search and download            | Active  |
+| [S15](sprints/S15-parts-doctor.md) | Parts database doctor (Canary-ECAD/bochica#1): health report, fixes in approved batches, Data Portal search and download            | Done    |
 | S16                                | PLC generator (Canary-ECAD/bochica#2): a skill that walks the agent through a macro project and generator for a part number         | Outline |
 | S17                                | Eyes and PDF to schematic (Canary-ECAD/bochica#3): images for the model, texts and lines with positions (PDF, OCR), redraw in EPLAN | Outline |
 

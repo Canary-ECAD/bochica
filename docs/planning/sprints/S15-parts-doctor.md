@@ -1,6 +1,6 @@
 # S15 — Parts database doctor
 
-**Status:** active
+**Status:** done
 **Goal:** a user asks "check my parts database" and gets a report graded by severity: parts
 without an ERP number, a manufacturer, a description, a schematic macro, a picture or function
 templates. Fixes come in batches; the database is backed up before the first write and checked
@@ -94,9 +94,9 @@ for every rule except the ERP number, which is the user's own.
       and the smallest import file that does it. Run on a dummy database during the demo, never
       on a real one.
 - [x] The EPLAN API calls that remove parts, for the script hardline.
-- [ ] On the dummy database, during the demo: the add-in's actions exist on P8 2025; downloading a
+- [x] On the dummy database, during the demo: the add-in's actions exist on P8 2025; downloading a
       part the database already has puts its macro in the macros folder, and whether it changes
-      the part. This decides whether S15-09 needs its fallback.
+      the part. This decides whether S15-09 needs its fallback. Yes, yes, and no: see Outcome.
 
 #### Findings
 
@@ -221,15 +221,19 @@ Repository: Canary-ECAD/eplan-mcp, then Bochica (`components:bump`).
 
 Packages: eplan, desktop.
 
-- [ ] For parts whose schematic macro is missing and the portal has one, the agent queues them
+- [x] For parts whose schematic macro is missing and the portal has one, the agent queues them
       with `eplan_dataportal_add_to_download_list`, tells the user what to click in EPLAN, and
       waits for them to say it's done.
 - [x] Then the portal's macro path is looked for under the macros folder (`$(MD_MACROS)`
       resolved through EPLAN's settings); where the file is there, `parts_fix` proposes 22145
       with that path. Parts still without a file are listed.
-- [ ] Fallback, only if S15-01 shows the add-in route fails: a Data Portal PAT in Settings
+- [x] ~~Fallback, only if S15-01 shows the add-in route fails: a Data Portal PAT in Settings
       (stored with `safeStorage` like an API key, Test with `GET /basketitems`, 401 explained) and
-      queueing through `POST /basketitems`.
+      queueing through `POST /basketitems`.~~ Not needed: the add-in route works on P8 2025.
+      Kept in BACKLOG.md for clearing the download list.
+- [x] Added from the demo: before queueing, `parts_lookup` checks that EPLAN can write to
+      `$(MD_MACROS)`, `$(MD_IMG)` and `$(MD_XML)` (an empty file created and deleted) and says a
+      download will fail when one is read-only.
 
 ### S15-10 · The parts-doctor skill
 
@@ -269,4 +273,47 @@ The open S15-01 checks are run here. `bun run check` passes.
 
 ## Outcome
 
-To be written when the sprint is done.
+Done on 2026-11-06, on P8 2025.0.3 with eplan-mcp v1.1.0 (Canary-ECAD/eplan-mcp#78), against a
+dummy parts database (EPLAN's `.alk` format) of about 75 parts.
+
+- **Report:** `parts_report` read the dummy database and, in the spike, a database of about
+  14,000 parts in about a second after a 21 s export, with the same counts as an independent
+  script. In the app (built, Tasks mode, a scripted model) the card showed the rules by severity
+  and the CSV opened; discontinued parts didn't count for the ERP rule.
+- **Fixes:** a `parts_fix` batch showed its table (current value next to the new one), backed the
+  database up once (`userData\backups\parts`) and passed its smoke test. A second batch in Auto
+  ran without a card ("Permitido por el modo Auto"), still checked, with the same backup. The
+  mode 1 import with whole parts changed only the given fields: variants, function templates and
+  the entry count stayed.
+- **Data Portal:** `parts_lookup` found Weidmüller parts by part number with their Spanish
+  description and macro path; some manufacturers' numbers aren't found as stored (Rittal's dots,
+  Lapp). The full loop worked on a part created empty: queued with the add-in's action, downloaded
+  by the user in EPLAN, its macro arrived in `$(MD_MACROS)`, `parts_lookup` then proposed
+  `$(MD_MACROS)\Weidmueller\1608740000.ema`, and one batch filled description, manufacturer and
+  schematic macro. The ERP number stayed empty, as it must.
+- **Guardrails:** asking to delete the parts database, by `Remove-Item` on the `.alk` file or by
+  `sqlcmd … DROP DATABASE`, was blocked in Auto mode, and the file stayed.
+- `bun run check` passes (715 tests); eplan-mcp's suite passes (1417 tests).
+
+What the demo taught, and what changed because of it:
+
+- **The portal skips the part data of a part the database has**, confirmed: the download brought
+  the macro file and picture, not the description, manufacturer, macro path or function
+  templates. Filling 22145 from the file on disk is the way; function templates and pictures for
+  existing parts stay in BACKLOG.md.
+- **A download writes into the master data folders.** With `$(MD_IMG)` on a read-only share it
+  failed inside EPLAN ("access denied"), after staging everything in `%TEMP%\EDPADL\<id>` with
+  `$(MD_MACROS)`, `$(MD_IMG)` and `$(MD_XML)` subfolders. `parts_lookup` now checks those folders
+  first.
+- **P8 2025 has `EDPCloudAddPartsToBasketAction` but not `EDPCloudGetSearchCountAction`** (2026
+  has both); Bochica searches through the public API anyway. On 2025 queueing also opens the Data
+  Portal window and the call doesn't come back while it is open: the part was queued but
+  eplan-mcp closed the connection after two minutes. The skill tells the agent to ask the user
+  to look at the window instead of queueing again; a fix in eplan-mcp is in BACKLOG.md.
+- **The Remote Client's greeting** reached stdout; harmless to Bochica, fixed in eplan-mcp v1.1.0
+  (0 transport errors since).
+- **EPLAN's own parts database file is `.alk`**, added to the files a command may never delete.
+- A first dummy database without EPLAN's `tblOption` table made the download fail; one EPLAN
+  creates itself works.
+- Only the Data Portal's documented API and the add-in are used. The webview's internal calls
+  (`fileprovider`, `part_import_strategy_event`) carry the EPLAN licence and are not touched.

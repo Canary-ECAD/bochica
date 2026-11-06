@@ -270,7 +270,13 @@
       "helper_one": "asked a helper",
       "helper_other": "asked {{count}} helpers",
       "compacted_one": "summarised the conversation",
-      "compacted_other": "summarised the conversation {{count}} times"
+      "compacted_other": "summarised the conversation {{count}} times",
+      "partsReport_one": "checked the parts database",
+      "partsReport_other": "checked the parts database {{count}} times",
+      "partsLookup_one": "looked parts up on the Data Portal",
+      "partsLookup_other": "looked parts up on the Data Portal {{count}} times",
+      "partsFix_one": "changed parts in the parts database",
+      "partsFix_other": "changed parts in the parts database in {{count}} batches"
     },
     "blocked": "Blocked by Bochica: {{reason}}",
     "changes": "Changes",

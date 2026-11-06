@@ -52,14 +52,22 @@ counting and the writing; you explain, propose and ask. Never guess what a tool 
    when it has one; otherwise offer the English one and say so.
 5. **Macros come through EPLAN.** When `parts_lookup` says a part's schematic macro is already in
    the macros folder, propose `schematicMacro` with the exact value it gives. When it isn't:
-   - queue those parts with `eplan_dataportal_add_to_download_list`;
-   - tell the user exactly what to do in EPLAN: open the Data Portal, go to the download list
-     and download it;
+   - if `parts_lookup` says a download will fail because a master data folder is read-only,
+     stop there and tell the user which folder and how to point it elsewhere; queueing would
+     only end in an error inside EPLAN;
+   - queue those parts with `eplan_dataportal_add_to_download_list`. In EPLAN 2025 this opens
+     the Data Portal window and the call may not come back while it is open: if it fails or
+     times out, the parts are usually queued anyway, so ask the user to look at the window
+     instead of queueing again;
+   - tell the user exactly what to do in EPLAN: in the Data Portal, open the download list,
+     tick the parts and download them. Suggest switching on "Delete parts after import /
+     download" there once, so the list doesn't keep old parts;
    - wait until they say it's done, then run `parts_lookup` again and propose the macro paths
      that are now on disk.
 
    The Data Portal skips the part data of parts the database already has, so a download brings
-   the macro file but doesn't fill 22145 by itself.
+   the macro file (and picture) but doesn't fill 22145, the description or anything else by
+   itself: that is what the batch after it is for.
 
 6. **Check after.** After a batch, run `parts_report` on the same parts to show they are fixed.
 

@@ -270,7 +270,13 @@
       "helper_one": "pidió ayuda a un ayudante",
       "helper_other": "pidió ayuda a {{count}} ayudantes",
       "compacted_one": "resumió la conversación",
-      "compacted_other": "resumió la conversación {{count}} veces"
+      "compacted_other": "resumió la conversación {{count}} veces",
+      "partsReport_one": "revisó la base de artículos",
+      "partsReport_other": "revisó la base de artículos {{count}} veces",
+      "partsLookup_one": "buscó artículos en el Data Portal",
+      "partsLookup_other": "buscó artículos en el Data Portal {{count}} veces",
+      "partsFix_one": "cambió artículos de la base de artículos",
+      "partsFix_other": "cambió artículos de la base de artículos en {{count}} lotes"
     },
     "blocked": "Bloqueado por Bochica: {{reason}}",
     "changes": "Cambios",

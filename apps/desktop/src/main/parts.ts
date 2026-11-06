@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentTool, ToolRunResult } from "@bochica/agent";
 import {
@@ -7,6 +7,7 @@ import {
   type Fetch,
   FIX_FIELDS,
   type FixField,
+  isEmpty,
   lookUpParts,
   MULTI_LANGUAGE_FIELDS,
   partAttributes,
@@ -521,20 +522,36 @@ export class PartsService {
           if (error instanceof DataPortalError) return { ok: false, text: error.message };
           throw error;
         }
-        const macros = local ? await this.macrosFolder(signal) : undefined;
+        const macros = local ? await this.masterDataFolder("$(MD_MACROS)", signal) : undefined;
         const onDisk = (path: string) =>
           macros !== undefined && existsSync(join(macros, path.replace(/^[\\/]+/, "")));
-        return { ok: true, text: lookupText(found, local, language, onDisk) };
+        // A download writes macros, pictures and part data into EPLAN's master data folders:
+        // when one is read-only, the download fails inside EPLAN, so say so before queueing.
+        const downloads = found.some((part) => {
+          const mine = local?.parts.find((p) => p.record.partNumber === part.search)?.record;
+          return (
+            part.found &&
+            part.schematicMacro !== undefined &&
+            mine !== undefined &&
+            isEmpty(mine.properties["P_ARTICLE_GROUPSYMBOLMACRO"]) &&
+            !onDisk(part.schematicMacro)
+          );
+        });
+        const readOnly = downloads ? await this.readOnlyMasterData(signal) : [];
+        return { ok: true, text: lookupText(found, local, language, onDisk, readOnly) };
       },
     };
   }
 
-  /** EPLAN's macros folder ($(MD_MACROS)), or undefined when EPLAN can't say. */
-  private async macrosFolder(signal: AbortSignal): Promise<string | undefined> {
+  /** One of EPLAN's master data folders ($(MD_MACROS)…), or undefined when EPLAN can't say. */
+  private async masterDataFolder(
+    variable: string,
+    signal: AbortSignal,
+  ): Promise<string | undefined> {
     const result = await this.deps
       .call(
         "eplan_pathmap_substitute",
-        { path_with_variables: "$(MD_MACROS)" },
+        { path_with_variables: variable },
         AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
       )
       .catch(() => undefined);
@@ -542,6 +559,40 @@ export class PartsService {
     const nested = parseJson(result.text)?.["results"] as Record<string, unknown> | undefined;
     const path = nested?.["substituted"];
     return typeof path === "string" && path && !path.includes("$(") ? path : undefined;
+  }
+
+  /**
+   * The master data folders a Data Portal download writes to that this user can't write to, as
+   * "pictures folder X:\\Pictures". Checked by creating and deleting an empty file, since
+   * Windows' permissions on a network share can't be read reliably any other way.
+   */
+  private async readOnlyMasterData(signal: AbortSignal): Promise<string[]> {
+    const out: string[] = [];
+    for (const [variable, name] of MASTER_DATA) {
+      // oxlint-disable-next-line no-await-in-loop
+      const folder = await this.masterDataFolder(variable, signal);
+      if (folder && !writable(folder)) out.push(`${name} ${folder}`);
+    }
+    return out;
+  }
+}
+
+/** The folders a Data Portal download writes into, with how the message names them. */
+const MASTER_DATA: ReadonlyArray<[string, string]> = [
+  ["$(MD_MACROS)", "macros folder"],
+  ["$(MD_IMG)", "pictures folder"],
+  ["$(MD_XML)", "XML folder"],
+];
+
+function writable(folder: string): boolean {
+  if (!existsSync(folder)) return false;
+  const probe = join(folder, `.bochica-write-test-${process.pid}-${Date.now()}`);
+  try {
+    writeFileSync(probe, "");
+    rmSync(probe, { force: true });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -555,6 +606,7 @@ function lookupText(
   local: PartsDocument | undefined,
   language: string,
   onDisk: (path: string) => boolean,
+  readOnly: readonly string[] = [],
 ): string {
   const lines: string[] = [];
   const suggestions: string[] = [];
@@ -579,13 +631,13 @@ function lookupText(
     );
     const mine = local?.parts.find((p) => p.record.partNumber === part.search)?.record;
     if (!mine) continue;
-    if (!mine.properties["P_ARTICLE_NOTE"]?.trim() && description) {
+    if (isEmpty(mine.properties["P_ARTICLE_NOTE"]) && description) {
       suggestions.push(`${part.search} description: "${description}"`);
     }
-    if (!mine.properties["P_ARTICLE_MANUFACTURER"]?.trim() && part.manufacturer) {
+    if (isEmpty(mine.properties["P_ARTICLE_MANUFACTURER"]) && part.manufacturer) {
       suggestions.push(`${part.search} manufacturer: ${part.manufacturer}`);
     }
-    if (!mine.properties["P_ARTICLE_GROUPSYMBOLMACRO"]?.trim() && part.schematicMacro) {
+    if (isEmpty(mine.properties["P_ARTICLE_GROUPSYMBOLMACRO"]) && part.schematicMacro) {
       suggestions.push(
         onDisk(part.schematicMacro)
           ? `${part.search} schematicMacro: ${macroValue(part.schematicMacro)} (the file is in the macros folder)`
@@ -600,6 +652,14 @@ function lookupText(
       "",
       "Could be filled in (ask the user, then parts_fix):",
       ...suggestions.map((s) => `- ${s}`),
+    );
+  }
+  if (readOnly.length > 0) {
+    lines.push(
+      "",
+      `A download from the Data Portal will FAIL: EPLAN can't write to the ${readOnly.join(", ")}.`,
+      "Before queueing anything, tell the user to point those folders at ones they can write to",
+      "(in EPLAN: File > Settings > User > Management > Directories), or to ask whoever manages them.",
     );
   }
   return lines.join("\n");
