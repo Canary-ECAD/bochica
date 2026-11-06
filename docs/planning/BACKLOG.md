@@ -79,31 +79,10 @@ move it there and leave a link here (`→ S4-03`).
 From the enhancement issues. Each one is an outline sprint in ROADMAP.md (M4); the open
 questions are answered when the sprint is planned.
 
-- **Parts database doctor** (Canary-ECAD/bochica#1) → S15. Curate the parts database and use the
-  Data Portal to fill what is missing.
-  - What exists: eplan-mcp reads and writes parts (`eplan_parts_db_query`, `_get_part`,
-    `_list_product_groups`, `_update`, `_create`), imports and exports them
-    (`eplan_partsmanagement_*`), checks a project's parts (`eplan_check_parts`) and backs up
-    master data (`eplan_backup_masterdata`).
-  - Sketch: a read-only health report first (missing description, manufacturer, order number,
-    macro or picture; duplicates; inconsistent units and spelling; parts a project uses that the
-    database lacks), shown in the app and exportable as CSV. Then fixes proposed in batches:
-    one approval card per batch, master data backed up before the first write.
-  - Data Portal, two ways in:
-    - **Inside EPLAN**, through the Data Portal add-in's actions and EPLAN's own sign-in. A
-      closed eplan-mcp PR (Canary-ECAD/eplan-mcp#75) measured them on P8 2026:
-      `EDPCloudGetSearchCountAction` counts hits and `EDPCloudAddPartsToBasketAction` queues
-      parts (`PARTNR<i>` + `PARTID<i>`, both required, indexes from 1). The download itself is a
-      modal dialog, so the agent asks the user to click it. Data Portal skips parts whose number
-      the database already has. The same PR sent .NET `Console.Out` to stderr, because the Remote
-      Client's greeting broke the stdio channel; check whether the pinned eplan-mcp needs that.
-    - **The Data Portal web API** (`dataportal.eplan.com/api/doc`) can search and download
-      without dialogs, with a personal token. The token belongs in Bochica's credential store
-      (main only, never in prompts or child processes beyond the one that needs it), so this
-      leans on S13's several credentials.
-    - Either way the tools go into eplan-mcp; Bochica classifies them and stores the token.
-  - Open: which database backends (Access, SQL Server)? Report as an artifact in the chat or
-    its own view?
+- **Parts database doctor** (Canary-ECAD/bochica#1) → planned as
+  [S15](sprints/S15-parts-doctor.md). Left out of it: Data Portal macros, pictures, DXF and E3D
+  downloads; configurators and selectors; a scheduled report; a view of its own for the report;
+  a built-in skill for the workflow (only if the demo shows the model needs one).
 - **PLC generator** (Canary-ECAD/bochica#2) → S16. Organise and create control schematics with
   any part number (SKU).
   - What exists: macros (`eplan_insert_device`, `eplan_generate_macros`), the live drawing tools,
