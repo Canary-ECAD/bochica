@@ -1,6 +1,6 @@
 # Roadmap
 
-**Active sprint:** none. S15 is done; the next is S16 (M4), to be planned.
+**Active sprint:** [S16](sprints/S16-product-macros.md) (M4).
 
 Each milestone ends with something a non-technical user could try.
 
@@ -51,10 +51,10 @@ Bochica does whole EPLAN jobs, not only single actions. Each sprint starts by pi
 scope (the issues are short), then adds what is missing to eplan-mcp, a built-in skill that
 knows the workflow, and the app pieces it needs. Details in [BACKLOG.md](BACKLOG.md#eplan-workflows).
 
-| Sprint                             | Goal                                                                                                                                | Status  |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [S15](sprints/S15-parts-doctor.md) | Parts database doctor (Canary-ECAD/bochica#1): health report, fixes in approved batches, Data Portal search and download            | Done    |
-| S16                                | PLC generator (Canary-ECAD/bochica#2): a skill that walks the agent through a macro project and generator for a part number         | Outline |
-| S17                                | Eyes and PDF to schematic (Canary-ECAD/bochica#3): images for the model, texts and lines with positions (PDF, OCR), redraw in EPLAN | Outline |
+| Sprint                               | Goal                                                                                                                                | Status  |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [S15](sprints/S15-parts-doctor.md)   | Parts database doctor (Canary-ECAD/bochica#1): health report, fixes in approved batches, Data Portal search and download            | Done    |
+| [S16](sprints/S16-product-macros.md) | Macros by product number (Canary-ECAD/bochica#2): rules from a macro project, a linter, fixes, generation per product number        | Active  |
+| S17                                  | Eyes and PDF to schematic (Canary-ECAD/bochica#3): images for the model, texts and lines with positions (PDF, OCR), redraw in EPLAN | Outline |
 
 Requests from [BACKLOG.md](BACKLOG.md) are slotted into these sprints when each one is planned.

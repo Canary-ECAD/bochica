@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > severity, fixes in approved batches with a backup and a smoke test in every mode, the Data
 > Portal by part number and macros through EPLAN's download list, guided by a bundled skill,
 > with hardline blocks against destroying a parts database (S15).
-> Next: M4, PLC generator (S16).
+> Active: M4, macros by product number (S16).
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new

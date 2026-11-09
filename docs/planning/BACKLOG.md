@@ -97,21 +97,23 @@ questions are answered when the sprint is planned.
     resolved.
   - Rules the user writes (property, condition, severity), per product group or manufacturer.
   - A view of its own for the report; a scheduled report; DXF and E3D downloads.
-- **PLC generator** (Canary-ECAD/bochica#2) → S16. Organise and create control schematics with
-  any part number (SKU).
-  - What exists: macros (`eplan_insert_device`, `eplan_generate_macros`), the live drawing tools,
-    PLC data exchange (`eplan_plc_import`, `eplan_plc_export`) and the parts database (S15).
-  - It's a methodology, so the main deliverable is a **skill**: a walkthrough the agent follows
-    to create a macro project, set up the macros that go with a part number, and configure the
-    generator that builds the control schematics from them. It ships as a built-in skill
-    (pinned in `components.lock.json` like the others); eplan-mcp gets any tool the walkthrough
-    finds missing.
-  - Sketch: given a part number, find or fetch the part (S15), create or open the macro
-    project, build and assign its macros, configure the generator, generate a sample schematic
-    and check it with `eplan_live_verify_page` and the project check. A made-up sample part and
-    I/O list serve as the demo.
-  - Open: which generator (the one in P8, or EEC Pro)? Which part families first (PLC cards,
-    then contactors, motor starters)?
+- **Macros by product number** (Canary-ECAD/bochica#2) → S16. A variable product number
+  (`MS-400-7K5-B`) picks the macros, variants and value sets of its product. The input is a
+  macro project whose macros are drawn but carry no rules saying which product takes which.
+  Planned with the maintainer: the rules are a file the user owns, a linter checks the macro
+  project against them, fixes come in approved batches, and a deterministic generator builds a
+  product number's pages. Sheet sizes and plot frames stay the user's. Later:
+  - EEC Pro as another generator.
+  - Rules imported from a spreadsheet the user already keeps.
+- **The project as code** (Canary-ECAD/bochica#4), after S16. Like Terraformer and Terraform:
+  read an existing project into a text file (structure, devices with part numbers, PLC I/O,
+  logical connections), lint it, show a plan (the difference with the project) and apply it.
+  - Read it live through eplan-mcp, or without EPLAN from an `.epdz`: Canary-ECAD/ecad-view's
+    `e3d-core` (TypeScript, no UI) already reads its `manifest.db` and AutomationML (designations,
+    part numbers, eCl@ss, positions, bridges). It would come as a pinned dependency.
+  - What doesn't fit: EPLAN is neither declarative nor idempotent, and page layout isn't declared.
+    A first apply would only add and update, never delete.
+  - S16's rules file and linter are its first piece.
 - **Eyes and PDF to schematic** (Canary-ECAD/bochica#3) → S17. Redraw a PDF schematic in EPLAN
   with any model; EPDZ projects as guidance.
   - What exists: the live drawing primitives (Canary-ECAD/eplan-mcp#34: create pages, place
