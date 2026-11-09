@@ -77,7 +77,7 @@ placeholder objects, and the brake as a macro variant, and nothing that ties the
 
 Read-only on the API; writes only on a dummy macro project and a scratch project.
 
-- [ ] The API types for macro boxes, placeholder objects, value sets and window macros
+- [x] The API types for macro boxes, placeholder objects, value sets and window macros
       (`eplan_api_types`, `eplan_api_describe`): what can be read and set, and how.
 - [ ] Reading a macro project in one call: every macro box (name, variant, representation type,
       description, page) and every placeholder (its value sets and variables). How long it takes.
@@ -86,6 +86,31 @@ Read-only on the API; writes only on a dummy macro project and a scratch project
 - [ ] Where `eplan_generate_macros` writes, and whether generation needs `.ema` files at all or
       can insert from the macro project.
 - [ ] Which of these need new tools in eplan-mcp (S16-02), and their facts.
+
+#### Findings
+
+Read through `eplan_api_describe` with eplan-mcp v1.3.0, no project open. Everything S16 needs is
+public API:
+
+- **Macro boxes** (`Eplan.EplApi.DataModel.MacroBox`): `MacroName` (the macro file),
+  `Variant`, `RepresentationType`, `TypeOfUsage`, `InsertionPoint`, `ReferencedPlacements` and
+  `Properties` (description and the rest); `Create(page)` and `AddReference` make one. They are
+  what tells EPLAN which objects of the macro project form which macro and variant.
+- **Placeholder objects** (`Graphics.PlaceHolder`): value sets are called **records** in the API
+  (`GetRecordNames`, `AddRecord`, `DeleteRecord`), each with its **variables** (`GetVariableNames`,
+  `AddVariable`, `GetValue`, `SetValue`); `ApplyRecord(name)` applies a value set, the same as
+  EPLAN's "Assign value set". `IsVariableValid` and `DeleteUnusedVariables` help the linter. Its
+  properties carry `PLACEHOLDER_NAME`, `_DESCRIPTION`, `_VALUESET_NAME` and
+  `_LASTUSEDVALUESET`.
+- **Window macros** (`MasterData.WindowMacro`): `Open(file, project, representationType, variant)`,
+  `GetVariants(representationType)`, `ExistVariant`, `PlaceHolders`, `Objects`, `Size`;
+  `Create(file, representationType, variant, placements, description)` writes a macro file from
+  placements. `Macro.Description` is a multi-language text.
+- **Inserting** (`HEServices.Insert`): `WindowMacro(macro or .ema file, representationType,
+  variant, page, point, moveKind, numerationMode)`, `PageMacro(.emp file, insertAfterPage,
+  project, overwrite, numerationMode)` and `SymbolMacro`. Insertion takes a macro file, so
+  generation needs the `.ema`/`.emp` files: either generated from the macro project into a folder
+  the user picks, or the ones the macro boxes already name.
 
 ### S16-02 · Macro tools in eplan-mcp
 
