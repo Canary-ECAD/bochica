@@ -23,7 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > severity, fixes in approved batches with a backup and a smoke test in every mode, the Data
 > Portal by part number and macros through EPLAN's download list, guided by a bundled skill,
 > with hardline blocks against destroying a parts database (S15).
-> Active: M4, macros by product number (S16).
+> eplan-mcp is pinned to its `main` after the C# script host (eplan-mcp#84). S16 (macros) and
+> S17 (PDF to schematic) are paused and go last, as the most complex work.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
 in `ROADMAP.md`, tick tasks in the sprint file in the same commit as the work, and put new
@@ -45,13 +46,13 @@ It offers the capabilities of a coding agent (those of Claude Code and Hermes Ag
 sessions, file and terminal tools, skills, subagents, per-action permissions, MCP) **with any
 model provider**, plus a preconfigured EPLAN integration:
 
-| Component                                                             | Repository                                                                                | How it is integrated                                                              |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Local MCP server that drives EPLAN (Python, 248 tools in `full` mode) | [Canary-ECAD/eplan-mcp](https://github.com/Canary-ECAD/eplan-mcp)                         | stdio MCP server launched by Bochica (`eplan-p8-mcp-server/mcp_server/server.py`) |
-| EPLAN P8 scripting skill (router + P8)                                | [Canary-ECAD/eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill) | Loaded by default (agentskills.io format, `SKILL.md`)                             |
-| EPLAN EEC Pro skill                                                   | [Canary-ECAD/eec-pro-skill](https://github.com/Canary-ECAD/eec-pro-skill)                 | Loaded by default (agentskills.io format, `SKILL.md`)                             |
-| P8 2027 documentation RAG (required minimum)                          | [Canary-ECAD/eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags) | Remote HTTPS MCP `https://rag2027.covaga.xyz/mcp`                                 |
-| Optional RAGs: P8 2026 and EEC Pro 2026                               | same repository                                                                           | `https://rag2026.covaga.xyz/mcp`, `https://rageecpro.covaga.xyz/mcp`              |
+| Component                                                             | Repository                                                                                | How it is integrated                                                 |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Local MCP server that drives EPLAN (Python, 276 tools in `full` mode) | [Canary-ECAD/eplan-mcp](https://github.com/Canary-ECAD/eplan-mcp)                         | stdio MCP server launched by Bochica (`python/mcp_server/server.py`) |
+| EPLAN P8 scripting skill (router + P8)                                | [Canary-ECAD/eplan-scripting-skill](https://github.com/Canary-ECAD/eplan-scripting-skill) | Loaded by default (agentskills.io format, `SKILL.md`)                |
+| EPLAN EEC Pro skill                                                   | [Canary-ECAD/eec-pro-skill](https://github.com/Canary-ECAD/eec-pro-skill)                 | Loaded by default (agentskills.io format, `SKILL.md`)                |
+| P8 2027 documentation RAG (required minimum)                          | [Canary-ECAD/eplan-cloudflare-rags](https://github.com/Canary-ECAD/eplan-cloudflare-rags) | Remote HTTPS MCP `https://rag2027.covaga.xyz/mcp`                    |
+| Optional RAGs: P8 2026 and EEC Pro 2026                               | same repository                                                                           | `https://rag2026.covaga.xyz/mcp`, `https://rageecpro.covaga.xyz/mcp` |
 
 Before touching the EPLAN integration, read eplan-mcp's `llm.md`: it describes everything the
 server can do and configure. Facts about the MCP server that shape Bochica:
@@ -221,6 +222,10 @@ How the pieces fit:
 - **Modes:** every turn carries a `ChatMode`. `ChatService.toolsFor` filters tools with
   `eplanToolInMode` (`packages/eplan/src/modes.ts`) and `systemPrompt(mode, guides, options)`
   adds the mode's section. In Consult the built-in scripting guides go into the prompt whole.
+  `notOffered` there lists the eplan-mcp tools no mode gets, each with its reason: today the C#
+  script host (it downloads its host outside the pinned runtime, and its scripts bypass the
+  parts guard) and the clean-up halves of the tools eplan-mcp keeps off unless
+  `EPLAN_MCP_ENABLE_TOOLS` lists them, which Bochica never sets.
 - **Skills:** format, loading, injection scan and the tools `use_skill` / `read_skill_file` are
   in `packages/agent/src/skills.ts` (`SkillSet` reads only inside a skill's folder).
   `SkillService` (`main/skills.ts`) has two sources: built in (eplan-scripting-skill and
@@ -348,7 +353,7 @@ Users never install Python, Node or MCP servers by hand. The installer bundles a
 it works offline and behind corporate proxies.
 
 - `apps/desktop/scripts/prepare-runtime.ts` (first step of `bun run package` and `release`) fills
-  `apps/desktop/runtime` (not in Git): `python\`, `eplan-mcp\` (only `eplan-p8-mcp-server`),
+  `apps/desktop/runtime` (not in Git): `python\`, `eplan-mcp\` (only its `python` folder),
   `skills\<repo>\skills\…` and `manifest.json`, written last. It skips the work when the
   manifest matches the pins (and `RUNTIME_LAYOUT`, raised when the folder's contents change), and
   ends by starting the bundled server and checking that it lists its tools. electron-builder

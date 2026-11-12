@@ -13,7 +13,7 @@ import {
   uvPin,
 } from "./runtime";
 
-const SCRIPT = join("eplan-p8-mcp-server", "mcp_server", "server.py");
+const SCRIPT = join("python", "mcp_server", "server.py");
 
 let dir: string;
 beforeEach(() => {

@@ -1,6 +1,8 @@
 # Roadmap
 
-**Active sprint:** [S16](sprints/S16-product-macros.md) (M4).
+**Active sprint:** none. S16 and S17 are paused and go last (decided 2026-11-12): they are the
+most complex work, so the rest comes first. Meanwhile Bochica keeps up with eplan-mcp, now pinned
+to its `main` after the C# script host (Canary-ECAD/eplan-mcp#84).
 
 Each milestone ends with something a non-technical user could try.
 
@@ -54,7 +56,7 @@ knows the workflow, and the app pieces it needs. Details in [BACKLOG.md](BACKLOG
 | Sprint                               | Goal                                                                                                                                | Status  |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | [S15](sprints/S15-parts-doctor.md)   | Parts database doctor (Canary-ECAD/bochica#1): health report, fixes in approved batches, Data Portal search and download            | Done    |
-| [S16](sprints/S16-product-macros.md) | Macros by product number (Canary-ECAD/bochica#2): rules from a macro project, a linter, fixes, generation per product number        | Active  |
+| [S16](sprints/S16-product-macros.md) | Macros by product number (Canary-ECAD/bochica#2): rules from a macro project, a linter, fixes, generation per product number        | Paused  |
 | S17                                  | Eyes and PDF to schematic (Canary-ECAD/bochica#3): images for the model, texts and lines with positions (PDF, OCR), redraw in EPLAN | Outline |
 
 Requests from [BACKLOG.md](BACKLOG.md) are slotted into these sprints when each one is planned.

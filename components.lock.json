@@ -1,8 +1,7 @@
 {
   "eplan-mcp": {
     "repository": "https://github.com/Canary-ECAD/eplan-mcp",
-    "commit": "77a78f6315992d8e50745de87f221c7e53a08a53",
-    "tag": "v1.3.0"
+    "commit": "c8ea1865ada9657a4f4831ba23c39efc47abf173"
   },
   "eplan-scripting-skill": {
     "repository": "https://github.com/Canary-ECAD/eplan-scripting-skill",

@@ -24,7 +24,7 @@ export const defaultMcpServers: readonly McpServerConfig[] = [
   {
     id: "eplan",
     transport: "stdio",
-    script: "eplan-p8-mcp-server/mcp_server/server.py",
+    script: "python/mcp_server/server.py",
     env: { EPLAN_MCP_MODE: "full", MCP_TRANSPORT: "stdio" },
     required: true,
   },

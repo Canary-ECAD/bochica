@@ -171,6 +171,20 @@
       }
     },
     {
+      "name": "eplan_assert_isolation",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_backup_masterdata",
       "annotations": {
         "readOnlyHint": false,
@@ -562,7 +576,35 @@
       }
     },
     {
+      "name": "eplan_dialog_history",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_disconnect",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_dwg_inspect",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1580,6 +1622,20 @@
       }
     },
     {
+      "name": "eplan_list_addin_actions",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_list_dialogs",
       "annotations": {
         "readOnlyHint": true,
@@ -1831,6 +1887,36 @@
         "changesProject": true,
         "runsCode": false,
         "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_live_objects_edit",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": true,
+        "runsCode": false,
+        "changesEplan": false,
+        "projectArgument": "project"
+      }
+    },
+    {
+      "name": "eplan_live_objects_read",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false,
+        "projectArgument": "project"
       }
     },
     {
@@ -2100,6 +2186,20 @@
       }
     },
     {
+      "name": "eplan_live_read_terminals",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_live_remove_placement",
       "annotations": {
         "readOnlyHint": false,
@@ -2157,6 +2257,20 @@
       }
     },
     {
+      "name": "eplan_live_scale_text",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": true,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_live_set_connection_designations",
       "annotations": {
         "readOnlyHint": false,
@@ -2186,6 +2300,20 @@
     },
     {
       "name": "eplan_live_set_function_text",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": true,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_live_set_layer",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2365,6 +2493,21 @@
         "changesProject": false,
         "runsCode": false,
         "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_navigator_select",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false,
+        "projectArgument": "project"
       }
     },
     {
@@ -2579,6 +2722,20 @@
       }
     },
     {
+      "name": "eplan_pdf_inspect",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_ping",
       "annotations": {
         "readOnlyHint": true,
@@ -2680,6 +2837,76 @@
         "runsCode": false,
         "changesEplan": false,
         "projectArgument": "project_name"
+      }
+    },
+    {
+      "name": "eplan_profile_forget",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_profile_get",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_profile_learn",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_profile_list",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_profile_suggest",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
       }
     },
     {
@@ -2974,6 +3201,147 @@
     },
     {
       "name": "eplan_scratch_project_list",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_scratch_symbols_purge",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": true
+      }
+    },
+    {
+      "name": "eplan_scratch_symbols_restore",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": true
+      }
+    },
+    {
+      "name": "eplan_scratch_symbols_status",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_cancel",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_hello",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_host_install",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_list",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_offline_stop",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
+      "name": "eplan_script_run",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": true,
+        "runsCode": true,
+        "changesEplan": false,
+        "projectArgument": "project"
+      }
+    },
+    {
+      "name": "eplan_script_status",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3433,6 +3801,20 @@
       }
     },
     {
+      "name": "eplan_ui_dismiss_watch_stop",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
+      }
+    },
+    {
       "name": "eplan_unite_net_definition_points",
       "annotations": {
         "readOnlyHint": false,
@@ -3562,6 +3944,20 @@
         "runsCode": false,
         "changesEplan": false,
         "projectArgument": "project_path"
+      }
+    },
+    {
+      "name": "eplan_verify_actions",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "facts": {
+        "changesProject": false,
+        "runsCode": false,
+        "changesEplan": false
       }
     },
     {

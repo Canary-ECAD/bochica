@@ -1,6 +1,7 @@
 # S16 — Macros by product number
 
-**Status:** active
+**Status:** paused (2026-11-12): S16 and S17 go last, as the most complex work. When it resumes,
+redo S16-01's look at what exists: eplan-mcp is now pinned past v1.3.0 (see "What exists").
 **Goal:** a user brings a macro project for a product family: its macros are drawn, but nothing
 says which ones a given product needs. With the agent, and approving each step, they write the
 rules: how the product number reads (segments and their values) and which macro, variant and
@@ -41,6 +42,11 @@ placeholder objects, and the brake as a macro variant, and nothing that ties the
   `eplan_live_read_page`, `eplan_live_verify_page`, `eplan_live_check_page`, `eplan_check_project`,
   and `eplan_api_types` / `eplan_api_describe` to look the API up. Nothing yet reads macro boxes,
   placeholder objects or value sets, nor inserts a macro with a chosen variant and value set.
+- **Since then** (eplan-mcp `main` after Canary-ECAD/eplan-mcp#84, pinned 2026-11-12): the
+  convention profiles (`eplan_profile_*`, learning symbols and naming from a GO-BY project),
+  `eplan_live_objects_read` / `_edit`, and the C# script host's library scripts for macro boxes
+  (`macrobox_snapshot`, `macrobox_restore`, `macrobox_links`, `macro_prepare_inspect`). Bochica
+  offers no script host tool yet (`notOffered` in `modes.ts`), so those scripts need it first.
 - **S15's pattern:** rules as a table, a report card, fixes in batches with a backup and a check
   after each one, a bundled skill that drives the tools.
 - **Project backup** (`BackupGuard`) before the first change of a session, and the pinned target

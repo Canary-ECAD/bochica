@@ -1,5 +1,6 @@
 # Notices a new eplan-mcp release on its own: weekly (and by hand), when eplan-mcp's latest
-# release is newer than the tag pinned in components.lock.json, it opens an issue with the release
+# release has commits the pin in components.lock.json lacks (a tag, or a commit of main between
+# releases), it opens an issue with the release
 # notes and the bump command. One issue per version, never twice, even after it is closed. It only
 # reads eplan-mcp's public releases: no token crosses repositories.
 name: Components watch
@@ -24,12 +25,19 @@ jobs:
         run: |
           set -euo pipefail
           repository=$(jq -r '."eplan-mcp".repository' components.lock.json | sed 's#^https://github.com/##')
-          pinned=$(jq -r '."eplan-mcp".tag // "v0.0.0"' components.lock.json)
+          commit=$(jq -r '."eplan-mcp".commit' components.lock.json)
+          pinned=$(jq -r '."eplan-mcp".tag // ""' components.lock.json)
           latest=$(gh api "repos/$repository/releases/latest" --jq .tag_name 2>/dev/null || true)
-          echo "pinned $pinned, latest ${latest:-none}"
+          echo "pinned ${pinned:-$commit}, latest ${latest:-none}"
           if [ -z "$latest" ] || [ "$latest" = "$pinned" ]; then exit 0; fi
-          newest=$(printf '%s\n%s\n' "${pinned#v}" "${latest#v}" | sort -V | tail -n 1)
-          if [ "$newest" != "${latest#v}" ]; then exit 0; fi
+          # Only a release with commits the pin lacks is news. This also covers a pin by commit
+          # (main between releases), which may already hold the latest release.
+          status=$(gh api "repos/$repository/compare/$latest...$commit" --jq .status)
+          if [ "$status" = "ahead" ] || [ "$status" = "identical" ]; then
+            echo "The pinned commit already holds $latest."
+            exit 0
+          fi
+          pinned=${pinned:-${commit:0:7}}
 
           title="eplan-mcp $latest is out"
           existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" \

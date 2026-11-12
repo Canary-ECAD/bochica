@@ -170,6 +170,22 @@ questions are answered when the sprint is planned.
   - `allow_real_project` (eplan-mcp's scratch guard, already on the drawing tools in v1.2.0) is
     not a typed confirmation in Bochica: Draw works on the user's project by design, and the
     card plus the project backup cover it.
+- **The eplan-mcp bump past eplan-mcp#84** (the C# script host) → done 2026-11-12, pinned by
+  commit: `main` had no release tag yet. Its server folder is now `python/` (was
+  `eplan-p8-mcp-server/`), so the runtime layout went to 3. 28 tools came, none left or changed;
+  the six that act outside project data (UI driving, add-in deploy, scratch symbols) stay off,
+  since Bochica never sets `EPLAN_MCP_ENABLE_TOOLS`. Still to do:
+  - Once eplan-mcp tags a release holding this commit, `components:bump eplan-mcp vX.Y.Z` so
+    the lock records the tag again (the watch already skips releases the pin holds).
+  - **The script host in Bochica.** `notOffered` (`modes.ts`) hides the seven `eplan_script_*`
+    tools. To offer them: ship the host inside the runtime at a pinned `host-v` release (never
+    eplan-mcp's own download into `~\.eplan-mcp\host`), make the parts guard read
+    `eplan_script_run`'s source and library scripts, decide whether Bochica ever sets
+    `EPLAN_MCP_ALLOW_REAL_PROJECT_WRITES`, and tell users it needs EPLAN 2027 and the EPLAN API
+    developer license. The `host-v` release itself isn't published yet.
+  - Convention profiles (`eplan_profile_*`) are kept under `%LOCALAPPDATA%` by eplan-mcp. They
+    are a client's standards: say so in the guardrails doc and consider a Settings entry to see
+    and delete them.
 
 - GitHub Actions CI running `bun run check` on `windows-latest` for every push and PR → done in S3-00.
 - **Built-in skills inside the installer** → done in S11. Today the built-in skills (eplan-scripting-skill, eec-pro-skill) are downloaded

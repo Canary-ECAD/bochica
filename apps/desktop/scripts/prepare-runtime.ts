@@ -121,7 +121,7 @@ async function prepareUv(): Promise<void> {
 
 async function prepareEplanMcp(): Promise<void> {
   const folder = await checkout("eplan-mcp");
-  const server = "eplan-p8-mcp-server";
+  const server = "python";
   cpSync(join(folder, server), join(paths.eplanMcp, server), {
     recursive: true,
     filter: (path) => !/[\\/](tests|Testing)$/.test(path),
@@ -147,12 +147,7 @@ async function prepareSkills(): Promise<void> {
  * the repository root with relative paths, so the "via" notes in the lock name no local folder.
  */
 function writeLock(): void {
-  const requirements = join(
-    paths.eplanMcp,
-    "eplan-p8-mcp-server",
-    "mcp_server",
-    "requirements.txt",
-  );
+  const requirements = join(paths.eplanMcp, "python", "mcp_server", "requirements.txt");
   log("regenerating requirements.lock.txt");
   const fromRoot = (path: string) => relative(repoRoot, path).replaceAll("\\", "/");
   run(

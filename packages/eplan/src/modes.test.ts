@@ -45,6 +45,21 @@ describe("tools per mode", () => {
     }
   });
 
+  test("no mode gets the script host or the clean-up of tools Bochica never enables", () => {
+    for (const mode of ["consult", "tasks", "draw"] as const) {
+      const tools = toolsIn(mode);
+      expect(tools.filter((t) => t.startsWith("eplan_script_"))).toEqual([]);
+      expect(tools.filter((t) => t.startsWith("eplan_scratch_symbols_"))).toEqual([]);
+      expect(tools).not.toContain("eplan_ui_dismiss_watch_stop");
+    }
+  });
+
+  test("Tasks gets the new live object tools", () => {
+    const tasks = toolsIn("tasks");
+    for (const tool of ["eplan_live_objects_read", "eplan_live_objects_edit", "eplan_profile_get"])
+      expect(tasks).toContain(tool);
+  });
+
   test("Draw changes nothing project-wide: every change it can make is a drawing tool", () => {
     const writers = toolsIn("draw").filter((t) => policyOf(t).approval !== "never");
     for (const tool of writers)

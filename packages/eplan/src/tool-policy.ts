@@ -74,6 +74,11 @@ export const eplanOverrides: Readonly<Record<string, { policy: EplanToolPolicy; 
       reason:
         "Deprecated upstream and never verified; it acts on every object of the project at once.",
     },
+    eplan_script_host_install: {
+      policy: { approval: "always", changesProject: false },
+      reason:
+        "Downloads and installs a binary outside the pinned runtime. No mode offers it (modes.ts); if one ever does, it asks every time.",
+    },
   };
 
 export function eplanToolPolicy(tool: EplanToolInfo): EplanToolPolicy {

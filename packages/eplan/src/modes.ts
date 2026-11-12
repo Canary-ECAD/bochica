@@ -65,7 +65,35 @@ const drawingReads = new Set([
   "eplan_list_dialogs",
 ]);
 
+/**
+ * Tools no mode gets, each group with its reason. They are listed by the pinned server but don't
+ * fit how Bochica ships and guards EPLAN.
+ */
+const notOffered = new Set([
+  // The C# script host (eplan-mcp#83). On first use it downloads its host from a GitHub release
+  // into the user's profile, outside the pinned runtime an update replaces; that release isn't
+  // published yet; it needs EPLAN 2027 and the EPLAN API developer license; and its ad-hoc C#
+  // would bypass the parts guard, which reads only eplan_execute_*_script. It comes back once the
+  // host ships inside the runtime and the guard reads its scripts.
+  "eplan_script_hello",
+  "eplan_script_run",
+  "eplan_script_status",
+  "eplan_script_cancel",
+  "eplan_script_list",
+  "eplan_script_offline_stop",
+  "eplan_script_host_install",
+  // Clean-up halves of tools eplan-mcp keeps off unless EPLAN_MCP_ENABLE_TOOLS lists them
+  // (scratch symbol libraries, the UI dismiss watch). Bochica never enables them, so there is
+  // nothing to restore, purge or stop.
+  "eplan_scratch_symbols_restore",
+  "eplan_scratch_symbols_purge",
+  "eplan_scratch_symbols_status",
+  "eplan_assert_isolation",
+  "eplan_ui_dismiss_watch_stop",
+]);
+
 export function eplanToolInMode(tool: string, mode: ChatMode): boolean {
+  if (notOffered.has(tool)) return false;
   switch (mode) {
     case "consult":
       return false;
@@ -81,4 +109,5 @@ export const modeListedTools: ReadonlySet<string> = new Set([
   ...placementTools,
   ...drawingEdits,
   ...drawingReads,
+  ...notOffered,
 ]);

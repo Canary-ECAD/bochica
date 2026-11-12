@@ -45,10 +45,10 @@ export function runtimePaths(root: string) {
 }
 
 /** Raise it when what goes into the runtime folder changes, so old builds are redone. */
-const RUNTIME_LAYOUT = 2;
+const RUNTIME_LAYOUT = 3;
 
 export const RuntimeManifest = z.object({
-  /** 2: uv no longer ships. */
+  /** 2: uv no longer ships. 3: eplan-mcp's server folder is `python` (was `eplan-p8-mcp-server`). */
   layout: z.number(),
   python: z.string(),
   /** The uv that installed the dependencies. */
