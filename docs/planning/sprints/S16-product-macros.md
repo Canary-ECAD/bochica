@@ -42,7 +42,7 @@ placeholder objects, and the brake as a macro variant, and nothing that ties the
   `eplan_live_read_page`, `eplan_live_verify_page`, `eplan_live_check_page`, `eplan_check_project`,
   and `eplan_api_types` / `eplan_api_describe` to look the API up. Nothing yet reads macro boxes,
   placeholder objects or value sets, nor inserts a macro with a chosen variant and value set.
-- **Since then** (eplan-mcp `main` after Canary-ECAD/eplan-mcp#84, pinned 2026-11-12): the
+- **Since then** (eplan-mcp v2.0.0, Canary-ECAD/eplan-mcp#84, pinned 2026-11-12): the
   convention profiles (`eplan_profile_*`, learning symbols and naming from a GO-BY project),
   `eplan_live_objects_read` / `_edit`, and the C# script host's library scripts for macro boxes
   (`macrobox_snapshot`, `macrobox_restore`, `macrobox_links`, `macro_prepare_inspect`). Bochica

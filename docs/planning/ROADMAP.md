@@ -2,7 +2,7 @@
 
 **Active sprint:** none. S16 and S17 are paused and go last (decided 2026-11-12): they are the
 most complex work, so the rest comes first. Meanwhile Bochica keeps up with eplan-mcp, now pinned
-to its `main` after the C# script host (Canary-ECAD/eplan-mcp#84).
+to v2.0.0, the C# script host (Canary-ECAD/eplan-mcp#84).
 
 Each milestone ends with something a non-technical user could try.
 

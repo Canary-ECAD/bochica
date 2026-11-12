@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > severity, fixes in approved batches with a backup and a smoke test in every mode, the Data
 > Portal by part number and macros through EPLAN's download list, guided by a bundled skill,
 > with hardline blocks against destroying a parts database (S15).
-> eplan-mcp is pinned to its `main` after the C# script host (eplan-mcp#84). S16 (macros) and
+> eplan-mcp is pinned to v2.0.0, the C# script host (eplan-mcp#84). S16 (macros) and
 > S17 (PDF to schematic) are paused and go last, as the most complex work.
 
 **Planning:** work follows [docs/planning/](docs/planning/README.md). Start from the active sprint
